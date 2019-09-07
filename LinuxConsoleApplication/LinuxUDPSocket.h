@@ -12,12 +12,14 @@ class Packet;
 class LinuxUDPSocket
 {
 public:
-    LinuxUDPSocket();
+    LinuxUDPSocket(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
     ~LinuxUDPSocket();
     void Init();
 
-    std::list<Packet*>&& Recv(std::list<Packet*>&& freeBuffers);
-    std::list<Packet*>&& Send(std::list<Packet*>&& data);
+    std::list<Packet*> Recv(std::list<Packet*>&& freeBuffers);
+    std::list<Packet*> Send(std::list<Packet*>&& data);
+
+    std::list<Packet*> CreateBuffers(int size);
 
 private:
     uint _socket;

@@ -12,10 +12,11 @@ public:
     }
 
     std::vector<char>& GetData() { return _data; }
-    sockaddr& GetAddr() { return _addr; }
+    sockaddr* GetAddr() { return _addr; }
+    void SetAddr(sockaddr* addr) { _addr = addr; }
 
 private:
     std::vector<char> _data;
-    sockaddr _addr;
+    sockaddr* _addr;
 
 };

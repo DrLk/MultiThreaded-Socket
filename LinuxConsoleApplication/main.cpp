@@ -1,5 +1,8 @@
 #include <cstdio>
 #include <unistd.h>
+#include<sys/socket.h>
+#include<arpa/inet.h>
+#include<string.h>
 
 #include "LinuxUDPSocket.h"
 
@@ -8,9 +11,84 @@
 
 int main(void)
 {
-    LinuxUDPSocket linuxSocket;
+    LinuxUDPSocket srcSocket(8888, 5, 1, 1000, 1000);
+    LinuxUDPSocket dstSocket(9999, 1, 5, 1000, 1000);
     
-    linuxSocket.Init();
+    srcSocket.Init();
+    dstSocket.Init();
+
+
+    std::list<Packet*> recvBuffers = dstSocket.CreateBuffers(10000);
+    std::list<Packet*> sendBuffers = srcSocket.CreateBuffers(10000);
+
+    sockaddr_in dstAddr;
+    // zero out the structure
+    memset((char*)& dstAddr, 0, sizeof(dstAddr));
+
+    dstAddr.sin_family = AF_INET;
+    dstAddr.sin_port = htons(9999);
+    auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
+    //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
+    //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
+
+    std::thread srcThread([&sendBuffers, &dstAddr, &srcSocket]()
+        {
+            long long counter = 0;
+            while (true)
+            {
+                for (auto& buffer : sendBuffers)
+                {
+                    buffer->SetAddr((sockaddr*)& dstAddr);
+                    buffer->GetData().resize(sizeof(counter));
+                    long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
+                    *data = counter++;
+                }
+
+                sendBuffers = srcSocket.Send(std::move(sendBuffers));
+                if (sendBuffers.empty())
+                    usleep(1);
+                else
+                {
+                    int a = 0;
+                    a++;
+                }
+            }
+        }
+    );
+
+    for (auto& buffer : recvBuffers)
+    {
+        buffer->GetData().resize(1500);
+    }
+    std::thread dstThread([&recvBuffers, &dstSocket]()
+        {
+            long long maxValue = 0;
+            long long packetCount = 0;
+            while (true)
+            {
+                recvBuffers = dstSocket.Recv(std::move(recvBuffers));
+                for (auto& buffer : recvBuffers)
+                {
+                    buffer->GetData().resize(1500);
+                    long long *data = reinterpret_cast<long long*>(buffer->GetData().data());
+                    maxValue = *data;
+                    packetCount++;
+                }
+
+                if (recvBuffers.empty())
+                    usleep(1);
+                else
+                {
+                    int a = 0;
+                    a++;
+                }
+            }
+        }
+    );
+
+
+    srcThread.join();
+    dstThread.join();
     sleep(10000);
     return 0;
 }
