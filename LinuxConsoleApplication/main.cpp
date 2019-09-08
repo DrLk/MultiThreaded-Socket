@@ -7,8 +7,8 @@
 
 int main(void)
 {
-    LinuxUDPQueue srcSocket(8888, 5, 1, 1000, 1000);
-    LinuxUDPQueue dstSocket(9999, 1, 5, 1000, 1000);
+    LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
+    LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
     
     srcSocket.Init();
     dstSocket.Init();

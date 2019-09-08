@@ -43,10 +43,9 @@ private:
     static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, int index);
     static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, int index);
 
-    std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
+    std::vector<RecvThreadQueue*> _recvThreadQueues;
 
     int _threadCount;
-
     int _sendQueueSizePerThread;
     int _recvQueueSizePerThread;
 

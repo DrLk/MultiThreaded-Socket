@@ -13,10 +13,9 @@ void die(char* s)
     throw std::runtime_error(s);
 }
 
-LinuxUDPQueue::LinuxUDPQueue(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : _port(port)
+LinuxUDPQueue::LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : _port(port)
 {
-    _writeThreadCount = sendThreadCount;
-    _readThreadCount = recvThreadCount;
+    _threadCount = threadCount;
     _sendQueueSizePerThread = sendQueueSizePerThread;
     _recvQueueSizePerThread = recvQueueSizePerThread;
 }
@@ -27,21 +26,17 @@ LinuxUDPQueue::~LinuxUDPQueue()
 
 void LinuxUDPQueue::Init()
 {
-    for (int i = 0; i < std::max(_writeThreadCount, _readThreadCount); i++)
+    for (int i = 0; i < _threadCount; i++)
     {
-        _sockets.emplace_back(new Socket(_port + i));
+        _sockets.emplace_back(std::make_shared<Socket>(_port + i));
     }
 
-    std::for_each(_sockets.begin(), _sockets.end(), [](Socket* socket) { socket->Init(); });
+    std::for_each(_sockets.begin(), _sockets.end(), [](std::shared_ptr<Socket>& socket) { socket->Init(); });
 
-    for (int i = 0; i < _writeThreadCount; i++)
+    for (int i = 0; i < _threadCount; i++)
     {
         _writeThreads.push_back(std::thread(WriteThread, std::ref(*this), std::ref(*_sockets[i]), i));
-    }
-
-    for (int i = 0; i < _readThreadCount; i++)
-    {
-        _recvThreadQueues.emplace_back(new RecvThreadQueue());
+        _recvThreadQueues.emplace_back(std::make_shared<RecvThreadQueue>());
         _readThreads.push_back(std::thread(ReadThread, std::ref(*this), std::ref(*_recvThreadQueues.back()), std::ref(*_sockets[i]), i));
     }
 }
@@ -53,7 +48,7 @@ std::list<Packet*> LinuxUDPQueue::Recv(std::list<Packet*>&& freeBuffers)
         _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
     }
 
-    for (RecvThreadQueue* recvThreadQueue : _recvThreadQueues)
+    for (std::shared_ptr<RecvThreadQueue>& recvThreadQueue : _recvThreadQueues)
     {
         std::list<Packet*> packets;
         {
