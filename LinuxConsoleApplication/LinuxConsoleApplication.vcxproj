@@ -81,7 +81,8 @@
   <ItemGroup>
     <ClInclude Include="LinuxUDPSocket.h" />
     <ClInclude Include="Packet.h" />
-    <ClInclude Include="ReadThreadQueue.h" />
+    <ClInclude Include="RecvThreadQueue.h" />
+    <ClInclude Include="Socket.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>

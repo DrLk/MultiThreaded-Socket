@@ -1,10 +1,7 @@
 #include"LinuxUDPSocket.h"
 
-#include<string.h> //memset
-#include<arpa/inet.h>
-#include<sys/socket.h>
-#include <unistd.h>
 #include <exception>
+#include <algorithm>
 
 #include "Packet.h"
 
@@ -16,7 +13,7 @@ void die(char* s)
     throw std::runtime_error(s);
 }
 
-LinuxUDPSocket::LinuxUDPSocket(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : _socket(0), _port(port)
+LinuxUDPSocket::LinuxUDPSocket(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : _port(port)
 {
     _writeThreadCount = sendThreadCount;
     _readThreadCount = recvThreadCount;
@@ -26,44 +23,26 @@ LinuxUDPSocket::LinuxUDPSocket(int port, int sendThreadCount, int recvThreadCoun
 
 LinuxUDPSocket::~LinuxUDPSocket()
 {
-    close(_socket);
 }
 
 void LinuxUDPSocket::Init()
 {
-    struct sockaddr_in si_me, si_other;
-
-    uint i, slen = sizeof(si_other), recv_len;
-    char buf[BUFLEN];
-
-    //create a UDP socket
-    if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    for (int i = 0; i < std::max(_writeThreadCount, _readThreadCount); i++)
     {
-        die("socket");
+        _sockets.emplace_back(new Socket(_port + i));
     }
 
-    // zero out the structure
-    memset((char*)& si_me, 0, sizeof(si_me));
-
-    si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(_port);
-    si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    //bind socket to port
-    if (bind(_socket, (struct sockaddr*) &si_me, sizeof(si_me)) == -1)
-    {
-        die("bind");
-    }
+    std::for_each(_sockets.begin(), _sockets.end(), [](Socket* socket) { socket->Init(); });
 
     for (int i = 0; i < _writeThreadCount; i++)
     {
-        _writeThreads.push_back(std::thread(WriteThread, std::ref(*this)));
+        _writeThreads.push_back(std::thread(WriteThread, std::ref(*this), std::ref(*_sockets[i])));
     }
 
     for (int i = 0; i < _readThreadCount; i++)
     {
         _recvThreadQueues.emplace_back(new RecvThreadQueue());
-        _readThreads.push_back(std::thread(ReadThread, std::ref(*this), std::ref(*_recvThreadQueues.back())));
+        _readThreads.push_back(std::thread(ReadThread, std::ref(*this), std::ref(*_recvThreadQueues.back()), std::ref(*_sockets[i])));
     }
 }
 
@@ -124,7 +103,7 @@ std::list<Packet*> LinuxUDPSocket::CreateBuffers(int size)
     return buffers;
 }
 
-void LinuxUDPSocket::WriteThread(LinuxUDPSocket& socket)
+void LinuxUDPSocket::WriteThread(LinuxUDPSocket& udpQueue, const Socket& socket)
 {
     std::list<Packet*> sendQueue;
 
@@ -137,8 +116,8 @@ void LinuxUDPSocket::WriteThread(LinuxUDPSocket& socket)
 
         if (sendQueue.empty())
         {
-            std::lock_guard<std::mutex> lock(socket._sendQueueMutex);
-            if (socket._sendQueue.empty())
+            std::lock_guard<std::mutex> lock(udpQueue._sendQueueMutex);
+            if (udpQueue._sendQueue.empty())
             {
                 sleep = true;
                 continue;
@@ -148,38 +127,39 @@ void LinuxUDPSocket::WriteThread(LinuxUDPSocket& socket)
                 sleep = false;
             }
 
-            if (socket._sendQueueSizePerThread < socket._sendQueue.size())
+            if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size())
             {
-                auto end = socket._sendQueue.begin();
-                for (int i = 0; i < socket._sendQueueSizePerThread; i++)
+                auto end = udpQueue._sendQueue.begin();
+                for (int i = 0; i < udpQueue._sendQueueSizePerThread; i++)
                 {
                     end++;
                 }
-                sendQueue.splice(sendQueue.begin(), socket._sendQueue, socket._sendQueue.begin(), end);
+                sendQueue.splice(sendQueue.begin(), udpQueue._sendQueue, udpQueue._sendQueue.begin(), end);
             }
             else
             {
-                sendQueue = std::move(socket._sendQueue);
+                sendQueue = std::move(udpQueue._sendQueue);
             }
         }
 
         for (Packet* packet : sendQueue)
         {
-            size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
+            size_t result = socket.SendTo(packet->GetData(), packet->GetAddr(), sizeof(sockaddr));
+            //size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
             if (result != packet->GetData().size())
                 throw std::runtime_error("sendto()");
         }
 
         if (!sendQueue.empty())
         {
-            std::lock_guard<std::mutex> lock(socket._sendFreeQueueMutex);
-            socket._sendFreeQueue.splice(socket._sendFreeQueue.end(), std::move(sendQueue));
+            std::lock_guard<std::mutex> lock(udpQueue._sendFreeQueueMutex);
+            udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), std::move(sendQueue));
         }
     }
 
 }
 
-void LinuxUDPSocket::ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThreadQueue)
+void LinuxUDPSocket::ReadThread(LinuxUDPSocket& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket)
 {
     std::list<Packet*> recvFreeQueue;
     bool sleep = false;
@@ -191,9 +171,9 @@ void LinuxUDPSocket::ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThr
 
         if (recvFreeQueue.empty())
         {
-            std::lock_guard<std::mutex> lock(socket._recvFreeQueueMutex);
+            std::lock_guard<std::mutex> lock(udpQueue._recvFreeQueueMutex);
 
-            if (socket._recvFreeQueue.empty())
+            if (udpQueue._recvFreeQueue.empty())
             {
                 sleep = true;
                 continue;
@@ -203,18 +183,18 @@ void LinuxUDPSocket::ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThr
                 sleep = false;
             }
 
-            auto end = socket._recvFreeQueue.begin();
-            if (socket._recvFreeQueue.size() > socket._recvQueueSizePerThread)
+            auto end = udpQueue._recvFreeQueue.begin();
+            if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread)
             {
-                for (int i = 0; i < socket._recvQueueSizePerThread; i++)
+                for (int i = 0; i < udpQueue._recvQueueSizePerThread; i++)
                 {
                     end++;
                 }
-                recvFreeQueue.splice(recvFreeQueue.begin(), socket._recvFreeQueue, socket._recvFreeQueue.begin(), end);
+                recvFreeQueue.splice(recvFreeQueue.begin(), udpQueue._recvFreeQueue, udpQueue._recvFreeQueue.begin(), end);
             }
             else
             {
-                recvFreeQueue.splice(recvFreeQueue.begin(), std::move(socket._recvFreeQueue));
+                recvFreeQueue.splice(recvFreeQueue.begin(), std::move(udpQueue._recvFreeQueue));
             }
         }
 
@@ -226,7 +206,8 @@ void LinuxUDPSocket::ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThr
             Packet* packet = *it;
             sockaddr addr;
             socklen_t len = 0;;
-            size_t result = recvfrom(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, &addr, &len);
+            //size_t result = recvfrom(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, &addr, &len);
+            size_t result = socket.RecvFrom(packet->GetData(), &addr, &len);
             packet->GetData().resize(result);
             packet->SetAddr(nullptr);
             //packet->GetAddr() = addr; // TODO: not implement
@@ -249,8 +230,8 @@ void LinuxUDPSocket::ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThr
         }
 
         {
-            std::lock_guard<std::mutex> lock(socket._recvQueueMutex);
-            socket._recvQueue.splice(socket._recvQueue.begin(), std::move(packets));
+            std::lock_guard<std::mutex> lock(udpQueue._recvQueueMutex);
+            udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(packets));
         }
     }
 }

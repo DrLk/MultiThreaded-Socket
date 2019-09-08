@@ -1,31 +1,22 @@
 #pragma once
+
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include <unistd.h>
 #include<string.h> //memset
 
-#include<mutex>
-#include<list>
-#include<vector>
-#include <exception>
-
-#include "Packet.h"
-
-
-class RecvThreadQueue
-{ 
+class Socket
+{
 public:
-    RecvThreadQueue(uint port) : _port(port)
+    Socket(uint port) : _socket(-1), _port(port)
     {
+
     }
 
-    ~RecvThreadQueue()
+    ~Socket()
     {
         close(_socket);
     }
-
-    RecvThreadQueue(const RecvThreadQueue&) = delete;
-    RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
 
     void Init()
     {
@@ -36,10 +27,6 @@ public:
         {
             throw std::runtime_error("socket");
         }
-
-        bool on = 1;
-        if (setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
-            throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
 
         // zero out the structure
         memset((char*)& si_me, 0, sizeof(si_me));
@@ -56,13 +43,15 @@ public:
 
     }
 
-    size_t RecvFrom(std::vector<char>& buffer, sockaddr* addr, socklen_t* len)
+    ssize_t SendTo(std::vector<char>& buffer, sockaddr* addr, socklen_t len) const
+    {
+        return sendto(_socket, buffer.data(), buffer.size(), 0, addr, len);
+    }
+
+    size_t RecvFrom(std::vector<char>& buffer, sockaddr* addr, socklen_t* len) const
     {
         return recvfrom(_socket, buffer.data(), buffer.size(), 0, addr, len);
     }
-
-    std::mutex _recvThreadQueueMutex;
-    std::list<Packet*> _recvThreadQueue;
 
 private:
     int _socket;

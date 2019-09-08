@@ -5,7 +5,8 @@
 #include<thread>
 #include<mutex>
 
-#include "ReadThreadQueue.h"
+#include "RecvThreadQueue.h"
+#include "Socket.h"
 
 class Packet;
 
@@ -22,7 +23,6 @@ public:
     std::list<Packet*> CreateBuffers(int size);
 
 private:
-    uint _socket;
     uint _port;
     std::vector<std::thread> _writeThreads;
     std::vector<std::thread> _readThreads;
@@ -39,8 +39,8 @@ private:
     std::mutex _sendFreeQueueMutex;
     std::mutex _recvFreeQueueMutex;
 
-    static void WriteThread(LinuxUDPSocket& socket);
-    static void ReadThread(LinuxUDPSocket& socket, RecvThreadQueue& recvThreadQueue);
+    static void WriteThread(LinuxUDPSocket& udpQueue, const Socket& socket);
+    static void ReadThread(LinuxUDPSocket& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket);
 
     std::vector<RecvThreadQueue*> _recvThreadQueues;
 
@@ -49,4 +49,6 @@ private:
 
     int _sendQueueSizePerThread;
     int _recvQueueSizePerThread;
+
+    std::vector<Socket*> _sockets;
 };
