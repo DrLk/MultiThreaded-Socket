@@ -10,11 +10,11 @@
 
 class Packet;
 
-class LinuxUDPSocket
+class LinuxUDPQueue
 {
 public:
-    LinuxUDPSocket(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
-    ~LinuxUDPSocket();
+    LinuxUDPQueue(int port, int sendThreadCount, int recvThreadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
+    ~LinuxUDPQueue();
     void Init();
 
     std::list<Packet*> Recv(std::list<Packet*>&& freeBuffers);
@@ -39,8 +39,8 @@ private:
     std::mutex _sendFreeQueueMutex;
     std::mutex _recvFreeQueueMutex;
 
-    static void WriteThread(LinuxUDPSocket& udpQueue, const Socket& socket);
-    static void ReadThread(LinuxUDPSocket& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket);
+    static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, int index);
+    static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, int index);
 
     std::vector<RecvThreadQueue*> _recvThreadQueues;
 

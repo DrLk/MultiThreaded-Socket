@@ -75,11 +75,11 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClCompile Include="LinuxUDPSocket.cpp" />
+    <ClCompile Include="LinuxUDPQueue.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LinuxUDPSocket.h" />
+    <ClInclude Include="LinuxUDPQueue.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="RecvThreadQueue.h" />
     <ClInclude Include="Socket.h" />

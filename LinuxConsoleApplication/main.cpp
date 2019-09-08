@@ -1,18 +1,14 @@
 #include <cstdio>
-#include <unistd.h>
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<string.h>
 
-#include "LinuxUDPSocket.h"
+#include "LinuxUDPQueue.h"
 
 
 
 
 int main(void)
 {
-    LinuxUDPSocket srcSocket(8888, 5, 1, 1000, 1000);
-    LinuxUDPSocket dstSocket(9999, 1, 5, 1000, 1000);
+    LinuxUDPQueue srcSocket(8888, 5, 1, 1000, 1000);
+    LinuxUDPQueue dstSocket(9999, 1, 5, 1000, 1000);
     
     srcSocket.Init();
     dstSocket.Init();
@@ -38,7 +34,7 @@ int main(void)
             {
                 for (auto& buffer : sendBuffers)
                 {
-                    buffer->SetAddr((sockaddr*)& dstAddr);
+                    buffer->GetAddr() = dstAddr;
                     buffer->GetData().resize(sizeof(counter));
                     long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
                     *data = counter++;
@@ -71,7 +67,7 @@ int main(void)
                 {
                     buffer->GetData().resize(1500);
                     long long *data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    maxValue = *data;
+                    maxValue = std::max(*data, maxValue);
                     packetCount++;
                 }
 

@@ -2,6 +2,8 @@
 
 #include<vector>
 #include<sys/socket.h>
+#include <netinet/in.h>
+
 
 class Packet
 {
@@ -12,11 +14,10 @@ public:
     }
 
     std::vector<char>& GetData() { return _data; }
-    sockaddr* GetAddr() { return _addr; }
-    void SetAddr(sockaddr* addr) { _addr = addr; }
+    sockaddr_in& GetAddr() { return _addr; }
 
 private:
     std::vector<char> _data;
-    sockaddr* _addr;
+    sockaddr_in _addr;
 
 };
