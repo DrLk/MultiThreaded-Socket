@@ -75,21 +75,23 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="LinuxUDPQueue.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="UDPQueue\LinuxUDPQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="UDPQueue\LinuxUDPQueue.h" />
-    <ClInclude Include="UDPQueue\Packet.h" />
-    <ClInclude Include="UDPQueue\RecvThreadQueue.h" />
-    <ClInclude Include="UDPQueue\Socket.h" />
+    <ClInclude Include="FastTransportPacket.h" />
+    <ClInclude Include="FastTransportProtocol.h" />
+    <ClInclude Include="LinuxUDPQueue.h" />
+    <ClInclude Include="Packet.h" />
+    <ClInclude Include="RecvThreadQueue.h" />
+    <ClInclude Include="Socket.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\Protocol;.\UDPQueue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile>
       <WarningLevel>EnableAllWarnings</WarningLevel>
@@ -101,18 +103,18 @@
       <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\Protocol;.\UDPQueue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.\Protocol;.\UDPQueue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.\Protocol;.\UDPQueue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
