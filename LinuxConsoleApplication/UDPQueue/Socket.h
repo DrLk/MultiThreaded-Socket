@@ -5,12 +5,12 @@
 #include <unistd.h>
 #include<string.h> //memset
 
-namespace FastTransport
+namespace FastTransport::UDPQueue
 {
     class Socket
     {
     public:
-        Socket(uint port) : _socket(-1), _port(port)
+        Socket(unsigned short port) : _socket(-1), _port(port)
         {
 
         }
@@ -57,7 +57,7 @@ namespace FastTransport
 
     private:
         int _socket;
-        uint _port;
+        unsigned short _port;
     };
 
 }

@@ -4,7 +4,7 @@
 #include<sys/socket.h>
 #include <netinet/in.h>
 
-namespace FastTransport
+namespace FastTransport::UDPQueue
 {
     class Packet
     {

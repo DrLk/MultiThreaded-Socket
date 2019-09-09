@@ -8,7 +8,7 @@
 #define BUFLEN 512	//Max length of buffer
 
 
-namespace FastTransport
+namespace FastTransport::UDPQueue
 {
     void die(char* s)
     {
@@ -103,7 +103,7 @@ namespace FastTransport
         return buffers;
     }
 
-    void LinuxUDPQueue::WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, int index)
+    void LinuxUDPQueue::WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index)
     {
         std::list<Packet*> sendQueue;
 
@@ -130,7 +130,7 @@ namespace FastTransport
                 if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size())
                 {
                     auto end = udpQueue._sendQueue.begin();
-                    for (int i = 0; i < udpQueue._sendQueueSizePerThread; i++)
+                    for (size_t i = 0; i < udpQueue._sendQueueSizePerThread; i++)
                     {
                         end++;
                     }
@@ -144,7 +144,8 @@ namespace FastTransport
 
             for (Packet* packet : sendQueue)
             {
-                packet->GetAddr().sin_port = htons(ntohs(packet->GetAddr().sin_port) + index);
+                unsigned short currentPort = (unsigned short)(ntohs(packet->GetAddr().sin_port) + (unsigned short)index);
+                packet->GetAddr().sin_port = htons(currentPort);
                 size_t result = socket.SendTo(packet->GetData(), (sockaddr*) & (packet->GetAddr()), sizeof(sockaddr));
                 //size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
                 if (result != packet->GetData().size())
@@ -160,7 +161,7 @@ namespace FastTransport
 
     }
 
-    void LinuxUDPQueue::ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, int index)
+    void LinuxUDPQueue::ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
         std::list<Packet*> recvFreeQueue;
         bool sleep = false;
@@ -187,7 +188,7 @@ namespace FastTransport
                 auto end = udpQueue._recvFreeQueue.begin();
                 if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread)
                 {
-                    for (int i = 0; i < udpQueue._recvQueueSizePerThread; i++)
+                    for (size_t i = 0; i < udpQueue._recvQueueSizePerThread; i++)
                     {
                         end++;
                     }
@@ -209,7 +210,7 @@ namespace FastTransport
                 //size_t result = recvfrom(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, &addr, &len);
                 size_t result = socket.RecvFrom(packet->GetData(), (sockaddr*)& packet->GetAddr(), &len);
                 packet->GetData().resize(result);
-                packet->GetAddr().sin_port = htons(ntohs(packet->GetAddr().sin_port) - index);
+                packet->GetAddr().sin_port = htons((unsigned short)(ntohs(packet->GetAddr().sin_port) - index));
                 if (result <= 0)
                     throw std::runtime_error("sendto()");
 

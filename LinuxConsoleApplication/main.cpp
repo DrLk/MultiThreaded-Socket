@@ -2,7 +2,7 @@
 
 #include "LinuxUDPQueue.h"
 
-using namespace FastTransport;
+using namespace FastTransport::UDPQueue;
 
 void Test()
 {
@@ -23,6 +23,10 @@ void Test()
     dstAddr.sin_family = AF_INET;
     dstAddr.sin_port = htons(9999);
     auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
+    if (result)
+    { 
+        errno;
+    }
     //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
     //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
 
@@ -105,7 +109,7 @@ int main(int argc, char ** argv)
     int sendBufferSize = std::stoi(argv[4]);
     int recvBufferSize = std::stoi(argv[5]);
 
-    int dstPort = std::stoi(argv[6]);
+    unsigned short dstPort = (unsigned short)std::stoi(argv[6]);
     std::string dstIP = argv[7];
     LinuxUDPQueue socket(port, threadCount, sendBufferSize, recvBufferSize);
 
@@ -121,6 +125,8 @@ int main(int argc, char ** argv)
     dstAddr.sin_family = AF_INET;
     dstAddr.sin_port = htons(dstPort);
     auto result = inet_pton(AF_INET, dstIP.c_str(), &(dstAddr.sin_addr));
+    if (result)
+        errno;
     //auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
     //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
     //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
@@ -173,7 +179,7 @@ int main(int argc, char ** argv)
 
                     if (packetCount % 100000 == 0)
                     {
-                        printf("got new 100k: %lld\n\s", packetCount);
+                        printf("got new 100k: %lld\n", packetCount);
                     }
                 }
 

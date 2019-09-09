@@ -7,7 +7,7 @@
 
 #include "Packet.h"
 
-namespace FastTransport
+namespace FastTransport::UDPQueue
 {
     class RecvThreadQueue
     {
