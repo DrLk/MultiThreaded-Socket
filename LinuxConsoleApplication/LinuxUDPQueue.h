@@ -9,46 +9,49 @@
 #include "RecvThreadQueue.h"
 #include "Socket.h"
 
-class Packet;
-
-class LinuxUDPQueue
+namespace FastTransport
 {
-public:
-    LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
-    ~LinuxUDPQueue();
-    void Init();
+    class Packet;
 
-    std::list<Packet*> Recv(std::list<Packet*>&& freeBuffers);
-    std::list<Packet*> Send(std::list<Packet*>&& data);
+    class LinuxUDPQueue
+    {
+    public:
+        LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
+        ~LinuxUDPQueue();
+        void Init();
 
-    std::list<Packet*> CreateBuffers(int size);
+        std::list<Packet*> Recv(std::list<Packet*>&& freeBuffers);
+        std::list<Packet*> Send(std::list<Packet*>&& data);
 
-private:
-    uint _port;
-    std::vector<std::thread> _writeThreads;
-    std::vector<std::thread> _readThreads;
+        std::list<Packet*> CreateBuffers(int size);
 
-    std::list<Packet*> _sendQueue;
-    std::list<Packet*> _recvQueue;
+    private:
+        uint _port;
+        std::vector<std::thread> _writeThreads;
+        std::vector<std::thread> _readThreads;
 
-    std::mutex _sendQueueMutex;
-    std::mutex _recvQueueMutex;
+        std::list<Packet*> _sendQueue;
+        std::list<Packet*> _recvQueue;
 
-    std::list<Packet*> _sendFreeQueue;
-    std::list<Packet*> _recvFreeQueue;
+        std::mutex _sendQueueMutex;
+        std::mutex _recvQueueMutex;
 
-    std::mutex _sendFreeQueueMutex;
-    std::mutex _recvFreeQueueMutex;
+        std::list<Packet*> _sendFreeQueue;
+        std::list<Packet*> _recvFreeQueue;
 
-    static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, int index);
-    static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, int index);
+        std::mutex _sendFreeQueueMutex;
+        std::mutex _recvFreeQueueMutex;
 
-    std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
+        static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, int index);
+        static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, int index);
 
-    int _threadCount;
+        std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
 
-    int _sendQueueSizePerThread;
-    int _recvQueueSizePerThread;
+        int _threadCount;
 
-    std::vector<std::shared_ptr<Socket>> _sockets;
-};
+        int _sendQueueSizePerThread;
+        int _recvQueueSizePerThread;
+
+        std::vector<std::shared_ptr<Socket>> _sockets;
+    };
+}

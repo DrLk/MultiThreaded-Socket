@@ -7,18 +7,20 @@
 
 #include "Packet.h"
 
-
-class RecvThreadQueue
-{ 
-public:
-    RecvThreadQueue()
+namespace FastTransport
+{
+    class RecvThreadQueue
     {
-    }
+    public:
+        RecvThreadQueue()
+        {
+        }
 
-    RecvThreadQueue(const RecvThreadQueue&) = delete;
-    RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
+        RecvThreadQueue(const RecvThreadQueue&) = delete;
+        RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
 
-    std::mutex _recvThreadQueueMutex;
-    std::list<Packet*> _recvThreadQueue;
+        std::mutex _recvThreadQueueMutex;
+        std::list<Packet*> _recvThreadQueue;
 
-};
+    };
+}

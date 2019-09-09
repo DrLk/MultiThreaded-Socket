@@ -2,6 +2,7 @@
 
 #include "LinuxUDPQueue.h"
 
+using namespace FastTransport;
 
 void Test()
 {
