@@ -9,7 +9,7 @@ using namespace FastTransport::UDPQueue;
 void Test()
 {
     FastTransport::UDPQueue::Packet packet;
-    FastTransport::Protocol::FastTransport transport;
+    FastTransport::Protocol::Connection transport(1);
     LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
     LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
 
