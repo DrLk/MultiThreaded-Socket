@@ -84,6 +84,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BufferOwner.h" />
+    <ClInclude Include="ConnectionAddr.h" />
+    <ClInclude Include="ConnectionKey.h" />
     <ClInclude Include="FastTransportPacket.h" />
     <ClInclude Include="FastTransportProtocol.h" />
     <ClInclude Include="HeaderBuffer.h" />

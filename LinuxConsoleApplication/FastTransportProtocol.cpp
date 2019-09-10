@@ -33,12 +33,13 @@ namespace FastTransport
                 for (auto& recv : recvBuffers)
                 {
                     HeaderBuffer header = recv->GetHeader();
+                    ConnectionAddr addr;
                     if (!header.IsValid())
                     {
                         continue;
                     }
 
-                    auto connection = _connections.find(header.GetConnectionID());
+                    auto connection = _connections.find(ConnectionKey(header.GetConnectionID(), addr));
 
                     if (connection != _connections.end())
                     {

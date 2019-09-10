@@ -16,8 +16,6 @@ namespace FastTransport
         {
             virtual void Send(const std::vector<char>& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
-            virtual IConnection* Listen() = 0;
-            virtual IConnection* Connect() = 0;
         };
 
         class Connection : public IConnection
@@ -29,8 +27,6 @@ namespace FastTransport
 
             virtual void Send(const std::vector<char>& data) override;
             virtual std::vector<char> Recv(int size) override;
-            virtual IConnection* Listen() override;
-            virtual IConnection* Connect() override;
 
 
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);

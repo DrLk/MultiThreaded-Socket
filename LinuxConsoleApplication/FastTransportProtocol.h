@@ -3,12 +3,8 @@
 #include <unordered_map>
 #include <memory>
 
+#include "ConnectionKey.h"
 #include "Connection.h"
-/*#include <list>
-#include <unordered_map>
-#include <exception>
-#include <algorithm>
-#include "BufferOwner.h"*/
 
 namespace FastTransport
 {
@@ -22,12 +18,12 @@ namespace FastTransport
 
             }
             IConnection* CreateConnection();
-            IConnection* ListenConnection();
+            IConnection* AcceptConnection();
 
             void Run();
 
         private:
-            std::unordered_map<ConnectionIDType, Connection> _connections;
+            std::unordered_map<ConnectionKey, Connection> _connections;
         };
 
 

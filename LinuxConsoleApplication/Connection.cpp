@@ -35,15 +35,5 @@ namespace FastTransport
         {
             return std::vector<char>();
         }
-
-        IConnection* Listen()
-        {
-            return nullptr;
-        }
-
-        IConnection* Connect()
-        {
-            return nullptr;
-        }
     }
 }
