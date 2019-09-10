@@ -1,12 +1,14 @@
 #pragma once
 
-#include "vector"
+#include <vector>
 
 
 namespace FastTransport
 {
+    /*
     namespace   Protocol
     {
+
         enum PacketType : short
         {
             NONE = 0,
@@ -16,9 +18,7 @@ namespace FastTransport
 
         };
 
-        typedef unsigned short ConnectionID;
-        typedef unsigned int SeqNumber;
-        typedef unsigned int PackNumber;
+       
 #pragma pack(push, 1)
         struct FastTransportPacket
         {
@@ -35,4 +35,5 @@ namespace FastTransport
 
 #pragma pack(pop)
     }
+    */
 }

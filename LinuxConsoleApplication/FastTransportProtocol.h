@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <exception>
 #include <algorithm>
-#include "FastTransportPacket.h"
+#include "BufferOwner.h"
 
 namespace FastTransport
 {
@@ -13,12 +13,12 @@ namespace FastTransport
         class Connection
         {
         public:
-            Connection(ConnectionID id) : _id(id)
+            Connection(ConnectionIDType id) : _id(id)
             {
 
             }
 
-            void Send(FastTransportPacket& data)
+            /*void Send(FastTransportPacket& data)
             {
 
             }
@@ -28,6 +28,7 @@ namespace FastTransport
 
             }
 
+            
             void TryConnect()
             {
                 FastTransportPacket* packet = new FastTransportPacket();
@@ -35,7 +36,7 @@ namespace FastTransport
                 packet->_packetType = PacketType::SYN;
                 packet->_seqNumber = 0;
 
-                _inFlightPackets.insert({ packet->_seqNumber, packet });
+                //_inFlightPackets.insert({ packet->_seqNumber, packet });
                 Send(*packet);
             }
 
@@ -75,16 +76,15 @@ namespace FastTransport
 
             }
         private:
-            ConnectionID _id;
             int _mtuSize = 1300;
             SeqNumber _seqNumber = 0;
             //std::list<FastProtocol::Protocol::Packet*> _inFlightPackets;
-            std::unordered_map<SeqNumber, FastTransportPacket*> _inFlightPackets;
             std::list<FastTransportPacket*> _sendQueue;
             std::list<SeqNumber> _sendAckQueue;
 
             std::list<FastTransportPacket*> _recvQueue;
-
+*/
+            ConnectionIDType _id;
         };
 
     }

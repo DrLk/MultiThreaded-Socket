@@ -3,6 +3,7 @@
 #include "LinuxUDPQueue.h"
 //#include "Packet.h"
 #include "FastTransportProtocol.h"
+#include "BufferOwner.h"
 
 using namespace FastTransport::UDPQueue;
 

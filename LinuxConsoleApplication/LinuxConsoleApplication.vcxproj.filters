@@ -33,5 +33,26 @@
     <ClInclude Include="FastTransportProtocol.h">
       <Filter>Protocol</Filter>
     </ClInclude>
+    <ClInclude Include="IScoketState.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="ISocketQueues.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="IRecvQueue.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="ISendQueue.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferOwner.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="OutgoingPacket.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="HeaderBuffer.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
