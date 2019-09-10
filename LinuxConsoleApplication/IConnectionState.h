@@ -15,7 +15,7 @@ namespace FastTransport
             virtual ~IConnectionState() = 0;
             virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) = 0;
             virtual IConnectionState* SendPackets() = 0;
-            virtual IConnectionState* Listen() = 0;
+            virtual Connection* Listen(std::shared_ptr<BufferOwner>& packet, Connection& socket) = 0;
             virtual IConnectionState* Connect() = 0;
             virtual IConnectionState* Close() = 0;
         };
@@ -23,13 +23,39 @@ namespace FastTransport
         class BasicSocketState : public IConnectionState
         {
         public:
-        private:
+            virtual Connection* Listen(std::shared_ptr<BufferOwner>& packet, Connection& socket) override { throw std::runtime_error("Not implemented"); }
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override { throw std::runtime_error("Not implemented"); }
+        };
+
+        class ListenState : public BasicSocketState
+        {
+        public:
+            virtual Connection* Listen(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
+        };
+
+        class ConnectingState : public BasicSocketState
+        {
+        public:
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
         };
 
         class ConnectedState : public BasicSocketState
         {
         public:
             virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
+        };
+
+        class ClosingState : public BasicSocketState
+        {
+        public:
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
+        };
+
+
+        class ClosedState : public BasicSocketState
+        {
+        public:
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
         };
     }
 }

@@ -22,5 +22,28 @@ namespace FastTransport
         {
             _recvQueue.ProcessPackets(packet);
         }
+
+
+
+        void Send(const std::vector<char>& data)
+        {
+
+        }
+
+
+        std::vector<char> Recv(int size)
+        {
+            return std::vector<char>();
+        }
+
+        IConnection* Listen()
+        {
+            return nullptr;
+        }
+
+        IConnection* Connect()
+        {
+            return nullptr;
+        }
     }
 }

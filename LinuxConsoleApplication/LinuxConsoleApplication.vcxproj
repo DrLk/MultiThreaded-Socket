@@ -76,6 +76,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <ClCompile Include="Connection.cpp" />
+    <ClCompile Include="FastTransportProtocol.cpp" />
     <ClCompile Include="HeaderBuffer.cpp" />
     <ClCompile Include="IConnectionState.cpp" />
     <ClCompile Include="LinuxUDPQueue.cpp" />

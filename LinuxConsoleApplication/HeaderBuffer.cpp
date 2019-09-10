@@ -25,11 +25,19 @@ namespace FastTransport
             return _header->_magic != _MagicNumber;
         }
 
-
         ConnectionIDType HeaderBuffer::GetConnectionID() const
         {
             return _header->_connectionID;
         }
 
+        PacketType HeaderBuffer::GetType() const
+        {
+            return _header->_packetType;
+        }
+
+        SeqNumberType HeaderBuffer::GetSeqNumber() const
+        {
+            return _header->_packetType;
+        }
     }
 }

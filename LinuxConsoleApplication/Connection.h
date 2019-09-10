@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
 
@@ -9,12 +11,28 @@ namespace FastTransport
     namespace Protocol
     {
         class IConnectionState;
-        class Connection
+
+        class IConnection
+        {
+            virtual void Send(const std::vector<char>& data) = 0;
+            virtual std::vector<char> Recv(int size) = 0;
+            virtual IConnection* Listen() = 0;
+            virtual IConnection* Connect() = 0;
+        };
+
+        class Connection : public IConnection
         {
         public:
-            Connection(const IRecvQueue&& recvQueue, ISendQueue&& sendQueue) : _recvQueue(std::move(recvQueue)), _sendQueue(std::move(sendQueue))
+            Connection()
             {
             }
+
+            virtual void Send(const std::vector<char>& data) override;
+            virtual std::vector<char> Recv(int size) override;
+            virtual IConnection* Listen() override;
+            virtual IConnection* Connect() override;
+
+
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
             void ProcessAcks(const SelectiveAckBuffer& acks);
             void ProcessPackets(std::shared_ptr<BufferOwner>& packet);

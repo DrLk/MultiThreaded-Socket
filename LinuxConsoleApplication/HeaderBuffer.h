@@ -37,6 +37,8 @@ namespace FastTransport
             SYN = 1,
             ACK = 2,
             SYN_ACK = 3,
+            FIN = 4,
+            CLOSE = 8,
 
         };
 
@@ -69,6 +71,9 @@ namespace FastTransport
             void SetHeader(PacketType packetType, ConnectionIDType connectionID, SeqNumberType seqNumber);
             bool IsValid() const;
             ConnectionIDType GetConnectionID() const;
+            PacketType GetType() const;
+            SeqNumberType GetSeqNumber() const;
+
         private:
             Header* _header;
         };

@@ -12,6 +12,9 @@
     <ClCompile Include="Connection.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
+    <ClCompile Include="FastTransportProtocol.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="UDPQueue">
