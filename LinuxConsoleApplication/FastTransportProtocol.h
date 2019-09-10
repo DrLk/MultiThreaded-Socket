@@ -14,13 +14,15 @@ namespace FastTransport
 {
     namespace Protocol
     {
-        class FastTransport
+        class FastTransportContext
         {
         public:
-            FastTransport()
+            FastTransportContext()
             {
 
             }
+            IConnection* CreateConnection();
+            IConnection* ListenConnection();
 
             void Run();
 

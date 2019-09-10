@@ -24,7 +24,7 @@ namespace FastTransport
         }
 
 
-        void FastTransport::Run()
+        void FastTransportContext::Run()
         {
             while (true)
             {
