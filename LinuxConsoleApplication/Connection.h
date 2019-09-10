@@ -4,7 +4,7 @@
 
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
-#include "ConnectionAddr.h"
+#include "ConnectionKey.h"
 
 
 namespace FastTransport
@@ -22,7 +22,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID id) : _addr(addr), _id(id)
+            Connection(const ConnectionAddr& addr, ConnectionID id) : _key(addr, id)
             {
             }
 
@@ -34,12 +34,13 @@ namespace FastTransport
             void ProcessAcks(const SelectiveAckBuffer& acks);
             void ProcessPackets(std::shared_ptr<BufferOwner>& packet);
 
+            ConnectionKey GetConnectionKey() const;
+
         private:
             IRecvQueue _recvQueue;
             ISendQueue _sendQueue;
             IConnectionState* _state;
-            ConnectionAddr _addr;
-            ConnectionID _id;
+            ConnectionKey _key;
         };
     }
 }

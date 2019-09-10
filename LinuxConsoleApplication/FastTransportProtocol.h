@@ -5,6 +5,7 @@
 
 #include "ConnectionKey.h"
 #include "Connection.h"
+#include "IConnectionState.h"
 
 namespace FastTransport
 {
@@ -23,7 +24,8 @@ namespace FastTransport
             void Run();
 
         private:
-            std::unordered_map<ConnectionKey, Connection> _connections;
+            ListenState _listen;
+            std::unordered_map<ConnectionKey, Connection*> _connections;
             ConnectionID _nextID;
         };
 

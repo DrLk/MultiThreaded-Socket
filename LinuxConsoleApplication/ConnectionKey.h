@@ -10,7 +10,7 @@ namespace FastTransport
         class ConnectionKey
         {
         public:
-            ConnectionKey(ConnectionID id, ConnectionAddr addr) : _id(id), _addr(addr) { }
+            ConnectionKey(ConnectionAddr addr, ConnectionID id) : _id(id), _addr(addr) { }
             ConnectionID _id;
             ConnectionAddr _addr;
 

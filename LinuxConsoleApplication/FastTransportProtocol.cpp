@@ -50,14 +50,17 @@ namespace FastTransport
                         continue;
                     }
 
-                    auto connection = _connections.find(ConnectionKey(header.GetConnectionID(), addr.GetAddr()));
+                    auto connection = _connections.find(ConnectionKey(addr.GetAddr(), header.GetConnectionID()));
 
                     if (connection != _connections.end())
                     {
-                        connection->second.OnRecvPackets(recv);
+                        connection->second->OnRecvPackets(recv);
                     }
                     else
                     {
+                        Connection* connection = _listen.Listen(recv);
+                        if (connection)
+                            _connections.insert({ connection->GetConnectionKey(), connection });
                         //ListenSockets
                     }
 
