@@ -24,6 +24,17 @@ namespace FastTransport
         }
 
 
+        IConnection* CreateConnection(const ConnectionAddr& addr)
+        {
+            return nullptr;
+        }
+
+        IConnection* AcceptConnection()
+        {
+            return nullptr;
+        }
+
+
         void FastTransportContext::Run()
         {
             while (true)
@@ -33,18 +44,17 @@ namespace FastTransport
                 for (auto& recv : recvBuffers)
                 {
                     HeaderBuffer header = recv->GetHeader();
-                    ConnectionAddr addr;
+                    AddrBuffer addr = recv->GetAddr();
                     if (!header.IsValid())
                     {
                         continue;
                     }
 
-                    auto connection = _connections.find(ConnectionKey(header.GetConnectionID(), addr));
+                    auto connection = _connections.find(ConnectionKey(header.GetConnectionID(), addr.GetAddr()));
 
                     if (connection != _connections.end())
                     {
                         connection->second.OnRecvPackets(recv);
-
                     }
                     else
                     {

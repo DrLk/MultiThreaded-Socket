@@ -4,6 +4,7 @@
 
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
+#include "ConnectionAddr.h"
 
 
 namespace FastTransport
@@ -21,7 +22,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection()
+            Connection(const ConnectionAddr& addr, ConnectionIDType id) : _addr(addr), _id(id)
             {
             }
 
@@ -37,6 +38,7 @@ namespace FastTransport
             IRecvQueue _recvQueue;
             ISendQueue _sendQueue;
             IConnectionState* _state;
+            ConnectionAddr _addr;
             ConnectionIDType _id;
         };
     }

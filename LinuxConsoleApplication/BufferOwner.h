@@ -53,6 +53,11 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
+            AddrBuffer GetAddr() const
+            {
+                throw std::runtime_error("Not implemented");
+            }
+
             size_t GetBufferSize() const
             {
                 return _element.size();

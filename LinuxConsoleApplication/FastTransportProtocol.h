@@ -13,17 +13,18 @@ namespace FastTransport
         class FastTransportContext
         {
         public:
-            FastTransportContext()
+            FastTransportContext() : _nextID(0)
             {
 
             }
-            IConnection* CreateConnection();
+            IConnection* CreateConnection(const ConnectionAddr& addr);
             IConnection* AcceptConnection();
 
             void Run();
 
         private:
             std::unordered_map<ConnectionKey, Connection> _connections;
+            ConnectionIDType _nextID;
         };
 
 

@@ -12,7 +12,7 @@ namespace FastTransport
         Connection* ListenState::Listen(std::shared_ptr<BufferOwner>& packet, Connection& socket)
         {
             if (packet->GetHeader().GetType() == PacketType::SYN)
-                return new Connection();
+                return new Connection(packet->GetAddr().GetAddr(), packet->GetHeader().GetConnectionID());
 
             return nullptr;
         }

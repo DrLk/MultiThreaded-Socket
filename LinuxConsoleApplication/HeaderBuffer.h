@@ -1,8 +1,7 @@
 #pragma once
 
 #include <memory>
-
-
+#include "ConnectionAddr.h"
 
 namespace FastTransport
 {
@@ -41,8 +40,6 @@ namespace FastTransport
             CLOSE = 8,
 
         };
-
-
 
         class HeaderBuffer : public FreeableBuffer
         {
@@ -117,6 +114,24 @@ namespace FastTransport
             }
 
             Payload _payload;
+        };
+
+        class AddrBuffer : public FreeableBuffer
+        {
+        public:
+            AddrBuffer(ConnectionAddr* addr, int count, std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer), _addr(addr)
+            {
+            }
+            AddrBuffer(ConnectionAddr* addr, int count, std::shared_ptr<BufferOwner>&& buffer) : FreeableBuffer(std::move(buffer)), _addr(addr)
+            {
+            }
+
+            ConnectionAddr& GetAddr() const
+            {
+                return *_addr;
+            }
+
+            ConnectionAddr* _addr;
         };
 
         class FastProtocolPacket : public FreeableBuffer
