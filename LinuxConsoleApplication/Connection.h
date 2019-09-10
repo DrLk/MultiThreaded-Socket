@@ -22,7 +22,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionIDType id) : _addr(addr), _id(id)
+            Connection(const ConnectionAddr& addr, ConnectionID id) : _addr(addr), _id(id)
             {
             }
 
@@ -39,7 +39,7 @@ namespace FastTransport
             ISendQueue _sendQueue;
             IConnectionState* _state;
             ConnectionAddr _addr;
-            ConnectionIDType _id;
+            ConnectionID _id;
         };
     }
 }

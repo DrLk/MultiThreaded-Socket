@@ -24,7 +24,7 @@ namespace FastTransport
 
         private:
             std::unordered_map<ConnectionKey, Connection> _connections;
-            ConnectionIDType _nextID;
+            ConnectionID _nextID;
         };
 
 

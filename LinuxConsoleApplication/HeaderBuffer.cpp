@@ -6,7 +6,7 @@ namespace FastTransport
 {
     namespace Protocol
     {
-        void HeaderBuffer::SetHeader(PacketType packetType, ConnectionIDType connectionID, SeqNumberType seqNumber)
+        void HeaderBuffer::SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber)
         {
             const MagicNumber _MagicNumber = 0x12345678;
             _header->_magic = _MagicNumber;
@@ -25,7 +25,7 @@ namespace FastTransport
             return _header->_magic != _MagicNumber;
         }
 
-        ConnectionIDType HeaderBuffer::GetConnectionID() const
+        ConnectionID HeaderBuffer::GetConnectionID() const
         {
             return _header->_connectionID;
         }

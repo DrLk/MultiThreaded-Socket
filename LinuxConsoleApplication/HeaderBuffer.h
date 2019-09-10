@@ -26,7 +26,7 @@ namespace FastTransport
         };
 
 
-        typedef unsigned short ConnectionIDType;
+        typedef unsigned short ConnectionID;
         typedef unsigned int SeqNumberType;
         typedef int MagicNumber;
 
@@ -54,7 +54,7 @@ namespace FastTransport
 
                 MagicNumber _magic;
                 PacketType _packetType;
-                ConnectionIDType _connectionID;
+                ConnectionID _connectionID;
                 SeqNumberType _seqNumber;
             };
 
@@ -65,9 +65,9 @@ namespace FastTransport
             {
             }
 
-            void SetHeader(PacketType packetType, ConnectionIDType connectionID, SeqNumberType seqNumber);
+            void SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber);
             bool IsValid() const;
-            ConnectionIDType GetConnectionID() const;
+            ConnectionID GetConnectionID() const;
             PacketType GetType() const;
             SeqNumberType GetSeqNumber() const;
 

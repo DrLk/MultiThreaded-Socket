@@ -10,8 +10,8 @@ namespace FastTransport
         class ConnectionKey
         {
         public:
-            ConnectionKey(ConnectionIDType id, ConnectionAddr addr) : _id(id), _addr(addr) { }
-            ConnectionIDType _id;
+            ConnectionKey(ConnectionID id, ConnectionAddr addr) : _id(id), _addr(addr) { }
+            ConnectionID _id;
             ConnectionAddr _addr;
 
             bool operator==(const ConnectionKey that) const
