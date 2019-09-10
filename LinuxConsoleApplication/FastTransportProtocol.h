@@ -1,91 +1,85 @@
 #pragma once
 
-#include <list>
+#include <unordered_map>
+#include <memory>
+
+#include "Connection.h"
+/*#include <list>
 #include <unordered_map>
 #include <exception>
 #include <algorithm>
-#include "BufferOwner.h"
+#include "BufferOwner.h"*/
 
 namespace FastTransport
 {
     namespace Protocol
     {
-        class Connection
+        class FastTransport
         {
         public:
-            Connection(ConnectionIDType id) : _id(id)
+            FastTransport()
             {
 
             }
 
-            /*void Send(FastTransportPacket& data)
+            void Run()
             {
-
-            }
-
-            void OnConnect()
-            {
-
-            }
-
-            
-            void TryConnect()
-            {
-                FastTransportPacket* packet = new FastTransportPacket();
-                packet->_connectionID = _id;
-                packet->_packetType = PacketType::SYN;
-                packet->_seqNumber = 0;
-
-                //_inFlightPackets.insert({ packet->_seqNumber, packet });
-                Send(*packet);
-            }
-
-            void OnRecieved(FastTransportPacket& packet)
-            { 
-                FastTransportPacket answer;
-                switch (packet._packetType)
+                while (true)
                 {
-                    case PacketType::SYN:
-                    {
-                        answer._packetType = PacketType::SYN_ACK;
-                        OnConnect();
-                        break;
-                    }
-                    case PacketType::SYN_ACK:
-                    {
-                        answer._packetType = PacketType::ACK;
-                        OnConnect();
-                        for (SeqNumber ack : packet._ackNumbers)
-                        {
-                            auto it = _inFlightPackets.find(ack);
-                            delete it->second;
+                    std::list<std::shared_ptr<BufferOwner>> recvBuffers = Recv();
 
-                            _inFlightPackets.erase(it);
+                    for (auto& recv : recvBuffers)
+                    {
+                        HeaderBuffer header = recv->GetHeader();
+                        if (!header.IsValid())
+                        {
+                            continue;
                         }
 
-                        break;
+                        auto connection = _connections.find(header.GetConnectionID());
+
+                        if (connection != _connections.end())
+                        {
+                            connection->second.OnRecvPackets(recv);
+
+                        }
+                        else
+                        {
+                            //ListenSockets
+                        }
+
+
+
                     }
-                    case PacketType::ACK:
-                    {
-                        //std::copy()
-                        break;
-                    }
-                    default:
-                        throw std::runtime_error("unknown packet type");
+
+                }
+            }
+
+
+            static BufferOwner::BufferType FreeBuffers;
+
+            std::list<std::shared_ptr<BufferOwner>> Recv()
+            {
+
+                std::list<std::shared_ptr<BufferOwner>> result;
+                for (int i = 0; i < 100; i++)
+                {
+                    result.push_back(std::make_shared<BufferOwner>(FreeBuffers));
                 }
 
+                return result;
             }
-        private:
-            int _mtuSize = 1300;
-            SeqNumber _seqNumber = 0;
-            //std::list<FastProtocol::Protocol::Packet*> _inFlightPackets;
-            std::list<FastTransportPacket*> _sendQueue;
-            std::list<SeqNumber> _sendAckQueue;
 
-            std::list<FastTransportPacket*> _recvQueue;
-*/
-            ConnectionIDType _id;
+            void Send(std::list<BufferOwner>& buffer)
+            {
+
+            }
+
+        private:
+            std::unordered_map<ConnectionIDType, Connection> _connections;
         };
+
+
 
     }
 }

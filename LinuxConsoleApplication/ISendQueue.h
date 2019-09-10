@@ -18,18 +18,17 @@ namespace FastTransport
 
             }
 
-            void ProcessAcks(SelectiveAckBuffer buffer)
+            void ProcessAcks(const SelectiveAckBuffer& buffer)
             {
 
             }
-
 
             void CheckTimeouts()
             {
 
             }
 
-            std::map<SeqNumber, BufferOwner*> _inFlightPackets;
+            //std::map<SeqNumber, BufferOwner*> _inFlightPackets;
 
         };
     }

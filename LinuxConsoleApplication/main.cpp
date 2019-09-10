@@ -4,13 +4,14 @@
 //#include "Packet.h"
 #include "FastTransportProtocol.h"
 #include "BufferOwner.h"
+#include "IConnectionState.h"
 
 using namespace FastTransport::UDPQueue;
 
 void Test()
 {
     FastTransport::UDPQueue::Packet packet;
-    FastTransport::Protocol::Connection transport(1);
+    FastTransport::Protocol::FastTransport transport();
     LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
     LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
 

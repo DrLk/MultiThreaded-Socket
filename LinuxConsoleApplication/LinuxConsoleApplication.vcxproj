@@ -75,6 +75,9 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="Connection.cpp" />
+    <ClCompile Include="HeaderBuffer.cpp" />
+    <ClCompile Include="IConnectionState.cpp" />
     <ClCompile Include="LinuxUDPQueue.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -83,7 +86,8 @@
     <ClInclude Include="FastTransportPacket.h" />
     <ClInclude Include="FastTransportProtocol.h" />
     <ClInclude Include="HeaderBuffer.h" />
-    <ClInclude Include="IScoketState.h" />
+    <ClInclude Include="Connection.h" />
+    <ClInclude Include="IConnectionState.h" />
     <ClInclude Include="ISocketQueues.h" />
     <ClInclude Include="LinuxUDPQueue.h" />
     <ClInclude Include="OutgoingPacket.h" />

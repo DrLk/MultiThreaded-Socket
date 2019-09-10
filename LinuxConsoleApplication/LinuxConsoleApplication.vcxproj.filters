@@ -5,6 +5,13 @@
     <ClCompile Include="LinuxUDPQueue.cpp">
       <Filter>UDPQueue</Filter>
     </ClCompile>
+    <ClCompile Include="IConnectionState.cpp" />
+    <ClCompile Include="HeaderBuffer.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="Connection.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="UDPQueue">
@@ -33,9 +40,6 @@
     <ClInclude Include="FastTransportProtocol.h">
       <Filter>Protocol</Filter>
     </ClInclude>
-    <ClInclude Include="IScoketState.h">
-      <Filter>Protocol</Filter>
-    </ClInclude>
     <ClInclude Include="ISocketQueues.h">
       <Filter>Protocol</Filter>
     </ClInclude>
@@ -52,6 +56,12 @@
       <Filter>Protocol</Filter>
     </ClInclude>
     <ClInclude Include="HeaderBuffer.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="Connection.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="IConnectionState.h">
       <Filter>Protocol</Filter>
     </ClInclude>
   </ItemGroup>
