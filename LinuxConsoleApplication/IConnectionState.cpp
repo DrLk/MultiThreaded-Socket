@@ -9,10 +9,12 @@ namespace FastTransport
     namespace Protocol
     {
 
-        Connection* ListenState::Listen(std::shared_ptr<BufferOwner>& packet)
+        Connection* ListenState::Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID)
         {
-            if (packet->GetHeader().GetType() == PacketType::SYN)
-                return new Connection(packet->GetAddr().GetAddr(), packet->GetHeader().GetConnectionID());
+            if (packet->GetHeader().GetPacketType() == PacketType::SYN)
+            {
+                return new Connection(packet->GetAddr(), myID, packet->GetHeader().GetConnectionID());
+            }
 
             return nullptr;
         }
@@ -20,7 +22,7 @@ namespace FastTransport
 
         IConnectionState* ConnectedState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
         {
-            socket.ProcessAcks(packet->GetAcks());
+            socket.ProcessAcks(packet->GetAcksBuffer());
             socket.ProcessPackets(packet);
 
             return this;

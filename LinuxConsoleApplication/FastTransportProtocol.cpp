@@ -43,14 +43,13 @@ namespace FastTransport
 
                 for (auto& recv : recvBuffers)
                 {
-                    HeaderBuffer header = recv->GetHeader();
-                    AddrBuffer addr = recv->GetAddr();
+                    HeaderBuffer header = recv->GetHeaderBuffer();
                     if (!header.IsValid())
                     {
                         continue;
                     }
 
-                    auto connection = _connections.find(ConnectionKey(addr.GetAddr(), header.GetConnectionID()));
+                    auto connection = _connections.find(ConnectionKey(recv->GetAddr(), recv->GetHeader().GetConnectionID()));
 
                     if (connection != _connections.end())
                     {
@@ -58,7 +57,7 @@ namespace FastTransport
                     }
                     else
                     {
-                        Connection* connection = _listen.Listen(recv);
+                        Connection* connection = _listen.Listen(recv, GenerateID());
                         if (connection)
                             _connections.insert({ connection->GetConnectionKey(), connection });
                         //ListenSockets

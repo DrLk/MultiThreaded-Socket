@@ -22,12 +22,19 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID id) : _key(addr, id)
+            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID)
             {
             }
 
-            virtual void Send(const std::vector<char>& data) override;
-            virtual std::vector<char> Recv(int size) override;
+            virtual void Send(const std::vector<char>& data) override
+            {
+                throw std::runtime_error("Not implemented");
+            }
+
+            virtual std::vector<char> Recv(int size) override
+            {
+                throw std::runtime_error("Not implemented");
+            }
 
 
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
@@ -41,6 +48,7 @@ namespace FastTransport
             ISendQueue _sendQueue;
             IConnectionState* _state;
             ConnectionKey _key;
+            ConnectionID _destinationID;
         };
     }
 }

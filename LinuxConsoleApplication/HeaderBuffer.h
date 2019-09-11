@@ -2,30 +2,12 @@
 
 #include <memory>
 #include "ConnectionAddr.h"
+#include "FreeableBuffer.h"
 
 namespace FastTransport
 {
     namespace Protocol
     {
-        class BufferOwner;
-
-        class FreeableBuffer
-        {
-        public:
-            FreeableBuffer(std::shared_ptr<BufferOwner>& buffer) : _buffer(buffer)
-            {
-            }
-            FreeableBuffer(std::shared_ptr<BufferOwner>&& buffer) noexcept : _buffer(std::move(buffer))
-            {
-            }
-            virtual ~FreeableBuffer()
-            {
-            }
-        protected:
-            std::shared_ptr<BufferOwner> _buffer;
-        };
-
-
         typedef unsigned short ConnectionID;
         typedef unsigned int SeqNumberType;
         typedef int MagicNumber;
@@ -44,7 +26,7 @@ namespace FastTransport
         class HeaderBuffer : public FreeableBuffer
         {
         public:
-            class Header
+            class Header : public std::basic_string_view<char>
             {
             public:
                 Header()
@@ -52,16 +34,44 @@ namespace FastTransport
                 }
 
 
-                MagicNumber _magic;
-                PacketType _packetType;
-                ConnectionID _connectionID;
-                SeqNumberType _seqNumber;
+                const MagicNumber& GetMagic() const
+                {
+                    return *reinterpret_cast<const MagicNumber*>(data());
+                }
+                PacketType GetPacketType() const
+                {
+                    return *reinterpret_cast<const PacketType*>(data() + sizeof(MagicNumber));
+                }
+                ConnectionID GetConnectionID() const
+                {
+                    return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType));
+                }
+                SeqNumberType GetSeqNumber() const
+                {
+                    return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
+                }
+                void SetMagic(MagicNumber magic)
+                {
+                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = magic;
+                }
+                void SetPacketType(PacketType type)
+                {
+                    *reinterpret_cast<PacketType*>(const_cast<char*>(data())) = type;
+                }
+                void SetConnectionID(ConnectionID id)
+                {
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data())) = id;
+                }
+                void SetSeqNumber(SeqNumberType seq)
+                {
+                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data())) = seq;
+                }
             };
 
-            HeaderBuffer(Header* start, int size, std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer), _header(start)
+            HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _header(header)
             {
             }
-            HeaderBuffer(Header* start, int size, std::shared_ptr<BufferOwner>&& buffer) : FreeableBuffer(std::move(buffer)), _header(start)
+            HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _header(header)
             {
             }
 
@@ -72,13 +82,13 @@ namespace FastTransport
             SeqNumberType GetSeqNumber() const;
 
         private:
-            Header* _header;
+            Header _header;
         };
 
         class SelectiveAckBuffer : public FreeableBuffer
         {
         public:
-            class Acks : private std::basic_string_view<SeqNumberType>
+            class Acks : public std::basic_string_view<SeqNumberType>
             {
             public:
                 Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count)
@@ -86,10 +96,10 @@ namespace FastTransport
                 }
             };
 
-            SelectiveAckBuffer(SeqNumberType* start, int count, std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer), _acks(start, count)
+            SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _acks(acks)
             {
             }
-            SelectiveAckBuffer(SeqNumberType* start, int count, std::shared_ptr<BufferOwner>&& buffer) : FreeableBuffer(std::move(buffer)), _acks(start, count)
+            SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _acks(acks)
             {
             }
             Acks _acks;
@@ -106,10 +116,10 @@ namespace FastTransport
                 }
             };
         public:
-            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer), _payload(start, count)
+            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _payload(start, count)
             {
             }
-            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<BufferOwner>&& buffer) : FreeableBuffer(std::move(buffer)), _payload(start, count)
+            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _payload(start, count)
             {
             }
 
@@ -119,34 +129,20 @@ namespace FastTransport
         class AddrBuffer : public FreeableBuffer
         {
         public:
-            AddrBuffer(ConnectionAddr* addr, int count, std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer), _addr(addr)
+            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _addr(addr)
             {
             }
-            AddrBuffer(ConnectionAddr* addr, int count, std::shared_ptr<BufferOwner>&& buffer) : FreeableBuffer(std::move(buffer)), _addr(addr)
+            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _addr(addr)
             {
             }
 
-            ConnectionAddr& GetAddr() const
+            const ConnectionAddr& GetAddr() const
             {
-                return *_addr;
+                return _addr;
             }
 
-            ConnectionAddr* _addr;
+            ConnectionAddr _addr;
         };
 
-        class FastProtocolPacket : public FreeableBuffer
-        {
-        public:
-            FastProtocolPacket(std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer)
-            {
-
-            }
-
-            void GenerateSendPacket()
-            {
-
-            }
-
-        };
     }
 }

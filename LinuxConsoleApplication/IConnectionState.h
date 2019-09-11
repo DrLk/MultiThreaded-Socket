@@ -2,12 +2,21 @@
 
 #include <memory>
 
+#include "HeaderBuffer.h"
+
 namespace FastTransport
 {
     namespace Protocol
     {
         class Connection;
         class BufferOwner;
+
+
+        enum ConnectionState
+        {
+            WAIT_SYNACK,
+            CONNECTED,
+        };
 
         class IConnectionState
         {
@@ -28,7 +37,7 @@ namespace FastTransport
         class ListenState
         {
         public:
-            Connection* Listen(std::shared_ptr<BufferOwner>& packet);
+            Connection* Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID);
         };
 
         class ConnectingState : public BasicSocketState

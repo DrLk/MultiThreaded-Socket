@@ -14,7 +14,7 @@ namespace FastTransport
         class FastTransportContext
         {
         public:
-            FastTransportContext() : _nextID(0)
+            FastTransportContext()
             {
 
             }
@@ -23,10 +23,16 @@ namespace FastTransport
 
             void Run();
 
+            ConnectionID GenerateID()
+            {
+                static ConnectionID _nextID = 0;
+                // TODO: Check after overflow
+                return ++_nextID;
+            }
+
         private:
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
-            ConnectionID _nextID;
         };
 
 

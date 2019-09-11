@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "HeaderBuffer.h"
+#include "IPacket.h"
 
 
 namespace FastTransport
@@ -18,7 +19,9 @@ namespace FastTransport
         public:
             std::mutex _mutex;
         };
-        class BufferOwner
+
+
+        class BufferOwner : IPacket
         {
         public:
             typedef std::vector<char> ElementType;
@@ -43,17 +46,17 @@ namespace FastTransport
                 //HeaderBuffer header(buffer->)
             }*/
 
-            SelectiveAckBuffer GetAcks() const
+            SelectiveAckBuffer GetAcksBuffer() override
             {
                 throw std::runtime_error("Not implemented");
             }
 
-            HeaderBuffer GetHeader() const
+            HeaderBuffer GetHeaderBuffer() override
             {
                 throw std::runtime_error("Not implemented");
             }
 
-            AddrBuffer GetAddr() const
+            AddrBuffer GetAddrBuffer() override
             {
                 throw std::runtime_error("Not implemented");
             }
@@ -61,6 +64,21 @@ namespace FastTransport
             size_t GetBufferSize() const
             {
                 return _element.size();
+            }
+
+            SelectiveAckBuffer::Acks GetAcks() override
+            {
+                throw std::runtime_error("Not implemented");
+            }
+
+            HeaderBuffer::Header GetHeader() override
+            {
+                throw std::runtime_error("Not implemented");
+            }
+
+            ConnectionAddr GetAddr() override
+            {
+                throw std::runtime_error("Not implemented");
             }
 
         private:
