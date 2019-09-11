@@ -20,20 +20,22 @@ namespace FastTransport
 
         void Connection::ProcessPackets(std::shared_ptr<BufferOwner>& packet)
         {
-            _recvQueue.ProcessPackets(packet);
+            throw std::runtime_error("Not implemented");
         }
 
-
-
-        void Send(const std::vector<char>& data)
+        void Connection::Send(const std::vector<char>& data)
         {
-
+            throw std::runtime_error("Not implemented");
         }
 
-
-        std::vector<char> Recv(int size)
+        std::vector<char> Connection::Recv(int size)
         {
             return std::vector<char>();
+        }
+
+        const ConnectionKey& Connection::GetConnectionKey() const
+        {
+            return _key;
         }
     }
 }

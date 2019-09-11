@@ -9,6 +9,9 @@ namespace FastTransport
         class FreeableBuffer : public std::enable_shared_from_this<FreeableBuffer>
         {
         public:
+            FreeableBuffer()
+            {
+            }
             FreeableBuffer(const std::shared_ptr<FreeableBuffer>& buffer) : _buffer(buffer)
             {
             }

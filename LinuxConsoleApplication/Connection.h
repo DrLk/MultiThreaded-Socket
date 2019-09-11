@@ -26,22 +26,16 @@ namespace FastTransport
             {
             }
 
-            virtual void Send(const std::vector<char>& data) override
-            {
-                throw std::runtime_error("Not implemented");
-            }
+            virtual void Send(const std::vector<char>& data) override;
 
-            virtual std::vector<char> Recv(int size) override
-            {
-                throw std::runtime_error("Not implemented");
-            }
+            virtual std::vector<char> Recv(int size) override;
 
 
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
             void ProcessAcks(const SelectiveAckBuffer& acks);
             void ProcessPackets(std::shared_ptr<BufferOwner>& packet);
 
-            ConnectionKey GetConnectionKey() const;
+            const ConnectionKey& GetConnectionKey() const;
 
         private:
             IRecvQueue _recvQueue;

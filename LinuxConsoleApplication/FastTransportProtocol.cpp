@@ -8,32 +8,55 @@ namespace FastTransport
 
         static std::list<std::shared_ptr<BufferOwner>> Recv()
         {
-            static BufferOwner::BufferType FreeBuffers;
-
             std::list<std::shared_ptr<BufferOwner>> result;
+            /*static BufferOwner::BufferType FreeBuffers;
+
             for (int i = 0; i < 100; i++)
             {
                 result.push_back(std::make_shared<BufferOwner>(FreeBuffers));
-            }
+            }*/
 
             return result;
         }
 
-        static void Send(std::list<BufferOwner>& buffer)
+        void FastTransportContext::Send(BufferOwner::Ptr& buffer)
         {
+        }
+        IConnection* FastTransportContext::Accept()
+        {
+            if (_incomingConnections.empty())
+                return nullptr;
+
+            Connection* connection = _incomingConnections.back();
+            _incomingConnections.pop_back();
+
+            _connections.insert({ connection->GetConnectionKey(), connection });
+
+            return connection;
         }
 
 
-        IConnection* CreateConnection(const ConnectionAddr& addr)
+        void FastTransportContext::OnReceive(BufferOwner::Ptr& packet)
         {
-            return nullptr;
-        }
+            HeaderBuffer header = packet->GetHeaderBuffer();
+            if (!header.IsValid())
+            {
+                throw std::runtime_error("Not implemented");
+            }
 
-        IConnection* AcceptConnection()
-        {
-            return nullptr;
-        }
+            auto connection = _connections.find(ConnectionKey(packet->GetAddr(), packet->GetHeader().GetConnectionID()));
 
+            if (connection != _connections.end())
+            {
+                connection->second->OnRecvPackets(packet);
+            }
+            else
+            {
+                Connection* connection = _listen.Listen(packet, GenerateID());
+                if (connection)
+                    _incomingConnections.push_back(connection);
+            }
+        }
 
         void FastTransportContext::Run()
         {
@@ -43,31 +66,12 @@ namespace FastTransport
 
                 for (auto& recv : recvBuffers)
                 {
-                    HeaderBuffer header = recv->GetHeaderBuffer();
-                    if (!header.IsValid())
-                    {
-                        continue;
-                    }
-
-                    auto connection = _connections.find(ConnectionKey(recv->GetAddr(), recv->GetHeader().GetConnectionID()));
-
-                    if (connection != _connections.end())
-                    {
-                        connection->second->OnRecvPackets(recv);
-                    }
-                    else
-                    {
-                        Connection* connection = _listen.Listen(recv, GenerateID());
-                        if (connection)
-                            _connections.insert({ connection->GetConnectionKey(), connection });
-                        //ListenSockets
-                    }
-
+                    OnReceive(recv);
                 }
 
 
-                std::list<BufferOwner> buffers;
-                Send(buffers);
+                //std::list<BufferOwner> buffers;
+                //Send(buffers);
 
             }
         }

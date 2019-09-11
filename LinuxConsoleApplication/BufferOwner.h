@@ -21,18 +21,17 @@ namespace FastTransport
         };
 
 
-        class BufferOwner : IPacket
+        class BufferOwner : public IPacket, public FreeableBuffer
         {
         public:
             typedef std::vector<char> ElementType;
             typedef LockBuffer<ElementType> BufferType;
-            BufferOwner(BufferType& freeBuffers) : _freeBuffers(freeBuffers)
-            {
-                throw std::runtime_error("Not implemented");
-            }
+            typedef std::shared_ptr<BufferOwner> Ptr;
+            BufferOwner(const BufferOwner& that) = delete;
 
-            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element))
+            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0)
             {
+                 
             }
 
             ~BufferOwner()
@@ -41,49 +40,57 @@ namespace FastTransport
                 _freeBuffers.push_back(std::move(_element));
             }
 
-            /*void GeneratePacket()
+            virtual SelectiveAckBuffer GetAcksBuffer() override
             {
-                //HeaderBuffer header(buffer->)
-            }*/
-
-            SelectiveAckBuffer GetAcksBuffer() override
-            {
-                throw std::runtime_error("Not implemented");
+                return SelectiveAckBuffer(_acks, this->shared_from_this());
             }
 
-            HeaderBuffer GetHeaderBuffer() override
+            virtual HeaderBuffer GetHeaderBuffer() override
             {
-                throw std::runtime_error("Not implemented");
+                return HeaderBuffer(_header, this->shared_from_this());
             }
 
-            AddrBuffer GetAddrBuffer() override
+            virtual AddrBuffer GetAddrBuffer() override
             {
-                throw std::runtime_error("Not implemented");
+                return AddrBuffer(_addr, this->shared_from_this());
             }
 
-            size_t GetBufferSize() const
+            virtual SelectiveAckBuffer::Acks GetAcks() override
             {
-                return _element.size();
+                return _acks;
             }
 
-            SelectiveAckBuffer::Acks GetAcks() override
+            virtual HeaderBuffer::Header GetHeader() override
             {
-                throw std::runtime_error("Not implemented");
+                return _header;
             }
 
-            HeaderBuffer::Header GetHeader() override
+            virtual ConnectionAddr GetAddr() override
             {
-                throw std::runtime_error("Not implemented");
+                return _addr;
             }
 
-            ConnectionAddr GetAddr() override
+            void SetAcks(const SelectiveAckBuffer::Acks& acks)
             {
-                throw std::runtime_error("Not implemented");
+                _acks = acks;
             }
 
+            void SetHeader(const HeaderBuffer::Header& header)
+            {
+                _header = header;
+            }
+
+            void SetAddr(const ConnectionAddr& addr)
+            {
+                _addr = addr;
+            }
         private:
             BufferType& _freeBuffers;
             ElementType _element;
+
+            SelectiveAckBuffer::Acks _acks;
+            HeaderBuffer::Header _header;
+            ConnectionAddr _addr;
         };
 
 

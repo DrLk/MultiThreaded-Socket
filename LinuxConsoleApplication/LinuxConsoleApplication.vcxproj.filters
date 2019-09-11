@@ -15,6 +15,9 @@
     <ClCompile Include="FastTransportProtocol.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
+    <ClCompile Include="BufferOwner.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="UDPQueue">
@@ -75,6 +78,9 @@
       <Filter>Protocol</Filter>
     </ClInclude>
     <ClInclude Include="FreeableBuffer.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="Test.h">
       <Filter>Protocol</Filter>
     </ClInclude>
   </ItemGroup>

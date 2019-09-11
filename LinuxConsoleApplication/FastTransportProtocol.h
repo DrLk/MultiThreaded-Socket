@@ -6,6 +6,7 @@
 #include "ConnectionKey.h"
 #include "Connection.h"
 #include "IConnectionState.h"
+#include "BufferOwner.h"
 
 namespace FastTransport
 {
@@ -18,8 +19,11 @@ namespace FastTransport
             {
 
             }
-            IConnection* CreateConnection(const ConnectionAddr& addr);
-            IConnection* AcceptConnection();
+
+            void OnReceive(BufferOwner::Ptr& packet);
+            void Send(BufferOwner::Ptr& packet);
+
+            IConnection* Accept();
 
             void Run();
 
@@ -33,6 +37,7 @@ namespace FastTransport
         private:
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
+            std::vector<Connection*> _incomingConnections;
         };
 
 

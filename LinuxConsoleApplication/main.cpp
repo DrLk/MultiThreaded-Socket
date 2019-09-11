@@ -1,15 +1,27 @@
 #include <cstdio>
 
+#include "Test.h"
 #include "LinuxUDPQueue.h"
-//#include "Packet.h"
 #include "FastTransportProtocol.h"
 #include "BufferOwner.h"
 #include "IConnectionState.h"
+#include <memory>
 
 using namespace FastTransport::UDPQueue;
+using namespace FastTransport::Protocol;
 
 void Test()
 {
+    TestConnection();
+    BufferOwner::BufferType freeBuffers;
+    BufferOwner::ElementType element;
+
+    //BufferOwner buffer(&freeBuffers, element);
+    auto buffer = std::make_shared<BufferOwner>(freeBuffers, std::move(element));
+
+    buffer.reset();
+    buffer->GetHeader();
+
     FastTransport::UDPQueue::Packet packet;
     FastTransport::Protocol::FastTransportContext transport();
     LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
