@@ -15,6 +15,7 @@ namespace FastTransport
 
         class IConnection
         {
+        public:
             virtual void Send(const std::vector<char>& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
         };

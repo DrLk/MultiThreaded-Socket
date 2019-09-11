@@ -12,16 +12,26 @@ namespace FastTransport
 
             FastTransportContext src;
             FastTransportContext dst;
+            ConnectionAddr srcAddr;
+            ConnectionAddr dstAddr;
 
             BufferOwner::ElementType element(1500);
             BufferOwner::BufferType freeElements;
-            BufferOwner::Ptr synPacket = std::make_shared<BufferOwner>(freeElements, std::move(element));
 
+            src.OnSend = [&dst](BufferOwner::Ptr& packet)
+            {
+                dst.OnReceive(packet);
+            };
 
-            synPacket->GetHeader().SetPacketType(PacketType::SYN);
-            synPacket->GetHeader().SetConnectionID(1);
+            dst.OnSend = [&src](BufferOwner::Ptr& packet)
+            {
+                src.OnReceive(packet);
+            };
 
-            dst.OnReceive(synPacket);
+            std::vector<char> data(100);
+            IConnection* srcConnection = src.Connect(dstAddr);
+            srcConnection->Send(data);
+
 
             BufferOwner::ElementType element2(1500);
             BufferOwner::Ptr synAckPacket = std::make_shared<BufferOwner>(freeElements, std::move(element));

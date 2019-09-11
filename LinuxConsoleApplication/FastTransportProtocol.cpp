@@ -9,19 +9,10 @@ namespace FastTransport
         static std::list<std::shared_ptr<BufferOwner>> Recv()
         {
             std::list<std::shared_ptr<BufferOwner>> result;
-            /*static BufferOwner::BufferType FreeBuffers;
-
-            for (int i = 0; i < 100; i++)
-            {
-                result.push_back(std::make_shared<BufferOwner>(FreeBuffers));
-            }*/
 
             return result;
         }
 
-        void FastTransportContext::Send(BufferOwner::Ptr& buffer)
-        {
-        }
         IConnection* FastTransportContext::Accept()
         {
             if (_incomingConnections.empty())
@@ -33,6 +24,27 @@ namespace FastTransport
             _connections.insert({ connection->GetConnectionKey(), connection });
 
             return connection;
+        }
+
+        IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
+        {
+                Connection* connection = new Connection(dstAddr, GenerateID(), 0);
+                _connections.insert({ connection->GetConnectionKey(), connection });
+
+                {
+                    std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
+                    BufferOwner::ElementType element = _freeBuffers.back();
+                    _freeBuffers.pop_back();
+
+                    BufferOwner::Ptr synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
+                    synPacket->GetHeader().SetPacketType(PacketType::SYN);
+                    synPacket->GetHeader().SetConnectionID(1);
+                    OnSend(synPacket);
+                }
+
+
+                return connection;
+
         }
 
 

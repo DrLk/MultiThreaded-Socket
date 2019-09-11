@@ -7,6 +7,7 @@
 #include "Connection.h"
 #include "IConnectionState.h"
 #include "BufferOwner.h"
+#include <functional>
 
 namespace FastTransport
 {
@@ -17,13 +18,16 @@ namespace FastTransport
         public:
             FastTransportContext()
             {
-
+                _freeBuffers.resize(100);
+                for (auto buffer : _freeBuffers)
+                    buffer.resize(1500);
             }
 
             void OnReceive(BufferOwner::Ptr& packet);
-            void Send(BufferOwner::Ptr& packet);
+            std::function<void(BufferOwner::Ptr&)> OnSend;
 
             IConnection* Accept();
+            IConnection* Connect(const ConnectionAddr&);
 
             void Run();
 
@@ -35,6 +39,7 @@ namespace FastTransport
             }
 
         private:
+            BufferOwner::BufferType _freeBuffers;
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
