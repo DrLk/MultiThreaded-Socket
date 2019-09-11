@@ -26,6 +26,9 @@
     <Filter Include="Protocol">
       <UniqueIdentifier>{3d91bd45-4403-4ace-88f9-fcf4c9ec9d6f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Struct">
+      <UniqueIdentifier>{b37ba51d-cc37-41fc-bbd4-4f9b54fdaf70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LinuxUDPQueue.h">
@@ -82,6 +85,9 @@
     </ClInclude>
     <ClInclude Include="Test.h">
       <Filter>Protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="LockedList.h">
+      <Filter>Struct</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

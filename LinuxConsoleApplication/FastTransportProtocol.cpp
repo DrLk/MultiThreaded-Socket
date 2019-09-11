@@ -38,8 +38,9 @@ namespace FastTransport
 
                     BufferOwner::Ptr synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
                     synPacket->GetHeader().SetPacketType(PacketType::SYN);
-                    synPacket->GetHeader().SetConnectionID(1);
-                    OnSend(synPacket);
+                    synPacket->GetHeader().SetConnectionID(connection->GetConnectionKey()._id);
+                    synPacket->GetHeader().SetSeqNumber(connection->GetCurrentSeqNumber());
+                    Send(synPacket);
                 }
 
 
@@ -86,6 +87,20 @@ namespace FastTransport
                 //Send(buffers);
 
             }
+        }
+
+        void FastTransportContext::SendQueueStep()
+        {
+            for (auto connection : _connections)
+            {
+                _packets.splice(_packets.begin(), connection.second->GetPacketsToSend());
+            }
+
+        }
+
+        void FastTransportContext::Send(BufferOwner::Ptr& packet) const
+        {
+            OnSend(packet);
         }
     }
 }

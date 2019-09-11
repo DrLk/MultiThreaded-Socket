@@ -31,6 +31,9 @@ namespace FastTransport
 
             void Run();
 
+            void SendQueueStep();
+            void RecvQueueStep();
+
             ConnectionID GenerateID()
             {
                 static ConnectionID _nextID = 0;
@@ -43,6 +46,10 @@ namespace FastTransport
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
+
+            void Send(BufferOwner::Ptr& packet) const;
+            LockedList<BufferOwner::Ptr> _packets;
+
         };
 
 

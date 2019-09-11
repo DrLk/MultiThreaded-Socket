@@ -8,6 +8,7 @@
 
 #include "RecvThreadQueue.h"
 #include "Socket.h"
+#include "LockedList.h"
 
 namespace FastTransport::UDPQueue
 {
@@ -30,17 +31,11 @@ namespace FastTransport::UDPQueue
         std::vector<std::thread> _writeThreads;
         std::vector<std::thread> _readThreads;
 
-        std::list<Packet*> _sendQueue;
-        std::list<Packet*> _recvQueue;
+        LockedList<Packet*> _sendQueue;
+        LockedList<Packet*> _recvQueue;
 
-        std::mutex _sendQueueMutex;
-        std::mutex _recvQueueMutex;
-
-        std::list<Packet*> _sendFreeQueue;
-        std::list<Packet*> _recvFreeQueue;
-
-        std::mutex _sendFreeQueueMutex;
-        std::mutex _recvFreeQueueMutex;
+        LockedList<Packet*> _sendFreeQueue;
+        LockedList<Packet*> _recvFreeQueue;
 
         static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index);
         static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);

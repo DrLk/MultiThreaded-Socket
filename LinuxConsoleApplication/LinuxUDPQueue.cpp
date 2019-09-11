@@ -49,7 +49,7 @@ namespace FastTransport::UDPQueue
     std::list<Packet*> LinuxUDPQueue::Recv(std::list<Packet*>&& freeBuffers)
     {
         {
-            std::lock_guard<std::mutex> lock(_recvFreeQueueMutex);
+            std::lock_guard<std::mutex> lock(_recvFreeQueue._mutex);
             _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
         }
 
@@ -57,19 +57,19 @@ namespace FastTransport::UDPQueue
         {
             std::list<Packet*> packets;
             {
-                std::lock_guard<std::mutex> lock(recvThreadQueue->_recvThreadQueueMutex);
+                std::lock_guard<std::mutex> lock(recvThreadQueue->_recvThreadQueue._mutex);
                 packets = std::move(recvThreadQueue->_recvThreadQueue);
             }
 
             {
-                std::lock_guard<std::mutex> lock(_recvQueueMutex);
+                std::lock_guard<std::mutex> lock(_recvQueue._mutex);
                 _recvQueue.splice(_recvQueue.end(), std::move(packets));
             }
         }
 
         std::list<Packet*> result;
         {
-            std::lock_guard<std::mutex> lock(_recvQueueMutex);
+            std::lock_guard<std::mutex> lock(_recvQueue._mutex);
             result = std::move(_recvQueue);
         }
         return result;
@@ -78,13 +78,13 @@ namespace FastTransport::UDPQueue
     std::list<Packet*> LinuxUDPQueue::Send(std::list<Packet*>&& data)
     {
         {
-            std::lock_guard<std::mutex> lock(_sendQueueMutex);
+            std::lock_guard<std::mutex> lock(_sendQueue._mutex);
             _sendQueue.splice(_sendQueue.end(), std::move(data));
         }
 
         std::list<Packet*> result;
         {
-            std::lock_guard<std::mutex> lock(_sendFreeQueueMutex);
+            std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
             result = std::move(_sendFreeQueue);
         }
 
@@ -116,7 +116,7 @@ namespace FastTransport::UDPQueue
 
             if (sendQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._sendQueueMutex);
+                std::lock_guard<std::mutex> lock(udpQueue._sendQueue._mutex);
                 if (udpQueue._sendQueue.empty())
                 {
                     sleep = true;
@@ -154,7 +154,7 @@ namespace FastTransport::UDPQueue
 
             if (!sendQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._sendFreeQueueMutex);
+                std::lock_guard<std::mutex> lock(udpQueue._sendFreeQueue._mutex);
                 udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), std::move(sendQueue));
             }
         }
@@ -173,7 +173,7 @@ namespace FastTransport::UDPQueue
 
             if (recvFreeQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._recvFreeQueueMutex);
+                std::lock_guard<std::mutex> lock(udpQueue._recvFreeQueue._mutex);
 
                 if (udpQueue._recvFreeQueue.empty())
                 {
@@ -217,7 +217,7 @@ namespace FastTransport::UDPQueue
                 auto temp = it;
                 it++;
                 {
-                    std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueueMutex);
+                    std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueue._mutex);
                     recvThreadQueue._recvThreadQueue.splice(recvThreadQueue._recvThreadQueue.begin(), recvFreeQueue, temp);
                 }
 
@@ -225,12 +225,12 @@ namespace FastTransport::UDPQueue
 
             std::list<Packet*> packets;
             {
-                std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueueMutex);
+                std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueue._mutex);
                 packets = std::move(recvThreadQueue._recvThreadQueue);
             }
 
             {
-                std::lock_guard<std::mutex> lock(udpQueue._recvQueueMutex);
+                std::lock_guard<std::mutex> lock(udpQueue._recvQueue._mutex);
                 udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(packets));
             }
         }

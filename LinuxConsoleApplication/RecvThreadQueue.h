@@ -1,11 +1,11 @@
 #pragma once
 
 #include<mutex>
-#include<list>
 #include<vector>
 #include <exception>
 
 #include "Packet.h"
+#include "LockedList.h"
 
 namespace FastTransport::UDPQueue
 {
@@ -19,8 +19,7 @@ namespace FastTransport::UDPQueue
         RecvThreadQueue(const RecvThreadQueue&) = delete;
         RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
 
-        std::mutex _recvThreadQueueMutex;
-        std::list<Packet*> _recvThreadQueue;
+        LockedList<Packet*> _recvThreadQueue;
 
     };
 }

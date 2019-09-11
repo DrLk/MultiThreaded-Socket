@@ -7,25 +7,19 @@
 
 #include "HeaderBuffer.h"
 #include "IPacket.h"
+#include "LockedList.h"
 
 
 namespace FastTransport
 {
     namespace   Protocol
     {
-        template<class Element>
-        class LockBuffer : public std::list<Element>
-        {
-        public:
-            std::mutex _mutex;
-        };
-
 
         class BufferOwner : public IPacket, public FreeableBuffer
         {
         public:
             typedef std::vector<char> ElementType;
-            typedef LockBuffer<ElementType> BufferType;
+            typedef LockedList<ElementType> BufferType;
             typedef std::shared_ptr<BufferOwner> Ptr;
             BufferOwner(const BufferOwner& that) = delete;
 

@@ -15,7 +15,7 @@ namespace FastTransport
 
         void Connection::ProcessAcks(const SelectiveAckBuffer& acks)
         {
-            _sendQueue.ProcessAcks(acks);
+            _sendQueue->ProcessAcks(acks);
         }
 
         void Connection::ProcessPackets(std::shared_ptr<BufferOwner>& packet)
@@ -36,6 +36,15 @@ namespace FastTransport
         const ConnectionKey& Connection::GetConnectionKey() const
         {
             return _key;
+        }
+        
+        SeqNumberType Connection::GetCurrentSeqNumber()
+        {
+            return _seqNumber++;
+        }
+        std::list<BufferOwner::Ptr>&& Connection::GetPacketsToSend()
+        {
+            return std::move(_packetsToSend);
         }
     }
 }

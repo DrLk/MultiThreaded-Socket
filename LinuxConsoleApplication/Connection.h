@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <list>
 
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
@@ -23,7 +24,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID)
+            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
             {
             }
 
@@ -37,13 +38,19 @@ namespace FastTransport
             void ProcessPackets(std::shared_ptr<BufferOwner>& packet);
 
             const ConnectionKey& GetConnectionKey() const;
+            SeqNumberType GetCurrentSeqNumber();
+
+            std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 
         private:
-            IRecvQueue _recvQueue;
-            ISendQueue _sendQueue;
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
+            SeqNumberType _seqNumber;
+            std::list<BufferOwner::Ptr> _packetsToSend;
+
+            ISendQueue* _sendQueue;
+            IRecvQueue* _recvQueue;
         };
     }
 }

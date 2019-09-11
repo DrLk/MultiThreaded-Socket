@@ -96,6 +96,7 @@
     <ClInclude Include="IPacket.h" />
     <ClInclude Include="ISocketQueues.h" />
     <ClInclude Include="LinuxUDPQueue.h" />
+    <ClInclude Include="LockedList.h" />
     <ClInclude Include="OutgoingPacket.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="IRecvQueue.h" />

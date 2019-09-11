@@ -9,6 +9,12 @@ namespace FastTransport
     {
         class ISendQueue
         {
+        public:
+            virtual void ProcessAcks(const SelectiveAckBuffer& buffer) = 0;
+        };
+
+        class SendQueue : public ISendQueue
+        {
             typedef std::vector<char> DataType;
 
         public:
@@ -18,7 +24,7 @@ namespace FastTransport
 
             }
 
-            void ProcessAcks(const SelectiveAckBuffer& buffer)
+            virtual void ProcessAcks(const SelectiveAckBuffer& buffer) override
             {
 
             }
