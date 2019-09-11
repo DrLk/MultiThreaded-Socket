@@ -58,7 +58,7 @@ namespace FastTransport::UDPQueue
             std::list<Packet*> packets;
             {
                 std::lock_guard<std::mutex> lock(recvThreadQueue->_recvThreadQueue._mutex);
-                packets = std::move(recvThreadQueue->_recvThreadQueue._list);
+                packets = std::move(recvThreadQueue->_recvThreadQueue);
             }
 
             {
@@ -70,7 +70,7 @@ namespace FastTransport::UDPQueue
         std::list<Packet*> result;
         {
             std::lock_guard<std::mutex> lock(_recvQueue._mutex);
-            result = std::move(_recvQueue._list);
+            result = std::move(_recvQueue);
         }
         return result;
     }
@@ -85,7 +85,7 @@ namespace FastTransport::UDPQueue
         std::list<Packet*> result;
         {
             std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
-            result = std::move(_sendFreeQueue._list);
+            result = std::move(_sendFreeQueue);
         }
 
         return result;
@@ -226,7 +226,7 @@ namespace FastTransport::UDPQueue
             std::list<Packet*> packets;
             {
                 std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueue._mutex);
-                packets = std::move(recvThreadQueue._recvThreadQueue._list);
+                packets = std::move(recvThreadQueue._recvThreadQueue);
             }
 
             {
