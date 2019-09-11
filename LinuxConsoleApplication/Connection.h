@@ -24,7 +24,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
+            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _recvQueue(new RecvQueue())
             {
             }
 
@@ -47,9 +47,8 @@ namespace FastTransport
             ConnectionKey _key;
             ConnectionID _destinationID;
             SeqNumberType _seqNumber;
-            std::list<BufferOwner::Ptr> _packetsToSend;
+            LockedList<BufferOwner::Ptr> _packetsToSend;
 
-            ISendQueue* _sendQueue;
             IRecvQueue* _recvQueue;
         };
     }

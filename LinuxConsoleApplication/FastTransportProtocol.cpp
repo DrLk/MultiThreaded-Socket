@@ -93,7 +93,7 @@ namespace FastTransport
         {
             for (auto connection : _connections)
             {
-                _packets.splice(_packets.begin(), connection.second->GetPacketsToSend());
+                _sendQueue.splice(_sendQueue.begin(), connection.second->GetPacketsToSend());
             }
 
         }

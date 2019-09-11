@@ -48,8 +48,7 @@ namespace FastTransport
             std::vector<Connection*> _incomingConnections;
 
             void Send(BufferOwner::Ptr& packet) const;
-            LockedList<BufferOwner::Ptr> _packets;
-
+            LockedList<BufferOwner::Ptr> _sendQueue;
         };
 
 
