@@ -48,6 +48,7 @@ namespace FastTransport
             std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 
             void Connect();
+            void Close();
 
         private:
             void SendPacket(std::shared_ptr<BufferOwner>& packet);

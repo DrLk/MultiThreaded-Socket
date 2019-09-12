@@ -5,7 +5,6 @@
     <ClCompile Include="LinuxUDPQueue.cpp">
       <Filter>UDPQueue</Filter>
     </ClCompile>
-    <ClCompile Include="IConnectionState.cpp" />
     <ClCompile Include="HeaderBuffer.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
@@ -16,6 +15,9 @@
       <Filter>Protocol</Filter>
     </ClCompile>
     <ClCompile Include="BufferOwner.cpp">
+      <Filter>Protocol</Filter>
+    </ClCompile>
+    <ClCompile Include="IConnectionState.cpp">
       <Filter>Protocol</Filter>
     </ClCompile>
   </ItemGroup>

@@ -19,11 +19,15 @@ namespace FastTransport
             return nullptr;
         }
 
-
-        IConnectionState* ConnectedState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
+        IConnectionState* WaitingSynAck::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
         {
-            socket.ProcessAcks(packet->GetAcksBuffer());
-            socket.ProcessPackets(packet);
+            auto header = packet->GetHeader();
+            if (!header.IsValid())
+            {
+                return this;
+                socket.Close();
+            }
+
 
             return this;
         }

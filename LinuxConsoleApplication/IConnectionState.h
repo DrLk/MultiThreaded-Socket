@@ -21,11 +21,7 @@ namespace FastTransport
         class IConnectionState
         {
         public:
-            virtual ~IConnectionState() = 0;
             virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) = 0;
-            virtual IConnectionState* SendPackets() = 0;
-            virtual IConnectionState* Connect() = 0;
-            virtual IConnectionState* Close() = 0;
         };
 
         class BasicSocketState : public IConnectionState
@@ -40,22 +36,22 @@ namespace FastTransport
             Connection* Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID);
         };
 
-        class ConnectingState : public BasicSocketState
+        class WaitingSynAck : public BasicSocketState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
         };
 
         class ConnectedState : public BasicSocketState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
         };
 
         class ClosingState : public BasicSocketState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket);
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
         };
 
 

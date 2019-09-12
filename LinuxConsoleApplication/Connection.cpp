@@ -68,5 +68,11 @@ namespace FastTransport
             synPacket->GetHeader().SetSeqNumber(GetCurrentSeqNumber());
             SendPacket(synPacket);
         }
+
+
+        void Connection::Close()
+        {
+            throw std::runtime_error("Not implemented");
+        }
     }
 }
