@@ -30,17 +30,8 @@ namespace FastTransport
         {
                 Connection* connection = new Connection(dstAddr, GenerateID(), 0);
                 _connections.insert({ connection->GetConnectionKey(), connection });
-
                 {
-                    std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
-                    BufferOwner::ElementType element = _freeBuffers.back();
-                    _freeBuffers.pop_back();
-
-                    BufferOwner::Ptr synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
-                    synPacket->GetHeader().SetPacketType(PacketType::SYN);
-                    synPacket->GetHeader().SetConnectionID(connection->GetConnectionKey()._id);
-                    synPacket->GetHeader().SetSeqNumber(connection->GetCurrentSeqNumber());
-                    Send(synPacket);
+                    connection->Connect();
                 }
 
 
@@ -48,6 +39,11 @@ namespace FastTransport
 
         }
 
+        void FastTransportContext::OnReceive(std::list<BufferOwner::Ptr>&& packets)
+        {
+            for (auto packet : packets)
+                OnReceive(packet);
+        }
 
         void FastTransportContext::OnReceive(BufferOwner::Ptr& packet)
         {
@@ -91,16 +87,18 @@ namespace FastTransport
 
         void FastTransportContext::SendQueueStep()
         {
-            for (auto connection : _connections)
+            std::list<BufferOwner> packets;
+            /*for (auto connection : _connections)
             {
-                _packets.splice(_packets.begin(), connection.second->GetPacketsToSend());
-            }
+                packets.splice(_packets.begin(), connection.second->GetPacketsToSend());
+            }*/
 
+            //Send(std::move(packets))
         }
 
-        void FastTransportContext::Send(BufferOwner::Ptr& packet) const
+        void FastTransportContext::Send(std::list<BufferOwner::Ptr>&& packets)
         {
-            OnSend(packet);
+            OnSend(std::move(packets));
         }
     }
 }

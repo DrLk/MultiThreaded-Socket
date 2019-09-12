@@ -18,19 +18,21 @@ namespace FastTransport
             BufferOwner::ElementType element(1500);
             BufferOwner::BufferType freeElements;
 
-            src.OnSend = [&dst](BufferOwner::Ptr& packet)
+            src.OnSend = [&dst](std::list<BufferOwner::Ptr>&& packets)
             {
-                dst.OnReceive(packet);
+                dst.OnReceive(std::move(packets));
             };
 
-            dst.OnSend = [&src](BufferOwner::Ptr& packet)
+            dst.OnSend = [&src](std::list<BufferOwner::Ptr>&& packets)
             {
-                src.OnReceive(packet);
+                src.OnReceive(std::move(packets));
             };
 
             std::vector<char> data(100);
             IConnection* srcConnection = src.Connect(dstAddr);
             srcConnection->Send(data);
+
+            src.SendQueueStep();
 
 
             BufferOwner::ElementType element2(1500);

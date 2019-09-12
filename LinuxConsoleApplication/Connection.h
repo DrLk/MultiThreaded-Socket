@@ -6,6 +6,7 @@
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
 #include "ConnectionKey.h"
+#include "LockedList.h"
 
 
 namespace FastTransport
@@ -26,6 +27,10 @@ namespace FastTransport
         public:
             Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
             {
+                for (int i = 0; i < 1000; i++)
+                {
+                    _freeBuffers.push_back(BufferOwner::ElementType(1500));
+                }
             }
 
             virtual void Send(const std::vector<char>& data) override;
@@ -42,12 +47,17 @@ namespace FastTransport
 
             std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 
+            void Connect();
+
         private:
+            void SendPacket(std::shared_ptr<BufferOwner>& packet);
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
             SeqNumberType _seqNumber;
-            std::list<BufferOwner::Ptr> _packetsToSend;
+
+            LockedList<BufferOwner::ElementType> _freeBuffers;
+            LockedList<BufferOwner::Ptr> _packetsToSend;
 
             ISendQueue* _sendQueue;
             IRecvQueue* _recvQueue;

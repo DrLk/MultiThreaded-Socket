@@ -42,9 +42,29 @@ namespace FastTransport
         {
             return _seqNumber++;
         }
+
         std::list<BufferOwner::Ptr>&& Connection::GetPacketsToSend()
         {
+            std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
             return std::move(_packetsToSend);
+        }
+
+        void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)
+        {
+            _packetsToSend.push_back(packet);
+        }
+
+        void Connection::Connect()
+        {
+            std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
+            BufferOwner::ElementType& element = _freeBuffers.back();
+            auto synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
+            _freeBuffers.pop_back();
+
+            synPacket->GetHeader().SetPacketType(PacketType::SYN);
+            synPacket->GetHeader().SetConnectionID(GetConnectionKey()._id);
+            synPacket->GetHeader().SetSeqNumber(GetCurrentSeqNumber());
+            SendPacket(synPacket);
         }
     }
 }
