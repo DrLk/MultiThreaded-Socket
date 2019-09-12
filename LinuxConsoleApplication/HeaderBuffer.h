@@ -23,20 +23,24 @@ namespace FastTransport
 
         };
 
+        const MagicNumber Magic_Number = 0x12345678;
         class HeaderBuffer : public FreeableBuffer
         {
         public:
             class Header : public std::basic_string_view<char>
             {
             public:
-                Header()
+                Header(char* start, int size) : std::basic_string_view<char>(start, size)
                 {
                 }
 
 
-                const MagicNumber& GetMagic() const
+                bool IsValid() const
                 {
-                    return *reinterpret_cast<const MagicNumber*>(data());
+                    if (size() < (sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(SeqNumberType)))
+                        return false;
+
+                    return *reinterpret_cast<const MagicNumber*>(data()) == Magic_Number;
                 }
                 PacketType GetPacketType() const
                 {
@@ -50,21 +54,21 @@ namespace FastTransport
                 {
                     return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
                 }
-                void SetMagic(MagicNumber magic)
+                void SetMagic()
                 {
-                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = magic;
+                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = Magic_Number;
                 }
                 void SetPacketType(PacketType type)
                 {
-                    *reinterpret_cast<PacketType*>(const_cast<char*>(data())) = type;
+                    *reinterpret_cast<PacketType*>(const_cast<char*>(data() + sizeof(MagicNumber))) = type;
                 }
                 void SetConnectionID(ConnectionID id)
                 {
-                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data())) = id;
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType))) = id;
                 }
                 void SetSeqNumber(SeqNumberType seq)
                 {
-                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data())) = seq;
+                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID))) = seq;
                 }
             };
 

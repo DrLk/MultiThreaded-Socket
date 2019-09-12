@@ -30,9 +30,10 @@ namespace FastTransport
 
             std::vector<char> data(100);
             IConnection* srcConnection = src.Connect(dstAddr);
-            srcConnection->Send(data);
 
             src.SendQueueStep();
+            srcConnection->Send(data);
+
 
 
             BufferOwner::ElementType element2(1500);

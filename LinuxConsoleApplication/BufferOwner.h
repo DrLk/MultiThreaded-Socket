@@ -23,7 +23,7 @@ namespace FastTransport
             typedef std::shared_ptr<BufferOwner> Ptr;
             BufferOwner(const BufferOwner& that) = delete;
 
-            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0)
+            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0), _header(nullptr, 0)
             {
                  
             }
@@ -56,7 +56,7 @@ namespace FastTransport
 
             virtual HeaderBuffer::Header GetHeader() override
             {
-                return _header;
+                return HeaderBuffer::Header(_element.data(), 20); // TODO: Not Implemented
             }
 
             virtual ConnectionAddr GetAddr() override

@@ -87,13 +87,13 @@ namespace FastTransport
 
         void FastTransportContext::SendQueueStep()
         {
-            std::list<BufferOwner> packets;
-            /*for (auto connection : _connections)
+            std::list<BufferOwner::Ptr> packets;
+            for (auto connection : _connections)
             {
-                packets.splice(_packets.begin(), connection.second->GetPacketsToSend());
-            }*/
+                packets.splice(packets.begin(), connection.second->GetPacketsToSend());
+            }
 
-            //Send(std::move(packets))
+            Send(std::move(packets));
         }
 
         void FastTransportContext::Send(std::list<BufferOwner::Ptr>&& packets)

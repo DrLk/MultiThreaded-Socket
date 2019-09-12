@@ -25,7 +25,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
+            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _seqNumber(2), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
             {
                 for (int i = 0; i < 1000; i++)
                 {

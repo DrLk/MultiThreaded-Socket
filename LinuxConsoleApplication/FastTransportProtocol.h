@@ -49,7 +49,6 @@ namespace FastTransport
             std::vector<Connection*> _incomingConnections;
 
             void Send(std::list<BufferOwner::Ptr>&& packets);
-            std::list<BufferOwner::Ptr> _packets;
 
         };
 

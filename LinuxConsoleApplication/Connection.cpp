@@ -45,8 +45,8 @@ namespace FastTransport
 
         std::list<BufferOwner::Ptr>&& Connection::GetPacketsToSend()
         {
-            std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
-            return std::move(_packetsToSend);
+                std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
+                return std::move(_packetsToSend);
         }
 
         void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)
@@ -62,6 +62,7 @@ namespace FastTransport
             auto synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
             _freeBuffers.pop_back();
 
+            synPacket->GetHeader().SetMagic();
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
             synPacket->GetHeader().SetConnectionID(GetConnectionKey()._id);
             synPacket->GetHeader().SetSeqNumber(GetCurrentSeqNumber());
