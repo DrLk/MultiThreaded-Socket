@@ -51,6 +51,7 @@ namespace FastTransport
 
         void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)
         {
+            std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
             _packetsToSend.push_back(packet);
         }
 
