@@ -22,15 +22,15 @@ namespace FastTransport
         {
         public:
             virtual ~IConnectionState() { }
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) = 0;
-            virtual IConnectionState* SendPackets(Connection& socket) = 0;
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) = 0;
+            virtual IConnectionState* SendPackets(Connection& connection) = 0;
         };
 
-        class BasicSocketState : public IConnectionState
+        class BasicConnectionState : public IConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override { return this; }
-            virtual IConnectionState* SendPackets(Connection& socket) override { return this; }
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override { return this; }
+            virtual IConnectionState* SendPackets(Connection& connection) override { return this; }
         };
 
         class ListenState
@@ -39,47 +39,47 @@ namespace FastTransport
             Connection* Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID);
         };
 
-        class SynState : public BasicSocketState
+        class SynState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* SendPackets(Connection& socket) override;
+            virtual IConnectionState* SendPackets(Connection& connection) override;
         };
 
-        class WaitingSynState : public BasicSocketState
+        class WaitingSynState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override;
         };
 
-        class WaitingSynAckState : public BasicSocketState
+        class WaitingSynAckState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override;
         };
 
-        class SendingSynAckState : public BasicSocketState
+        class SendingSynAckState : public BasicConnectionState
         {
-            virtual IConnectionState* SendPackets(Connection& socket) override;
+            virtual IConnectionState* SendPackets(Connection& connection) override;
         };
 
-        class DataState : public BasicSocketState
-        {
-        public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
-            virtual IConnectionState* SendPackets(Connection& socket) override;
-        };
-
-        class ClosingState : public BasicSocketState
+        class DataState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override;
+            virtual IConnectionState* SendPackets(Connection& connection) override;
+        };
+
+        class ClosingState : public BasicConnectionState
+        {
+        public:
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override;
         };
 
 
-        class ClosedState : public BasicSocketState
+        class ClosedState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket) override;
+            virtual IConnectionState* OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection) override;
         };
     }
 }

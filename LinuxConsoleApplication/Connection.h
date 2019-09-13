@@ -42,7 +42,7 @@ namespace FastTransport
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
 
             const ConnectionKey& GetConnectionKey() const;
-            SeqNumberType GetCurrentSeqNumber();
+            SeqNumberType GetNextSeqNumber();
 
             std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 

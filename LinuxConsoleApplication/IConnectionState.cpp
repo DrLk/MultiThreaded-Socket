@@ -13,64 +13,90 @@ namespace FastTransport
         {
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
-                return new Connection(new WaitingSynState(),packet->GetAddr(), myID, packet->GetHeader().GetConnectionID());
+                Connection* connection =  new Connection(new WaitingSynState(),packet->GetAddr(), myID, packet->GetHeader().GetConnectionID());
+                connection->OnRecvPackets(packet);
+                return connection;
             }
 
             return nullptr;
         }
 
-        IConnectionState* SynState::SendPackets(Connection& socket)
+        IConnectionState* SynState::SendPackets(Connection& connection)
         {
-            std::lock_guard<std::mutex> lock(socket._freeBuffers._mutex);
-            BufferOwner::ElementType& element = socket._freeBuffers.back();
-            auto synPacket = std::make_shared<BufferOwner>(socket._freeBuffers, std::move(element));
-            socket._freeBuffers.pop_back();
+            std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+            BufferOwner::ElementType& element = connection._freeBuffers.back();
+            auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+            connection._freeBuffers.pop_back();
 
             synPacket->GetHeader().SetMagic();
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
-            synPacket->GetHeader().SetConnectionID(socket.GetConnectionKey()._id);
-            synPacket->GetHeader().SetSeqNumber(socket.GetCurrentSeqNumber());
+            synPacket->GetHeader().SetConnectionID(connection.GetConnectionKey()._id);
+            synPacket->GetHeader().SetSeqNumber(connection.GetNextSeqNumber());
 
-            socket.SendPacket(synPacket);
+            connection.SendPacket(synPacket);
 
-            socket._state = new WaitingSynAckState();
-            return socket._state;
+            connection._state = new WaitingSynAckState();
+            return connection._state;
         }
 
-        IConnectionState* WaitingSynState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
+        IConnectionState* WaitingSynState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
         {
             auto header = packet->GetHeader();
             if (!header.IsValid())
             {
+                connection.Close();
                 return this;
-                socket.Close();
             }
 
-            socket._recvQueue->AddPacket(packet);
+            connection._recvQueue->AddPacket(packet);
+            connection._destinationID = packet->GetHeader().GetConnectionID();
 
 
-            socket._state = new SendingSynAckState();
-            return socket._state;
+            connection._state = new SendingSynAckState();
+            return connection._state;
         }
 
-        IConnectionState* SendingSynAckState::SendPackets(Connection& socket)
+        IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
         {
-            socket._state = new DataState();
-            return socket._state;
+            std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+            BufferOwner::ElementType& element = connection._freeBuffers.back();
+            auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+            connection._freeBuffers.pop_back();
+
+            synPacket->GetSynAckHeader().SetMagic();
+            synPacket->GetSynAckHeader().SetPacketType(PacketType::SYN_ACK);
+            synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
+            synPacket->GetSynAckHeader().SetSeqNumber(connection.GetNextSeqNumber());
+            synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
+
+            connection.SendPacket(synPacket);
+
+            connection._state = new DataState();
+            return connection._state;
         }
 
-        IConnectionState* WaitingSynAckState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
+        IConnectionState* WaitingSynAckState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
         {
-            socket._state = new DataState();
-            return socket._state;
+            auto synAckHeader = packet->GetSynAckHeader();
+
+            if (!synAckHeader.IsValid())
+            {
+                connection.Close();
+                return this;
+            }
+
+            connection._destinationID = synAckHeader.GetRemoteConnectionID();
+
+            connection._state = new DataState();
+            return connection._state;
         }
 
-        IConnectionState* DataState::SendPackets(Connection& socket)
+        IConnectionState* DataState::SendPackets(Connection& connection)
         {
             return this;
         }
 
-        IConnectionState* DataState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& socket)
+        IConnectionState* DataState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
         {
             return this;
         }

@@ -56,7 +56,26 @@ namespace FastTransport
 
             virtual HeaderBuffer::Header GetHeader() override
             {
-                return HeaderBuffer::Header(_element.data(), 20); // TODO: Not Implemented
+
+                if (_element.size() < HeaderBuffer::Header::Size)
+                {
+                    static HeaderBuffer::Header empty(nullptr, 0);
+                    return empty;
+                }
+
+                return HeaderBuffer::Header(_element.data(), HeaderBuffer::Header::Size);
+            }
+
+            virtual HeaderBuffer::SynAckHeader GetSynAckHeader() override
+            {
+
+                if (_element.size() < HeaderBuffer::SynAckHeader::Size)
+                {
+                    static HeaderBuffer::SynAckHeader empty(nullptr, 0);
+                    return empty;
+                }
+
+                return HeaderBuffer::SynAckHeader(_element.data(), HeaderBuffer::SynAckHeader::Size);
             }
 
             virtual ConnectionAddr GetAddr() override

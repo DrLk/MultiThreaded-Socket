@@ -27,17 +27,19 @@ namespace FastTransport
         class HeaderBuffer : public FreeableBuffer
         {
         public:
-            class Header : private std::basic_string_view<char>
+
+            class Header : protected std::basic_string_view<char>
             {
             public:
                 Header(char* start, int size) : std::basic_string_view<char>(start, size)
                 {
                 }
 
+                static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(SeqNumberType);
 
                 bool IsValid() const
                 {
-                    if (size() < (sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(SeqNumberType)))
+                    if (size() < Size)
                         return false;
 
                     return *reinterpret_cast<const MagicNumber*>(data()) == Magic_Number;
@@ -70,6 +72,26 @@ namespace FastTransport
                 {
                     *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID))) = seq;
                 }
+            };
+
+            class SynAckHeader : public Header
+            {
+            public:
+                static const int Size = Header::Size + sizeof(ConnectionID);
+                SynAckHeader(char* start, int size) : Header(start, size)
+                {
+                }
+
+                ConnectionID GetRemoteConnectionID() const
+                {
+                    return *reinterpret_cast<const ConnectionID*>(data() + Header::Size);
+                }
+
+                void SetRemoteConnectionID(ConnectionID seq)
+                {
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + Header::Size)) = seq;
+                }
+
             };
 
             HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _header(header)

@@ -59,7 +59,10 @@ namespace FastTransport
             {
                 Connection* connection = _listen.Listen(packet, GenerateID());
                 if (connection)
+                {
                     _incomingConnections.push_back(connection);
+                    _connections.insert({ connection->GetConnectionKey(), connection });
+                }
             }
         }
 
@@ -97,7 +100,8 @@ namespace FastTransport
                 packets.splice(packets.begin(), connection.second->GetPacketsToSend());
             }
 
-            Send(std::move(packets));
+            if (!packets.empty())
+                Send(std::move(packets));
         }
 
         void FastTransportContext::Send(std::list<BufferOwner::Ptr>&& packets)

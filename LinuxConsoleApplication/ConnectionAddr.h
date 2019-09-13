@@ -14,7 +14,7 @@ namespace FastTransport
             ConnectionAddr(const ConnectionAddr& that) { }
             bool operator==(const ConnectionAddr that) const
             {
-                throw std::runtime_error("Not implemented");
+                return true;
             }
 
             unsigned int GetPort() const

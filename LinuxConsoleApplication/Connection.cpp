@@ -28,7 +28,7 @@ namespace FastTransport
             return _key;
         }
         
-        SeqNumberType Connection::GetCurrentSeqNumber()
+        SeqNumberType Connection::GetNextSeqNumber()
         {
             return _seqNumber++;
         }

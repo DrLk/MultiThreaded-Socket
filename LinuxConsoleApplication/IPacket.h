@@ -21,6 +21,11 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
+            virtual HeaderBuffer::SynAckHeader GetSynAckHeader()
+            {
+                throw std::runtime_error("Not implemented");
+            }
+
             virtual AddrBuffer GetAddrBuffer()
             {
                 throw std::runtime_error("Not implemented");

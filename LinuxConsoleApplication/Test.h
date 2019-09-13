@@ -33,7 +33,13 @@ namespace FastTransport
 
             src.ConnectionsRun();
             src.SendQueueStep();
+            dst.ConnectionsRun();
             dst.SendQueueStep();
+            src.ConnectionsRun();
+            src.SendQueueStep();
+            dst.ConnectionsRun();
+            dst.SendQueueStep();
+
             srcConnection->Send(data);
 
 
