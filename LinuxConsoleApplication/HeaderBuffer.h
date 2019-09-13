@@ -18,25 +18,31 @@ namespace FastTransport
             SYN = 1,
             ACK = 2,
             SYN_ACK = 3,
-            FIN = 4,
-            CLOSE = 8,
-
+            DATA = 4,
+            FIN = 8,
+            CLOSE = 16
         };
 
+        const MagicNumber Magic_Number = 0x12345678;
         class HeaderBuffer : public FreeableBuffer
         {
         public:
-            class Header : public std::basic_string_view<char>
+
+            class Header : protected std::basic_string_view<char>
             {
             public:
-                Header()
+                Header(char* start, int size) : std::basic_string_view<char>(start, size)
                 {
                 }
 
+                static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(SeqNumberType);
 
-                const MagicNumber& GetMagic() const
+                bool IsValid() const
                 {
-                    return *reinterpret_cast<const MagicNumber*>(data());
+                    if (size() < Size)
+                        return false;
+
+                    return *reinterpret_cast<const MagicNumber*>(data()) == Magic_Number;
                 }
                 PacketType GetPacketType() const
                 {
@@ -50,22 +56,42 @@ namespace FastTransport
                 {
                     return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
                 }
-                void SetMagic(MagicNumber magic)
+                void SetMagic()
                 {
-                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = magic;
+                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = Magic_Number;
                 }
                 void SetPacketType(PacketType type)
                 {
-                    *reinterpret_cast<PacketType*>(const_cast<char*>(data())) = type;
+                    *reinterpret_cast<PacketType*>(const_cast<char*>(data() + sizeof(MagicNumber))) = type;
                 }
                 void SetConnectionID(ConnectionID id)
                 {
-                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data())) = id;
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType))) = id;
                 }
                 void SetSeqNumber(SeqNumberType seq)
                 {
-                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data())) = seq;
+                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID))) = seq;
                 }
+            };
+
+            class SynAckHeader : public Header
+            {
+            public:
+                static const int Size = Header::Size + sizeof(ConnectionID);
+                SynAckHeader(char* start, int size) : Header(start, size)
+                {
+                }
+
+                ConnectionID GetRemoteConnectionID() const
+                {
+                    return *reinterpret_cast<const ConnectionID*>(data() + Header::Size);
+                }
+
+                void SetRemoteConnectionID(ConnectionID seq)
+                {
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + Header::Size)) = seq;
+                }
+
             };
 
             HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _header(header)
@@ -88,7 +114,7 @@ namespace FastTransport
         class SelectiveAckBuffer : public FreeableBuffer
         {
         public:
-            class Acks : public std::basic_string_view<SeqNumberType>
+            class Acks : private std::basic_string_view<SeqNumberType>
             {
             public:
                 Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count)

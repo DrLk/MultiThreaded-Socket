@@ -23,14 +23,13 @@ namespace FastTransport
             typedef std::shared_ptr<BufferOwner> Ptr;
             BufferOwner(const BufferOwner& that) = delete;
 
-            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0), ElementSize(1500)
+            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0), _header(nullptr, 0)
             {
                  
             }
 
             ~BufferOwner()
             {
-                _element.resize(ElementSize);
                 std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
                 _freeBuffers.push_back(std::move(_element));
             }
@@ -57,7 +56,26 @@ namespace FastTransport
 
             virtual HeaderBuffer::Header GetHeader() override
             {
-                return _header;
+
+                if (_element.size() < HeaderBuffer::Header::Size)
+                {
+                    static HeaderBuffer::Header empty(nullptr, 0);
+                    return empty;
+                }
+
+                return HeaderBuffer::Header(_element.data(), HeaderBuffer::Header::Size);
+            }
+
+            virtual HeaderBuffer::SynAckHeader GetSynAckHeader() override
+            {
+
+                if (_element.size() < HeaderBuffer::SynAckHeader::Size)
+                {
+                    static HeaderBuffer::SynAckHeader empty(nullptr, 0);
+                    return empty;
+                }
+
+                return HeaderBuffer::SynAckHeader(_element.data(), HeaderBuffer::SynAckHeader::Size);
             }
 
             virtual ConnectionAddr GetAddr() override
@@ -86,7 +104,6 @@ namespace FastTransport
             SelectiveAckBuffer::Acks _acks;
             HeaderBuffer::Header _header;
             ConnectionAddr _addr;
-            int ElementSize; //TODO: reset size before insert in freeBuffers
         };
 
 

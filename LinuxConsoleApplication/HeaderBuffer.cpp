@@ -8,8 +8,7 @@ namespace FastTransport
     {
         void HeaderBuffer::SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber)
         {
-            const MagicNumber _MagicNumber = 0x12345678;
-            _header.SetMagic(_MagicNumber);
+            _header.SetMagic();
             _header.SetPacketType(packetType);
             _header.SetConnectionID(connectionID);
             _header.SetSeqNumber(seqNumber);
@@ -18,11 +17,7 @@ namespace FastTransport
 
         bool HeaderBuffer::IsValid() const
         {
-            if (_header.size() < sizeof(Header))
-                return false;
-
-            const MagicNumber _MagicNumber = 0x12345678;
-            return _header.GetMagic() != _MagicNumber;
+            return _header.IsValid();
         }
 
         ConnectionID HeaderBuffer::GetConnectionID() const

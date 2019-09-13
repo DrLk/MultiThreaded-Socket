@@ -23,12 +23,14 @@ namespace FastTransport
                     buffer.resize(1500);
             }
 
+            void OnReceive(std::list<BufferOwner::Ptr>&& packet);
             void OnReceive(BufferOwner::Ptr& packet);
-            std::function<void(BufferOwner::Ptr&)> OnSend;
+            std::function<void(std::list<BufferOwner::Ptr>&& packets)> OnSend;
 
             IConnection* Accept();
             IConnection* Connect(const ConnectionAddr&);
 
+            void ConnectionsRun();
             void Run();
 
             void SendQueueStep();
@@ -46,9 +48,11 @@ namespace FastTransport
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
+            ISendQueue* _sendQueue;
 
-            void Send(BufferOwner::Ptr& packet) const;
-            LockedList<BufferOwner::Ptr> _sendQueue;
+
+            void Send(std::list<BufferOwner::Ptr>&& packets);
+
         };
 
 

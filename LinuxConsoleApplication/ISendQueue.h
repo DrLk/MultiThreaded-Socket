@@ -10,6 +10,7 @@ namespace FastTransport
         class ISendQueue
         {
         public:
+            virtual ~ISendQueue() { }
             virtual void ProcessAcks(const SelectiveAckBuffer& buffer) = 0;
         };
 

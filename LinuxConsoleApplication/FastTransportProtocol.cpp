@@ -28,30 +28,22 @@ namespace FastTransport
 
         IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
         {
-                Connection* connection = new Connection(dstAddr, GenerateID(), 0);
+                Connection* connection = new Connection(new SynState(), dstAddr, GenerateID());
                 _connections.insert({ connection->GetConnectionKey(), connection });
-
-                {
-                    std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
-                    BufferOwner::ElementType element = _freeBuffers.back();
-                    _freeBuffers.pop_back();
-
-                    BufferOwner::Ptr synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
-                    synPacket->GetHeader().SetPacketType(PacketType::SYN);
-                    synPacket->GetHeader().SetConnectionID(connection->GetConnectionKey()._id);
-                    synPacket->GetHeader().SetSeqNumber(connection->GetCurrentSeqNumber());
-                    Send(synPacket);
-                }
-
 
                 return connection;
 
         }
 
+        void FastTransportContext::OnReceive(std::list<BufferOwner::Ptr>&& packets)
+        {
+            for (auto packet : packets)
+                OnReceive(packet);
+        }
 
         void FastTransportContext::OnReceive(BufferOwner::Ptr& packet)
         {
-            HeaderBuffer header = packet->GetHeaderBuffer();
+            HeaderBuffer::Header header = packet->GetHeader();
             if (!header.IsValid())
             {
                 throw std::runtime_error("Not implemented");
@@ -67,7 +59,18 @@ namespace FastTransport
             {
                 Connection* connection = _listen.Listen(packet, GenerateID());
                 if (connection)
+                {
                     _incomingConnections.push_back(connection);
+                    _connections.insert({ connection->GetConnectionKey(), connection });
+                }
+            }
+        }
+
+        void FastTransportContext::ConnectionsRun()
+        {
+            for (auto connection : _connections)
+            {
+                connection.second->Run();
             }
         }
 
@@ -91,16 +94,19 @@ namespace FastTransport
 
         void FastTransportContext::SendQueueStep()
         {
+            std::list<BufferOwner::Ptr> packets;
             for (auto connection : _connections)
             {
-                _sendQueue.splice(_sendQueue.begin(), connection.second->GetPacketsToSend());
+                packets.splice(packets.begin(), connection.second->GetPacketsToSend());
             }
 
+            if (!packets.empty())
+                Send(std::move(packets));
         }
 
-        void FastTransportContext::Send(BufferOwner::Ptr& packet) const
+        void FastTransportContext::Send(std::list<BufferOwner::Ptr>&& packets)
         {
-            OnSend(packet);
+            OnSend(std::move(packets));
         }
     }
 }
