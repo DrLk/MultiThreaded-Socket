@@ -46,7 +46,10 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
-
+            virtual PayloadBuffer::Payload GetPayload()
+            {
+                throw std::runtime_error("Not implemented");
+            }
         };
 
         class TestPacket : public IPacket, public FreeableBuffer

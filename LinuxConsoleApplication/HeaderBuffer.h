@@ -120,6 +120,11 @@ namespace FastTransport
                 Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count)
                 {
                 }
+
+                SeqNumberType GetFullReceivedAck()
+                {
+                    return *data();
+                }
             };
 
             SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _acks(acks)
@@ -128,20 +133,22 @@ namespace FastTransport
             SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _acks(acks)
             {
             }
+
             Acks _acks;
         };
 
         class PayloadBuffer : public FreeableBuffer
         {
+        public:
             typedef char PayloadType;
-            class Payload : private std::basic_string_view<PayloadType>
+            class Payload : public std::basic_string_view<PayloadType>
             {
             public:
                 Payload(PayloadType* start, int count) : std::basic_string_view<PayloadType>(start, count)
                 {
                 }
             };
-        public:
+
             PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _payload(start, count)
             {
             }

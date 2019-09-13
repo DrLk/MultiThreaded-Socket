@@ -78,6 +78,18 @@ namespace FastTransport
                 return HeaderBuffer::SynAckHeader(_element.data(), HeaderBuffer::SynAckHeader::Size);
             }
 
+            virtual PayloadBuffer::Payload GetPayload() override
+            {
+
+                if (_element.size() < HeaderBuffer::SynAckHeader::Size)
+                {
+                    static PayloadBuffer::Payload empty(nullptr, 0);
+                    return empty;
+                }
+
+                return PayloadBuffer::Payload(_element.data(), HeaderBuffer::SynAckHeader::Size);
+            }
+
             virtual ConnectionAddr GetAddr() override
             {
                 return _addr;
