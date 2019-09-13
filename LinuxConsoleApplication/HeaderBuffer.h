@@ -18,9 +18,9 @@ namespace FastTransport
             SYN = 1,
             ACK = 2,
             SYN_ACK = 3,
-            FIN = 4,
-            CLOSE = 8,
-
+            DATA = 4,
+            FIN = 8,
+            CLOSE = 16
         };
 
         const MagicNumber Magic_Number = 0x12345678;

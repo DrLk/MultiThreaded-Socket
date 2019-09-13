@@ -13,7 +13,7 @@ namespace FastTransport
         {
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
-                Connection* connection =  new Connection(new WaitingSynState(),packet->GetAddr(), myID, packet->GetHeader().GetConnectionID());
+                Connection* connection =  new Connection(new WaitingSynState(),packet->GetAddr(), myID);
                 connection->OnRecvPackets(packet);
                 return connection;
             }
@@ -48,12 +48,19 @@ namespace FastTransport
                 return this;
             }
 
-            connection._recvQueue->AddPacket(packet);
-            connection._destinationID = packet->GetHeader().GetConnectionID();
+            if (header.GetPacketType() == PacketType::SYN)
+            {
+                connection._recvQueue->AddPacket(packet);
+                connection._destinationID = packet->GetHeader().GetConnectionID();
+                connection._state = new SendingSynAckState();
 
-
-            connection._state = new SendingSynAckState();
-            return connection._state;
+                return connection._state;
+            }
+            else
+            {
+                connection.Close();
+                return this;
+            }
         }
 
         IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
@@ -77,17 +84,35 @@ namespace FastTransport
 
         IConnectionState* WaitingSynAckState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
         {
-            auto synAckHeader = packet->GetSynAckHeader();
+            auto header = packet->GetHeader();
 
-            if (!synAckHeader.IsValid())
+            if (!header.IsValid())
             {
                 connection.Close();
                 return this;
             }
 
-            connection._destinationID = synAckHeader.GetRemoteConnectionID();
+            switch (header.GetPacketType())
+            {
+            case PacketType::SYN_ACK:
+                {
+                    auto synAckHeader = packet->GetSynAckHeader();
+                    connection._destinationID = synAckHeader.GetRemoteConnectionID();
+                    connection._state = new DataState();
+                    break;
+                }
+            case PacketType::DATA:
+                {
+                    connection._recvQueue->AddPacket(packet);
+                    break;
+                }
+            default:
+                {
+                    connection.Close();
+                    return this;
+                }
+            }
 
-            connection._state = new DataState();
             return connection._state;
         }
 
@@ -98,6 +123,25 @@ namespace FastTransport
 
         IConnectionState* DataState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
         {
+            auto header = packet->GetHeader();
+
+            switch (header.GetPacketType())
+            {
+            case PacketType::SYN_ACK:
+                {
+                    break;
+                }
+            case PacketType::DATA:
+                {
+                    connection._recvQueue->AddPacket(packet);
+                    break;
+                }
+            default:
+                {
+                    connection.Close();
+                    return this;
+                }
+            }
             return this;
         }
 
