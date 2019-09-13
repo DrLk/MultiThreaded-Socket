@@ -27,7 +27,7 @@ namespace FastTransport
         class RecvQueue : public IRecvQueue
         {
         public:
-            RecvQueue() : _queue(MAX_PACKET_QUEUE), _lastFullRecievedAck(0), _basePacketNumber(0)
+            RecvQueue() : _queue(MAX_PACKET_QUEUE), _nextFullRecievedAck(0), _basePacketNumber(0)
             {
 
             }
@@ -35,9 +35,9 @@ namespace FastTransport
             virtual void AddPacket(BufferOwner::Ptr& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
-                if ((_lastFullRecievedAck + 1) == packetNumber)
+                if ((_nextFullRecievedAck) == packetNumber)
                 {
-                    _lastFullRecievedAck++;
+                    _nextFullRecievedAck++;
                 }
 
                 _selectiveAcks.push_back(packetNumber);
@@ -79,7 +79,7 @@ namespace FastTransport
 
             std::deque<BufferOwner::Ptr> _queue;
             std::vector<SeqNumberType> _selectiveAcks;
-            SeqNumberType _lastFullRecievedAck;
+            SeqNumberType _nextFullRecievedAck;
             SeqNumberType _basePacketNumber;
 
         };
