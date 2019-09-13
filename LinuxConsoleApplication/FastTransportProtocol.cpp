@@ -28,12 +28,8 @@ namespace FastTransport
 
         IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
         {
-                Connection* connection = new Connection(dstAddr, GenerateID(), 0);
+                Connection* connection = new Connection(new SynState(), dstAddr, GenerateID(), 0);
                 _connections.insert({ connection->GetConnectionKey(), connection });
-                {
-                    connection->Connect();
-                }
-
 
                 return connection;
 
@@ -47,7 +43,7 @@ namespace FastTransport
 
         void FastTransportContext::OnReceive(BufferOwner::Ptr& packet)
         {
-            HeaderBuffer header = packet->GetHeaderBuffer();
+            HeaderBuffer::Header header = packet->GetHeader();
             if (!header.IsValid())
             {
                 throw std::runtime_error("Not implemented");
@@ -64,6 +60,14 @@ namespace FastTransport
                 Connection* connection = _listen.Listen(packet, GenerateID());
                 if (connection)
                     _incomingConnections.push_back(connection);
+            }
+        }
+
+        void FastTransportContext::ConnectionsRun()
+        {
+            for (auto connection : _connections)
+            {
+                connection.second->Run();
             }
         }
 

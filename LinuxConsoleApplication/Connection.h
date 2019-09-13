@@ -18,6 +18,7 @@ namespace FastTransport
         class IConnection
         {
         public:
+            virtual ~IConnection() { }
             virtual void Send(const std::vector<char>& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
         };
@@ -25,7 +26,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) : _key(addr, myID), _destinationID(destinationID), _seqNumber(2), _sendQueue(new SendQueue()), _recvQueue(new RecvQueue())
+            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID, ConnectionID destinationID) :  _recvQueue(new RecvQueue()), _state(state), _key(addr, myID), _destinationID(destinationID), _seqNumber(2)
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -39,19 +40,21 @@ namespace FastTransport
 
 
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
-            void ProcessAcks(const SelectiveAckBuffer& acks);
-            void ProcessPackets(std::shared_ptr<BufferOwner>& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             SeqNumberType GetCurrentSeqNumber();
 
             std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 
-            void Connect();
             void Close();
 
-        private:
+            void Run();
+
+            IRecvQueue* _recvQueue;
+
+        public:
             void SendPacket(std::shared_ptr<BufferOwner>& packet);
+
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
@@ -60,8 +63,6 @@ namespace FastTransport
             LockedList<BufferOwner::ElementType> _freeBuffers;
             LockedList<BufferOwner::Ptr> _packetsToSend;
 
-            ISendQueue* _sendQueue;
-            IRecvQueue* _recvQueue;
         };
     }
 }

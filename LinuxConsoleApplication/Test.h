@@ -31,7 +31,9 @@ namespace FastTransport
             std::vector<char> data(100);
             IConnection* srcConnection = src.Connect(dstAddr);
 
+            src.ConnectionsRun();
             src.SendQueueStep();
+            dst.SendQueueStep();
             srcConnection->Send(data);
 
 
