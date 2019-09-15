@@ -51,31 +51,25 @@ namespace FastTransport
 
             virtual SelectiveAckBuffer::Acks GetAcks() override
             {
-                return _acks;
+                auto header = GetHeader();
+                if (!header.IsValid())
+                    return SelectiveAckBuffer::acks(nullptr, 0);
+
+                if (header.GetPacketType() != PacketType::SYN_ACK)
+                    return SelectiveAckBuffer::acks(nullptr, 0);
+                else
+                    return SelectiveAckBuffer::acks(nullptr, 0);
+
             }
 
             virtual HeaderBuffer::Header GetHeader() override
             {
-
-                if (_element.size() < HeaderBuffer::Header::Size)
-                {
-                    static HeaderBuffer::Header empty(nullptr, 0);
-                    return empty;
-                }
-
-                return HeaderBuffer::Header(_element.data(), HeaderBuffer::Header::Size);
+                return HeaderBuffer::Header(_element.data(), _element.size());
             }
 
             virtual HeaderBuffer::SynAckHeader GetSynAckHeader() override
             {
-
-                if (_element.size() < HeaderBuffer::SynAckHeader::Size)
-                {
-                    static HeaderBuffer::SynAckHeader empty(nullptr, 0);
-                    return empty;
-                }
-
-                return HeaderBuffer::SynAckHeader(_element.data(), HeaderBuffer::SynAckHeader::Size);
+                return HeaderBuffer::SynAckHeader(_element.data(), _element.size());
             }
 
             virtual PayloadBuffer::Payload GetPayload() override

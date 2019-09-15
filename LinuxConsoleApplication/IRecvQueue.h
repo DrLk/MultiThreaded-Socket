@@ -17,7 +17,6 @@ namespace FastTransport
         public:
             virtual ~IRecvQueue() { }
             virtual void AddPacket(BufferOwner::Ptr& packet) = 0;
-            virtual void SetStartPacketNumber(SeqNumberType start) = 0;
             virtual std::vector<char> GetUserData(std::size_t size) = 0;
             virtual std::vector<SeqNumberType> GetSelectiveAcks() = 0;
 
@@ -27,7 +26,7 @@ namespace FastTransport
         class RecvQueue : public IRecvQueue
         {
         public:
-            RecvQueue() : _nextFullRecievedAck(0), _basePacketNumber(0)
+            RecvQueue() : _nextFullRecievedAck(0)
             {
 
             }
@@ -41,12 +40,12 @@ namespace FastTransport
                 }
 
                 _selectiveAcks.push_back(packetNumber);
-                _queue[packetNumber - _basePacketNumber] = std::move(packet);
+                _queue[packetNumber] = packet;
             }
 
-            virtual void SetStartPacketNumber(SeqNumberType start) override
+            void ProccessUnorderedPackets()
             {
-                _basePacketNumber = start;
+                while (_queue.find(_nextFullRecievedAck++) != _queue.end());
             }
 
             virtual std::vector<char> GetUserData(std::size_t needed) override
@@ -79,9 +78,7 @@ namespace FastTransport
             std::unordered_map<SeqNumberType, BufferOwner::Ptr> _queue;
             std::vector<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;
-            SeqNumberType _basePacketNumber;
 
         };
-
     }
 }

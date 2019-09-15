@@ -48,14 +48,9 @@ namespace FastTransport
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
-            ISendQueue* _sendQueue;
-
 
             void Send(std::list<BufferOwner::Ptr>&& packets);
 
         };
-
-
-
     }
 }

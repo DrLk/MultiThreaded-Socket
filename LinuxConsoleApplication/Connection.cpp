@@ -64,7 +64,7 @@ namespace FastTransport
             synPacket->GetHeader().SetConnectionID(GetConnectionKey()._id);
             synPacket->GetHeader().SetSeqNumber(GetCurrentSeqNumber());*/
 
-            auto acks = _recvQueue->GetSelectiveAcks();
+            auto acks = _recvQueue.GetSelectiveAcks();
         }
     }
 }

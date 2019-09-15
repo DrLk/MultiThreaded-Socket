@@ -50,8 +50,7 @@ namespace FastTransport
 
             if (header.GetPacketType() == PacketType::SYN)
             {
-                connection._recvQueue->SetStartPacketNumber(header.GetSeqNumber());
-                connection._recvQueue->AddPacket(packet);
+                connection._recvQueue.AddPacket(packet);
                 connection._destinationID = packet->GetHeader().GetConnectionID();
                 connection._state = new SendingSynAckState();
 
@@ -100,13 +99,12 @@ namespace FastTransport
                     auto synAckHeader = packet->GetSynAckHeader();
                     connection._destinationID = synAckHeader.GetRemoteConnectionID();
                     connection._state = new DataState();
-                    connection._recvQueue->SetStartPacketNumber(synAckHeader.GetSeqNumber());
-                    connection._recvQueue->AddPacket(packet);
+                    connection._recvQueue.AddPacket(packet);
                     break;
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue->AddPacket(packet);
+                    connection._recvQueue.AddPacket(packet);
                     break;
                 }
             default:
@@ -136,7 +134,7 @@ namespace FastTransport
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue->AddPacket(packet);
+                    connection._recvQueue.AddPacket(packet);
                     break;
                 }
             default:

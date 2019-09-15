@@ -26,7 +26,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) :  _recvQueue(new RecvQueue()), _state(state), _key(addr, myID), _destinationID(0), _seqNumber(2)
+            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) : _state(state), _key(addr, myID), _destinationID(0), _seqNumber(2)
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -50,7 +50,8 @@ namespace FastTransport
 
             void Run();
 
-            IRecvQueue* _recvQueue;
+            IRecvQueue _recvQueue;
+            ISendQueue _sendQueue;
 
         public:
             void SendPacket(std::shared_ptr<BufferOwner>& packet);
