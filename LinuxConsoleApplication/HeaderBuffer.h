@@ -114,7 +114,7 @@ namespace FastTransport
         class SelectiveAckBuffer : public FreeableBuffer
         {
         public:
-            class Acks : private std::basic_string_view<SeqNumberType>
+            class Acks : public std::basic_string_view<SeqNumberType>
             {
             public:
                 Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count)

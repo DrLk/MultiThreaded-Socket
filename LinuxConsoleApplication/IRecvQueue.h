@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <deque>
+#include <unordered_map>
 #include <memory>
 
 #include "BufferOwner.h"
@@ -27,7 +27,7 @@ namespace FastTransport
         class RecvQueue : public IRecvQueue
         {
         public:
-            RecvQueue() : _queue(MAX_PACKET_QUEUE), _nextFullRecievedAck(0), _basePacketNumber(0)
+            RecvQueue() : _nextFullRecievedAck(0), _basePacketNumber(0)
             {
 
             }
@@ -54,8 +54,9 @@ namespace FastTransport
                 std::vector<char> result;
                 result.reserve(needed);
 
-                for (auto& packet : _queue)
+                for (auto& value : _queue)
                 {
+                    const BufferOwner::Ptr& packet = value.second;
                     if (needed >= packet->GetPayload().size())
                     {
                         result.insert(result.end(), packet->GetPayload().begin(), packet->GetPayload().end());
@@ -75,9 +76,7 @@ namespace FastTransport
                 return _selectiveAcks;
             }
 
-            static const int MAX_PACKET_QUEUE = 100;
-
-            std::deque<BufferOwner::Ptr> _queue;
+            std::unordered_map<SeqNumberType, BufferOwner::Ptr> _queue;
             std::vector<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;
             SeqNumberType _basePacketNumber;

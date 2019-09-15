@@ -13,17 +13,7 @@ using namespace FastTransport::Protocol;
 void Test()
 {
     TestConnection();
-    BufferOwner::BufferType freeBuffers;
-    BufferOwner::ElementType element;
 
-    //BufferOwner buffer(&freeBuffers, element);
-    auto buffer = std::make_shared<BufferOwner>(freeBuffers, std::move(element));
-
-    buffer.reset();
-    buffer->GetHeader();
-
-    FastTransport::UDPQueue::Packet packet;
-    FastTransport::Protocol::FastTransportContext transport();
     LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
     LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
 
@@ -41,12 +31,13 @@ void Test()
     dstAddr.sin_family = AF_INET;
     dstAddr.sin_port = htons(9999);
     auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
+    //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
+    //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
+
     if (result)
     { 
         errno;
     }
-    //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
-    //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
 
     std::thread srcThread([&sendBuffers, &dstAddr, &srcSocket]()
         {

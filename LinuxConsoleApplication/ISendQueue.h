@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include "BufferOwner.h"
 
 namespace FastTransport
@@ -11,7 +11,7 @@ namespace FastTransport
         {
         public:
             virtual ~ISendQueue() { }
-            virtual void ProcessAcks(const SelectiveAckBuffer& buffer) = 0;
+            virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) = 0;
         };
 
         class SendQueue : public ISendQueue
@@ -25,9 +25,12 @@ namespace FastTransport
 
             }
 
-            virtual void ProcessAcks(const SelectiveAckBuffer& buffer) override
+            virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) override
             {
-
+                for (SeqNumberType number : acks)
+                {
+                    _inFlightPackets.erase(number);
+                }
             }
 
             void CheckTimeouts()
@@ -35,7 +38,7 @@ namespace FastTransport
 
             }
 
-            //std::map<SeqNumber, BufferOwner*> _inFlightPackets;
+            std::unordered_map<SeqNumberType, BufferOwner*> _inFlightPackets;
 
         };
     }
