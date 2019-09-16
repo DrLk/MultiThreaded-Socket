@@ -27,22 +27,15 @@ namespace FastTransport
         {
             return _key;
         }
-        
-        SeqNumberType Connection::GetNextSeqNumber()
-        {
-            return _seqNumber++;
-        }
 
-        std::list<BufferOwner::Ptr>&& Connection::GetPacketsToSend()
+        std::list<OutgoingPacket>& Connection::GetPacketsToSend()
         {
-                std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
-                return std::move(_packetsToSend);
+            return _sendQueue.GetPacketToSend();
         }
 
         void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)
         {
-            std::lock_guard<std::mutex> lock(_packetsToSend._mutex);
-            _packetsToSend.push_back(packet);
+            _sendQueue.SendPacket(packet);
         }
 
         void Connection::Close()

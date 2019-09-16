@@ -114,17 +114,35 @@ namespace FastTransport
         class SelectiveAckBuffer : public FreeableBuffer
         {
         public:
-            class Acks : public std::basic_string_view<SeqNumberType>
+            class Acks : private std::basic_string_view<SeqNumberType>
             {
+                static const unsigned short MaxAcks = 1000;
             public:
-                Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count)
+                Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count), _start(0), _count(0)
                 {
+                    auto header = GetHeader();
+                    if (!header.IsValid());
+                        return;
+
+
+                    int headerSize += header.GetPacketType() == PacketType::SYN_ACK ? HeaderBuffer::SynAckHeader::Size : HeaderBuffer::Header::Size;
+
+                    if (size() < (headerSize + sizeof(MaxAcks));
+                        _count = *reinterpret_cast<const unsigned short*>(data() + headerSize);
+
+                    if (size() < (headerSize + sizeof(MaxAcks) + _count*(sizeof(MaxAcks));
+                        _start = *reinterpret_cast<const unsigned short*>(data() + headerSize + sizeof(MaxAcks));
+                    else
+                        _count = 0;
                 }
 
-                SeqNumberType GetFullReceivedAck()
+                std::basic_string_view<SeqNumberType> GetAcks()
                 {
-                    return *data();
+                    return std::basic_string_view(_start, _count);
                 }
+            private:
+                SeqNumberType* _start;
+                int _count;
             };
 
             SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _acks(acks)

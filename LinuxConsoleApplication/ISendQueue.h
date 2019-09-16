@@ -66,7 +66,7 @@ namespace FastTransport
                 }
             }
 
-            std::vector<OutgoingPacket>& GetPacketsToSend()
+            std::list<OutgoingPacket>& GetPacketsToSend()
             {
                 return _needToSend;
             }

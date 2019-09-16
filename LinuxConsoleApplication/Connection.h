@@ -26,7 +26,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) : _state(state), _key(addr, myID), _destinationID(0), _seqNumber(2)
+            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) : _state(state), _key(addr, myID), _destinationID(0)
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -42,7 +42,6 @@ namespace FastTransport
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
 
             const ConnectionKey& GetConnectionKey() const;
-            SeqNumberType GetNextSeqNumber();
 
             std::list<BufferOwner::Ptr>&& GetPacketsToSend();
 
@@ -59,11 +58,8 @@ namespace FastTransport
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
-            SeqNumberType _seqNumber;
 
             LockedList<BufferOwner::ElementType> _freeBuffers;
-            LockedList<BufferOwner::Ptr> _packetsToSend;
-
         };
     }
 }
