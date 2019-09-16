@@ -28,11 +28,10 @@ namespace FastTransport
             auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
             connection._freeBuffers.pop_back();
 
-            synPacket->GetHeader().SetMagic();
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
             synPacket->GetHeader().SetConnectionID(connection.GetConnectionKey()._id);
 
-            connection.SendPacket(synPacket);
+            connection.SendPacket(synPacket, false);
 
             connection._state = new WaitingSynAckState();
             return connection._state;
@@ -49,7 +48,6 @@ namespace FastTransport
 
             if (header.GetPacketType() == PacketType::SYN)
             {
-                connection._recvQueue.AddPacket(packet);
                 connection._destinationID = packet->GetHeader().GetConnectionID();
                 connection._state = new SendingSynAckState();
 
@@ -69,12 +67,11 @@ namespace FastTransport
             auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
             connection._freeBuffers.pop_back();
 
-            synPacket->GetSynAckHeader().SetMagic();
             synPacket->GetSynAckHeader().SetPacketType(PacketType::SYN_ACK);
             synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
             synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
 
-            connection.SendPacket(synPacket);
+            connection.SendPacket(synPacket, true);
 
             connection._state = new DataState();
             return connection._state;
@@ -117,6 +114,63 @@ namespace FastTransport
 
         IConnectionState* DataState::SendPackets(Connection& connection)
         {
+            std::list<SeqNumberType> acks = std::move(connection._recvQueue.GetSelectiveAcks());
+            while (!acks.empty())
+            {
+                std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                BufferOwner::ElementType& element = connection._freeBuffers.back();
+                auto packet = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+                connection._freeBuffers.pop_back();
+
+                packet->GetHeader().SetPacketType(PacketType::SACK);
+                packet->GetHeader().SetConnectionID(connection._destinationID);
+
+
+                std::list<SeqNumberType> packetAcks;
+                auto end = acks.begin();
+
+                if (acks.size() > SelectiveAckBuffer::Acks::MaxAcks)
+                {
+                    for (unsigned int i = 0; i < SelectiveAckBuffer::Acks::MaxAcks; i++)
+                    {
+                        end++;
+                    }
+                    packetAcks.splice(packetAcks.begin(), acks, acks.begin(), end);
+                }
+                else
+                {
+                    packetAcks = std::move(acks);
+                }
+
+                packet->GetAcks().SetAcks(packetAcks);
+
+                connection.SendPacket(packet, false);
+            }
+
+            connection._sendQueue.CheckTimeouts();
+
+
+
+            std::list<std::vector<char>> userData;
+            {
+                std::lock_guard<std::mutex> lock(connection._sendUserData._mutex);
+                userData = std::move(connection._sendUserData);
+            }
+
+            for (auto data : userData)
+            {
+                std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                BufferOwner::ElementType& element = connection._freeBuffers.back();
+                auto packet = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+                connection._freeBuffers.pop_back();
+
+                packet->GetHeader().SetPacketType(PacketType::DATA);
+                packet->GetHeader().SetConnectionID(connection._destinationID);
+
+                packet->GetPayload().SetPayload(data);
+                connection.SendPacket(packet);
+            }
+
             return this;
         }
 
@@ -128,6 +182,11 @@ namespace FastTransport
             {
             case PacketType::SYN_ACK:
                 {
+                    break;
+                }
+            case PacketType::SACK:
+                {
+                    connection._sendQueue.ProcessAcks(packet->GetAcks());
                     break;
                 }
             case PacketType::DATA:

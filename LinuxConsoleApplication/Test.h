@@ -9,7 +9,8 @@ namespace FastTransport
     {
         void TestConnection()
         {
-
+            ConnectionAddr addr("127.0.0.1", 8);
+            ConnectionAddr addr2("127.0.0.2", 8);
             FastTransportContext src;
             FastTransportContext dst;
             ConnectionAddr srcAddr;
@@ -55,19 +56,23 @@ namespace FastTransport
             dst.ConnectionsRun();
             dst.SendQueueStep();
 
-            srcConnection->Send(data);
+            srcConnection->Send(std::move(data));
+
+            src.ConnectionsRun();
+            src.SendQueueStep();
+            dst.ConnectionsRun();
+            dst.SendQueueStep();
+            src.ConnectionsRun();
+            src.SendQueueStep();
+            dst.ConnectionsRun();
+            dst.SendQueueStep();
 
 
+            int a = 0;
+            a++;
 
             BufferOwner::ElementType element2(1500);
             BufferOwner::Ptr synAckPacket = std::make_shared<BufferOwner>(freeElements, std::move(element));
-
-
-            synAckPacket->GetHeader().SetPacketType(PacketType::SYN_ACK);
-            synAckPacket->GetHeader().SetConnectionID(2);
-
-            src.OnReceive(synAckPacket);
-
 
 
         }

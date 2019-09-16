@@ -23,7 +23,7 @@ namespace FastTransport
             typedef std::shared_ptr<BufferOwner> Ptr;
             BufferOwner(const BufferOwner& that) = delete;
 
-            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element)), _acks(nullptr, 0), _header(nullptr, 0)
+            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element))
             {
                  
             }
@@ -36,12 +36,12 @@ namespace FastTransport
 
             virtual SelectiveAckBuffer GetAcksBuffer() override
             {
-                return SelectiveAckBuffer(_acks, this->shared_from_this());
+                throw std::runtime_error("Not Implemented");
             }
 
             virtual HeaderBuffer GetHeaderBuffer() override
             {
-                return HeaderBuffer(_header, this->shared_from_this());
+                throw std::runtime_error("Not Implemented");
             }
 
             virtual AddrBuffer GetAddrBuffer() override
@@ -51,15 +51,7 @@ namespace FastTransport
 
             virtual SelectiveAckBuffer::Acks GetAcks() override
             {
-                auto header = GetHeader();
-                if (!header.IsValid())
-                    return SelectiveAckBuffer::Acks(nullptr, 0);
-
-                if (header.GetPacketType() != PacketType::SYN_ACK)
-                    return SelectiveAckBuffer::Acks(nullptr, 0);
-                else
-                    return SelectiveAckBuffer::Acks(nullptr, 0);
-
+                return SelectiveAckBuffer::Acks(_element.data(), _element.size());
             }
 
             virtual HeaderBuffer::Header GetHeader() override
@@ -74,14 +66,7 @@ namespace FastTransport
 
             virtual PayloadBuffer::Payload GetPayload() override
             {
-
-                if (_element.size() < HeaderBuffer::SynAckHeader::Size)
-                {
-                    static PayloadBuffer::Payload empty(nullptr, 0);
-                    return empty;
-                }
-
-                return PayloadBuffer::Payload(_element.data(), HeaderBuffer::SynAckHeader::Size);
+                return PayloadBuffer::Payload(_element.data(), _element.size());
             }
 
             virtual ConnectionAddr GetAddr() override
@@ -91,12 +76,12 @@ namespace FastTransport
 
             void SetAcks(const SelectiveAckBuffer::Acks& acks)
             {
-                _acks = acks;
+                throw std::runtime_error("Not Implemented");
             }
 
             void SetHeader(const HeaderBuffer::Header& header)
             {
-                _header = header;
+                throw std::runtime_error("Not Implemented");
             }
 
             void SetAddr(const ConnectionAddr& addr)
@@ -107,8 +92,6 @@ namespace FastTransport
             BufferType& _freeBuffers;
             ElementType _element;
 
-            SelectiveAckBuffer::Acks _acks;
-            HeaderBuffer::Header _header;
             ConnectionAddr _addr;
         };
 

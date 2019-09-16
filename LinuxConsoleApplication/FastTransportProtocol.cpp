@@ -28,10 +28,10 @@ namespace FastTransport
 
         IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
         {
-                Connection* connection = new Connection(new SynState(), dstAddr, GenerateID());
-                _connections.insert({ connection->GetConnectionKey(), connection });
+            Connection* connection = new Connection(new SynState(), dstAddr, GenerateID());
+            _connections.insert({ connection->GetConnectionKey(), connection });
 
-                return connection;
+            return connection;
 
         }
 

@@ -13,9 +13,9 @@ namespace FastTransport
             _state = _state->OnRecvPackets(packet, *this);
         }
 
-        void Connection::Send(const std::vector<char>& data)
+        void Connection::Send(std::vector<char>&& data)
         {
-            throw std::runtime_error("Not implemented");
+            _sendUserData.push_back(std::move(data));
         }
 
         std::vector<char> Connection::Recv(int size)
@@ -33,9 +33,9 @@ namespace FastTransport
             return _sendQueue.GetPacketsToSend();
         }
 
-        void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)
+        void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet, bool needAck /*= true*/)
         {
-            _sendQueue.SendPacket(packet);
+            _sendQueue.SendPacket(packet, needAck);
         }
 
         void Connection::Close()
@@ -45,19 +45,7 @@ namespace FastTransport
 
         void Connection::Run()
         {
-
             _state->SendPackets(*this);
-            /*std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
-            BufferOwner::ElementType& element = _freeBuffers.back();
-            auto synPacket = std::make_shared<BufferOwner>(_freeBuffers, std::move(element));
-            _freeBuffers.pop_back();
-
-            synPacket->GetHeader().SetMagic();
-            synPacket->GetHeader().SetPacketType(PacketType::SYN);
-            synPacket->GetHeader().SetConnectionID(GetConnectionKey()._id);
-            synPacket->GetHeader().SetSeqNumber(GetCurrentSeqNumber());*/
-
-            auto acks = _recvQueue.GetSelectiveAcks();
         }
     }
 }

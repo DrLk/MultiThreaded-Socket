@@ -18,7 +18,7 @@ namespace FastTransport
             virtual ~IRecvQueue() { }
             virtual void AddPacket(BufferOwner::Ptr& packet) = 0;
             virtual std::vector<char> GetUserData(std::size_t size) = 0;
-            virtual std::vector<SeqNumberType> GetSelectiveAcks() = 0;
+            virtual std::list<SeqNumberType>&& GetSelectiveAcks() = 0;
 
         public:
         };
@@ -70,15 +70,15 @@ namespace FastTransport
                 return result;
             }
 
-            virtual std::vector<SeqNumberType> GetSelectiveAcks() override
+            virtual std::list<SeqNumberType>&& GetSelectiveAcks() override
             {
-                return _selectiveAcks;
+                std::lock_guard<std::mutex> lock(_selectiveAcks._mutex);
+                return std::move(_selectiveAcks);
             }
 
             std::unordered_map<SeqNumberType, BufferOwner::Ptr> _queue;
-            std::vector<SeqNumberType> _selectiveAcks;
+            LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;
-
         };
     }
 }

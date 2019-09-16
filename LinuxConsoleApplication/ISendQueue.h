@@ -38,10 +38,14 @@ namespace FastTransport
 
             }
 
-            void SendPacket(BufferOwner::Ptr& packet)
+            void SendPacket(BufferOwner::Ptr& packet, bool needAck = false)
             {
-                packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
-                _inFlightPackets.insert({_nextPacketNumber, packet});
+                packet->GetSynAckHeader().SetMagic();
+                if (needAck)
+                {
+                    packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
+                    _inFlightPackets.insert({ _nextPacketNumber, packet });
+                }
                 _needToSend.push_back(packet);
             }
 

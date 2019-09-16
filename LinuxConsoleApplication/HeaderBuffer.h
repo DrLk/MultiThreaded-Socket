@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+#include <list>
+
 #include "ConnectionAddr.h"
 #include "FreeableBuffer.h"
 
@@ -19,8 +22,9 @@ namespace FastTransport
             ACK = 2,
             SYN_ACK = 3,
             DATA = 4,
-            FIN = 8,
-            CLOSE = 16
+            SACK = 8,
+            FIN = 16,
+            CLOSE = 32
         };
 
         const MagicNumber Magic_Number = 0x12345678;
@@ -116,38 +120,47 @@ namespace FastTransport
         public:
             class Acks
             {
-                static const unsigned short MaxAcks = 1000;
             public:
-                Acks(char* start, size_t size) : _start(0), _count(0)
+                static const SeqNumberType MaxAcks = 300;
+
+                Acks(char* start, size_t size) : _start(0), _size(0)
                 {
-                    auto header = HeaderBuffer::Header(start, size);
-                    if (!header.IsValid())
-                        return;
-
-
-                    unsigned int headerSize = header.GetPacketType() == PacketType::SYN_ACK ? HeaderBuffer::SynAckHeader::Size : HeaderBuffer::Header::Size;
-
-                    size_t ackPacketStart = headerSize + sizeof(MaxAcks);
-                    if (size < ackPacketStart)
-                        _count = *reinterpret_cast<const unsigned short*>(start + headerSize);
-                    if ((unsigned long long)size < (headerSize + sizeof(MaxAcks) + _count *sizeof(MaxAcks)))
-                        _start = reinterpret_cast<SeqNumberType*>(start + headerSize + sizeof(MaxAcks));
+                    size_t ackPacketStart = HeaderBuffer::Header::Size + sizeof(MaxAcks);
+                    if (size >= ackPacketStart)
+                        _size = *reinterpret_cast<SeqNumberType*>(start + HeaderBuffer::Header::Size);
+                    if ((unsigned long long)size >= (HeaderBuffer::Header::Size + sizeof(MaxAcks) + _size *sizeof(SeqNumberType)))
+                        _start = reinterpret_cast<SeqNumberType*>(start + HeaderBuffer::Header::Size);
                     else
-                        _count = 0;
+                        _size = 0;
                 }
 
                 std::basic_string_view<SeqNumberType> GetAcks() const
                 {
-                    return std::basic_string_view(_start, _count);
+                    return std::basic_string_view(_start, _size);
+                }
+
+                void SetAcks(const std::list<SeqNumberType>& numbers)
+                {
+                    //TODO: check size
+                    _size = 0;
+                    *_start = (SeqNumberType)numbers.size();
+                    for (auto number : numbers)
+                    {
+                        _size++;
+                        *(_start + _size) = number;
+                    }
                 }
 
                 bool IsValid() const
                 {
+                    if (_size > 0)
+                        return true;
+
                     return false;
                 }
             private:
                 SeqNumberType* _start;
-                int _count;
+                int _size;
             };
 
             SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _acks(acks)
@@ -167,9 +180,34 @@ namespace FastTransport
             class Payload : public std::basic_string_view<PayloadType>
             {
             public:
-                Payload(PayloadType* start, int count) : std::basic_string_view<PayloadType>(start, count)
+                static const SeqNumberType MaxPayload = 1300;
+                Payload(PayloadType* start, size_t size) : _start(0), _size(0)
                 {
+                    size_t ackPacketStart = HeaderBuffer::Header::Size + sizeof(MaxPayload);
+                    if (size >= ackPacketStart)
+                        _size = *reinterpret_cast<PayloadType*>(start + HeaderBuffer::Header::Size);
+                    if ((unsigned long long)size >= (HeaderBuffer::Header::Size + sizeof(MaxPayload) + _size))
+                        _start = reinterpret_cast<PayloadType*>(start + HeaderBuffer::Header::Size);
+                    else
+                        _size = 0;
                 }
+
+                std::basic_string_view<PayloadType> GetPayload() const
+                {
+                    return std::basic_string_view<PayloadType>(_start, _size);
+                }
+
+                void SetPayload(const std::vector<PayloadType>& payload)
+                {
+                    //TODO: check size
+                    _size = (int)payload.size();
+                    *(int*)_start = _size;
+                    std::memcpy(_start + sizeof(_size), payload.data(), payload.size());
+                }
+
+            private:
+                PayloadType* _start;
+                unsigned int _size;
             };
 
             PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _payload(start, count)

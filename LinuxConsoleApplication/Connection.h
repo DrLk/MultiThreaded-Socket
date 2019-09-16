@@ -19,7 +19,7 @@ namespace FastTransport
         {
         public:
             virtual ~IConnection() { }
-            virtual void Send(const std::vector<char>& data) = 0;
+            virtual void Send(std::vector<char>&& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
         };
 
@@ -34,7 +34,7 @@ namespace FastTransport
                 }
             }
 
-            virtual void Send(const std::vector<char>& data) override;
+            virtual void Send(std::vector<char>&& data) override;
 
             virtual std::vector<char> Recv(int size) override;
 
@@ -52,13 +52,16 @@ namespace FastTransport
             SendQueue _sendQueue;
 
         public:
-            void SendPacket(std::shared_ptr<BufferOwner>& packet);
+            void SendPacket(std::shared_ptr<BufferOwner>& packet, bool needAck = true);
 
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
 
             LockedList<BufferOwner::ElementType> _freeBuffers;
+
+            LockedList<std::vector<char>> _sendUserData;
+            LockedList<std::vector<char>> _recvUserData;
         };
     }
 }
