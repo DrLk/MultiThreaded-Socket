@@ -53,12 +53,12 @@ namespace FastTransport
             {
                 auto header = GetHeader();
                 if (!header.IsValid())
-                    return SelectiveAckBuffer::acks(nullptr, 0);
+                    return SelectiveAckBuffer::Acks(nullptr, 0);
 
                 if (header.GetPacketType() != PacketType::SYN_ACK)
-                    return SelectiveAckBuffer::acks(nullptr, 0);
+                    return SelectiveAckBuffer::Acks(nullptr, 0);
                 else
-                    return SelectiveAckBuffer::acks(nullptr, 0);
+                    return SelectiveAckBuffer::Acks(nullptr, 0);
 
             }
 

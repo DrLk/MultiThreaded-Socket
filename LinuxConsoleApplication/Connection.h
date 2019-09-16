@@ -42,15 +42,14 @@ namespace FastTransport
             void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
 
             const ConnectionKey& GetConnectionKey() const;
-
-            std::list<BufferOwner::Ptr>&& GetPacketsToSend();
+            std::list<OutgoingPacket>& GetPacketsToSend();
 
             void Close();
 
             void Run();
 
-            IRecvQueue _recvQueue;
-            ISendQueue _sendQueue;
+            RecvQueue _recvQueue;
+            SendQueue _sendQueue;
 
         public:
             void SendPacket(std::shared_ptr<BufferOwner>& packet);

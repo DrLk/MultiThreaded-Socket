@@ -25,7 +25,7 @@ namespace FastTransport
 
             void OnReceive(std::list<BufferOwner::Ptr>&& packet);
             void OnReceive(BufferOwner::Ptr& packet);
-            std::function<void(std::list<BufferOwner::Ptr>&& packets)> OnSend;
+            std::function<void(std::list<OutgoingPacket>& packets)> OnSend;
 
             IConnection* Accept();
             IConnection* Connect(const ConnectionAddr&);
@@ -49,7 +49,7 @@ namespace FastTransport
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
 
-            void Send(std::list<BufferOwner::Ptr>&& packets);
+            void Send(std::list<OutgoingPacket>& packets);
 
         };
     }

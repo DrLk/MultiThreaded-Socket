@@ -15,8 +15,8 @@ namespace FastTransport
         typedef std::chrono::milliseconds ms;
         class OutgoingPacket
         {
-            OutgoingPacket(BufferOwner::Ptr& packet) : _packet(packet), _sendTime(0)
         public:
+            OutgoingPacket(BufferOwner::Ptr& packet) : _packet(packet)  { }
             BufferOwner::Ptr _packet;
             TimePoint _sendTime;
         };
@@ -40,14 +40,17 @@ namespace FastTransport
 
             void SendPacket(BufferOwner::Ptr& packet)
             {
-                packet.GetHeader().SetSeqNumber(++_nextPacketNumber);
+                packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
                 _inFlightPackets.insert({_nextPacketNumber, packet});
                 _needToSend.push_back(packet);
             }
 
             virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) override
             {
-                for (SeqNumberType number : acks)
+                if (!acks.IsValid())
+                    return;
+
+                for (SeqNumberType number : acks.GetAcks())
                 {
                     _inFlightPackets.erase(number);
                 }
@@ -72,7 +75,7 @@ namespace FastTransport
             }
 
             std::unordered_map<SeqNumberType, OutgoingPacket> _inFlightPackets;
-            std::vector<OutgoingPacket> _needToSend;
+            std::list<OutgoingPacket> _needToSend;
             SeqNumberType _nextPacketNumber;
 
         };

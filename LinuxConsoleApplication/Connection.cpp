@@ -30,7 +30,7 @@ namespace FastTransport
 
         std::list<OutgoingPacket>& Connection::GetPacketsToSend()
         {
-            return _sendQueue.GetPacketToSend();
+            return _sendQueue.GetPacketsToSend();
         }
 
         void Connection::SendPacket(std::shared_ptr<BufferOwner>& packet)

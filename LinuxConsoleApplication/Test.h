@@ -18,14 +18,29 @@ namespace FastTransport
             BufferOwner::ElementType element(1500);
             BufferOwner::BufferType freeElements;
 
-            src.OnSend = [&dst](std::list<BufferOwner::Ptr>&& packets)
+            src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
-                dst.OnReceive(std::move(packets));
+                std::list<BufferOwner::Ptr> buffers;
+
+                for (auto& packet : packets)
+                {
+                    packet._sendTime == Time::now();
+                    buffers.push_back(packet._packet);
+                }
+                dst.OnReceive(std::move(buffers));
             };
 
-            dst.OnSend = [&src](std::list<BufferOwner::Ptr>&& packets)
+            dst.OnSend = [&src](std::list<OutgoingPacket>& packets)
             {
-                src.OnReceive(std::move(packets));
+                std::list<BufferOwner::Ptr> buffers;
+
+                for (auto& packet : packets)
+                {
+                    packet._sendTime == Time::now();
+                    buffers.push_back(packet._packet);
+                }
+
+                src.OnReceive(std::move(buffers));
             };
 
             std::vector<char> data(100);

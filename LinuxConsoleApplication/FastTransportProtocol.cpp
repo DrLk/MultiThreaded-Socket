@@ -94,19 +94,19 @@ namespace FastTransport
 
         void FastTransportContext::SendQueueStep()
         {
-            std::list<BufferOwner::Ptr> packets;
+            std::list<OutgoingPacket> packets;
             for (auto connection : _connections)
             {
                 packets.splice(packets.begin(), connection.second->GetPacketsToSend());
             }
 
             if (!packets.empty())
-                Send(std::move(packets));
+                Send(packets);
         }
 
-        void FastTransportContext::Send(std::list<BufferOwner::Ptr>&& packets)
+        void FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
-            OnSend(std::move(packets));
+            OnSend(packets);
         }
     }
 }

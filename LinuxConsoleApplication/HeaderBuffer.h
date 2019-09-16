@@ -31,7 +31,7 @@ namespace FastTransport
             class Header : protected std::basic_string_view<char>
             {
             public:
-                Header(char* start, int size) : std::basic_string_view<char>(start, size)
+                Header(char* start, size_t size) : std::basic_string_view<char>(start, size)
                 {
                 }
 
@@ -78,7 +78,7 @@ namespace FastTransport
             {
             public:
                 static const int Size = Header::Size + sizeof(ConnectionID);
-                SynAckHeader(char* start, int size) : Header(start, size)
+                SynAckHeader(char* start, size_t size) : Header(start, size)
                 {
                 }
 
@@ -114,31 +114,36 @@ namespace FastTransport
         class SelectiveAckBuffer : public FreeableBuffer
         {
         public:
-            class Acks : private std::basic_string_view<SeqNumberType>
+            class Acks
             {
                 static const unsigned short MaxAcks = 1000;
             public:
-                Acks(SeqNumberType* start, int count) : std::basic_string_view<SeqNumberType>(start, count), _start(0), _count(0)
+                Acks(char* start, size_t size) : _start(0), _count(0)
                 {
-                    auto header = GetHeader();
-                    if (!header.IsValid());
+                    auto header = HeaderBuffer::Header(start, size);
+                    if (!header.IsValid())
                         return;
 
 
-                    int headerSize += header.GetPacketType() == PacketType::SYN_ACK ? HeaderBuffer::SynAckHeader::Size : HeaderBuffer::Header::Size;
+                    unsigned int headerSize = header.GetPacketType() == PacketType::SYN_ACK ? HeaderBuffer::SynAckHeader::Size : HeaderBuffer::Header::Size;
 
-                    if (size() < (headerSize + sizeof(MaxAcks));
-                        _count = *reinterpret_cast<const unsigned short*>(data() + headerSize);
-
-                    if (size() < (headerSize + sizeof(MaxAcks) + _count*(sizeof(MaxAcks));
-                        _start = *reinterpret_cast<const unsigned short*>(data() + headerSize + sizeof(MaxAcks));
+                    size_t ackPacketStart = headerSize + sizeof(MaxAcks);
+                    if (size < ackPacketStart)
+                        _count = *reinterpret_cast<const unsigned short*>(start + headerSize);
+                    if ((unsigned long long)size < (headerSize + sizeof(MaxAcks) + _count *sizeof(MaxAcks)))
+                        _start = reinterpret_cast<SeqNumberType*>(start + headerSize + sizeof(MaxAcks));
                     else
                         _count = 0;
                 }
 
-                std::basic_string_view<SeqNumberType> GetAcks()
+                std::basic_string_view<SeqNumberType> GetAcks() const
                 {
                     return std::basic_string_view(_start, _count);
+                }
+
+                bool IsValid() const
+                {
+                    return false;
                 }
             private:
                 SeqNumberType* _start;

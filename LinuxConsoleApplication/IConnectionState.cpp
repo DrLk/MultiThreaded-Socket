@@ -31,7 +31,6 @@ namespace FastTransport
             synPacket->GetHeader().SetMagic();
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
             synPacket->GetHeader().SetConnectionID(connection.GetConnectionKey()._id);
-            synPacket->GetHeader().SetSeqNumber(connection.GetNextSeqNumber());
 
             connection.SendPacket(synPacket);
 
@@ -73,7 +72,6 @@ namespace FastTransport
             synPacket->GetSynAckHeader().SetMagic();
             synPacket->GetSynAckHeader().SetPacketType(PacketType::SYN_ACK);
             synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
-            synPacket->GetSynAckHeader().SetSeqNumber(connection.GetNextSeqNumber());
             synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
 
             connection.SendPacket(synPacket);
