@@ -10,6 +10,7 @@ namespace FastTransport
 
         void Connection::OnRecvPackets(std::shared_ptr<BufferOwner>& packet)
         {
+            _lastReceivedPacket = Connection::DefaultTimeOut;
             _state = _state->OnRecvPackets(packet, *this);
         }
 
@@ -45,7 +46,10 @@ namespace FastTransport
 
         void Connection::Run()
         {
-            _state->SendPackets(*this);
+            if (!_lastReceivedPacket)
+                _state->OnTimeOut(*this);
+            else
+                _state->SendPackets(*this);
         }
     }
 }

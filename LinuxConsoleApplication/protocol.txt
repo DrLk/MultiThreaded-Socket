@@ -1,0 +1,17 @@
+
+
+call every 1 ms
+ recvQueue GetAckSPackets
+ sendQueue GetTimeoutsPackets // packetNumber < already recieved or 50 ms
+ sendQueue GetUserDataPackets
+
+
+recv
+ sendQueue AcceptAcks
+ recvQueue AcceptUserData
+
+
+
+Send Acks only for user data.
+
+

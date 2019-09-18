@@ -71,7 +71,7 @@ namespace FastTransport
             synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
             synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
 
-            connection.SendPacket(synPacket, true);
+            connection.SendPacket(synPacket, false);
 
             connection._state = new DataState();
             return connection._state;
@@ -109,6 +109,12 @@ namespace FastTransport
                 }
             }
 
+            return connection._state;
+        }
+
+        IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
+        {
+            connection._state = new SynState();
             return connection._state;
         }
 
@@ -200,6 +206,12 @@ namespace FastTransport
                     return this;
                 }
             }
+            return this;
+        }
+
+        IConnectionState* DataState::OnTimeOut(Connection& connection)
+        {
+            connection.Close();
             return this;
         }
 
