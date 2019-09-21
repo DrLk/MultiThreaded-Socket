@@ -26,7 +26,7 @@ namespace FastTransport
         class RecvQueue : public IRecvQueue
         {
         public:
-            RecvQueue() : _nextFullRecievedAck(0)
+            RecvQueue() : _nextFullRecievedAck(0), _firstFullRecievedAck(0)
             {
 
             }
@@ -46,6 +46,7 @@ namespace FastTransport
             void ProccessUnorderedPackets()
             {
                 while (_queue.find(_nextFullRecievedAck++) != _queue.end());
+                _nextFullRecievedAck--;
             }
 
             virtual std::vector<char> GetUserData(std::size_t needed) override
@@ -79,6 +80,7 @@ namespace FastTransport
             std::unordered_map<SeqNumberType, BufferOwner::Ptr> _queue;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;
+            SeqNumberType _firstFullRecievedAck;
         };
     }
 }

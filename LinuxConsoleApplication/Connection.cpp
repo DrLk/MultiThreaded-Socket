@@ -46,7 +46,7 @@ namespace FastTransport
 
         void Connection::Run()
         {
-            if (!_lastReceivedPacket)
+            if (!_lastReceivedPacket.count())
                 _state->OnTimeOut(*this);
             else
                 _state->SendPackets(*this);

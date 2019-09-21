@@ -21,7 +21,7 @@ namespace FastTransport
             return nullptr;
         }
 
-        IConnectionState* SynState::SendPackets(Connection& connection)
+        IConnectionState* SendingSynState::SendPackets(Connection& connection)
         {
             std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
             BufferOwner::ElementType& element = connection._freeBuffers.back();
@@ -94,7 +94,6 @@ namespace FastTransport
                     auto synAckHeader = packet->GetSynAckHeader();
                     connection._destinationID = synAckHeader.GetRemoteConnectionID();
                     connection._state = new DataState();
-                    connection._recvQueue.AddPacket(packet);
                     break;
                 }
             case PacketType::DATA:
@@ -114,7 +113,7 @@ namespace FastTransport
 
         IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
         {
-            connection._state = new SynState();
+            connection._state = new SendingSynState();
             return connection._state;
         }
 

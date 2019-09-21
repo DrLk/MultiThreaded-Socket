@@ -27,7 +27,7 @@ namespace FastTransport
         class Connection : public IConnection
         {
         public:
-            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) : _state(state), _key(addr, myID), _destinationID(0), _lastReceivedPacket(DefaultTimeOut)
+            Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID) : _state(state), _key(addr, myID), _destinationID(0), DefaultTimeOut(100000), _lastReceivedPacket(DefaultTimeOut)
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -65,8 +65,8 @@ namespace FastTransport
             LockedList<std::vector<char>> _recvUserData;
 
         private:
+            std::chrono::microseconds DefaultTimeOut;
             std::chrono::microseconds _lastReceivedPacket;
-            static const std::chrono::microseconds DefaultTimeOut = 100000;
 
         };
     }

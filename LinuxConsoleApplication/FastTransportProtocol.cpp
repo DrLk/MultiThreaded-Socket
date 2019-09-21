@@ -28,7 +28,7 @@ namespace FastTransport
 
         IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
         {
-            Connection* connection = new Connection(new SynState(), dstAddr, GenerateID());
+            Connection* connection = new Connection(new SendingSynState(), dstAddr, GenerateID());
             _connections.insert({ connection->GetConnectionKey(), connection });
 
             return connection;

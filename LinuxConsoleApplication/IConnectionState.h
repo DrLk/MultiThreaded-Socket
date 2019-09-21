@@ -41,7 +41,7 @@ namespace FastTransport
             Connection* Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID);
         };
 
-        class SynState : public BasicConnectionState
+        class SendingSynState : public BasicConnectionState
         {
         public:
             virtual IConnectionState* SendPackets(Connection& connection) override;

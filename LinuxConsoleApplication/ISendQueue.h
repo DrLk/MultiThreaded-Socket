@@ -33,6 +33,8 @@ namespace FastTransport
 
         public:
 
+            SendQueue() : _nextPacketNumber(-1) { }
+
             void SendPacket(DataType data)
             {
 

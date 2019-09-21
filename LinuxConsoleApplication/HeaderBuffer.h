@@ -136,7 +136,7 @@ namespace FastTransport
 
                 std::basic_string_view<SeqNumberType> GetAcks() const
                 {
-                    return std::basic_string_view(_start, _size);
+                    return std::basic_string_view(_start + 1, _size);
                 }
 
                 void SetAcks(const std::list<SeqNumberType>& numbers)
@@ -201,7 +201,6 @@ namespace FastTransport
                 {
                     //TODO: check size
                     _size = (int)payload.size();
-                    *(int*)_start = _size;
                     std::memcpy(_start + sizeof(_size), payload.data(), payload.size());
                 }
 
