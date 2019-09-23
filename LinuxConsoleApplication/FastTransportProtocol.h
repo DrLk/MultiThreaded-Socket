@@ -1,13 +1,13 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <memory>
 
 #include "ConnectionKey.h"
 #include "Connection.h"
 #include "IConnectionState.h"
 #include "BufferOwner.h"
-#include <functional>
 
 namespace FastTransport
 {

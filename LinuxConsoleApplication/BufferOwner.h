@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <memory>
+#include <chrono>
 
 #include "HeaderBuffer.h"
 #include "IPacket.h"
@@ -88,11 +89,23 @@ namespace FastTransport
             {
                 _addr = addr;
             }
+
+            std::chrono::nanoseconds GetTime() const
+            {
+                return _time;
+            }
+
+            void SetTime(const std::chrono::nanoseconds& time)
+            {
+                _time = time;
+            }
+
         private:
             BufferType& _freeBuffers;
             ElementType _element;
 
             ConnectionAddr _addr;
+            std::chrono::nanoseconds _time
         };
 
 
