@@ -8,6 +8,7 @@
 #include "Connection.h"
 #include "IConnectionState.h"
 #include "BufferOwner.h"
+#include "SpeedController.h"
 
 namespace FastTransport
 {

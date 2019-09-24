@@ -103,6 +103,7 @@
     <ClInclude Include="RecvThreadQueue.h" />
     <ClInclude Include="ISendQueue.h" />
     <ClInclude Include="Socket.h" />
+    <ClInclude Include="SpeedController.h" />
     <ClInclude Include="Test.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

@@ -105,7 +105,7 @@ namespace FastTransport
             ElementType _element;
 
             ConnectionAddr _addr;
-            std::chrono::nanoseconds _time
+            std::chrono::nanoseconds _time;
         };
 
 

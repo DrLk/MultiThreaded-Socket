@@ -91,5 +91,8 @@
     <ClInclude Include="LockedList.h">
       <Filter>Struct</Filter>
     </ClInclude>
+    <ClInclude Include="SpeedController.h">
+      <Filter>Protocol</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
