@@ -3,6 +3,8 @@
 #include <chrono>
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
+#include <functional>
 
 #include "HeaderBuffer.h"
 #include "BufferOwner.h"
@@ -84,6 +86,26 @@ namespace FastTransport
                 return _startTime;
             }
 
+            bool IsBetter(const Sample& that) const
+            {
+
+                size_t count =(size_t)( _end - _start);
+                if (count < _packets.size() * 4)
+                    return false;
+
+                if (GetRealSpeed() > that.GetRealSpeed())
+                    return true;
+            }
+
+
+            std::chrono::nanoseconds GetRealSpeed() const
+            {
+                int count =(int)( _end - _start);
+                float ackPacketsPercent = (float)(count - _lostPackets) / (float)count;
+
+                return std::chrono::nanoseconds((long long)((float)_sendInterval.count() / ackPacketsPercent));
+            }
+
         private:
             std::unordered_map<SeqNumberType, BufferOwner::Ptr> _packets;
 
@@ -124,6 +146,15 @@ namespace FastTransport
             std::vector<Sample> _samples;
             static const int MinSpeed = 10;
             static const int MaxSpeed = 10000;
+
+            void GetStableSendInterval()
+            {
+                std::max_element(_samples.begin(), _samples.end(), std::bind(&Sample::IsBetter, std::placeholders::_1, std::placeholders::_2));
+                for (Sample& sample : _samples)
+                {
+                    sample.GetRealSpeed();
+                }
+            }
         };
     }
 }
