@@ -86,6 +86,11 @@ namespace FastTransport
                 return _startTime;
             }
 
+            bool IsCompleted() const
+            {
+                return _packets.empty();
+            }
+
             bool IsBetter(const Sample& that) const
             {
 
