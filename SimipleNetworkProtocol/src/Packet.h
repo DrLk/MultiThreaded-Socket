@@ -1,8 +1,12 @@
 #pragma once
 
 #include<vector>
+#ifdef POSIX
 #include<sys/socket.h>
 #include <netinet/in.h>
+#else
+#include <Winsock2.h>
+#endif
 
 namespace FastTransport::UDPQueue
 {

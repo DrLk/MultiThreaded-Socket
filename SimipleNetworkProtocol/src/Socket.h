@@ -1,8 +1,13 @@
 #pragma once
 
-#include<arpa/inet.h>
-#include<sys/socket.h>
+#ifdef POSIX
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #include <unistd.h>
+#else
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#endif
 #include<string.h> //memset
 
 namespace FastTransport::UDPQueue
@@ -17,7 +22,11 @@ namespace FastTransport::UDPQueue
 
         ~Socket()
         {
+#ifdef POSIX
             close(_socket);
+#else
+            closesocket(_socket);
+#endif
         }
 
         void Init()
@@ -45,7 +54,7 @@ namespace FastTransport::UDPQueue
 
         }
 
-        ssize_t SendTo(std::vector<char>& buffer, sockaddr* addr, socklen_t len) const
+        size_t SendTo(std::vector<char>& buffer, sockaddr* addr, socklen_t len) const
         {
             return sendto(_socket, buffer.data(), buffer.size(), 0, addr, len);
         }
@@ -56,7 +65,11 @@ namespace FastTransport::UDPQueue
         }
 
     private:
+#ifdef POSIX
         int _socket;
+#else
+        SOCKET _socket;
+#endif
         unsigned short _port;
     };
 

@@ -5,7 +5,12 @@
 #include "FastTransportProtocol.h"
 #include "BufferOwner.h"
 #include "IConnectionState.h"
+
 #include <memory>
+#include <algorithm>
+#include <thread>
+#include <list>
+
 
 using namespace FastTransport::UDPQueue;
 using namespace FastTransport::Protocol;
@@ -54,7 +59,7 @@ void Test()
 
                 sendBuffers = srcSocket.Send(std::move(sendBuffers));
                 if (sendBuffers.empty())
-                    usleep(1);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 else
                 {
                     int a = 0;
@@ -70,21 +75,22 @@ void Test()
     }
     std::thread dstThread([&recvBuffers, &dstSocket]()
         {
+            auto buffer = std::move(recvBuffers);
             long long maxValue = 0;
             long long packetCount = 0;
             while (true)
             {
-                recvBuffers = dstSocket.Recv(std::move(recvBuffers));
-                for (auto& buffer : recvBuffers)
+                buffer = dstSocket.Recv(std::move(buffer));
+                for (auto buffer : buffer)
                 {
                     buffer->GetData().resize(1500);
                     long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    maxValue = std::max(*data, maxValue);
+                    maxValue = std::max<long long>(*data, maxValue);
                     packetCount++;
                 }
 
-                if (recvBuffers.empty())
-                    usleep(1);
+                if (buffer.empty())
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 else
                 {
                     int a = 0;
@@ -97,12 +103,17 @@ void Test()
 
     srcThread.join();
     dstThread.join();
-    sleep(10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 }
 
 
 int main(int argc, char ** argv)
 {
+#ifdef POSIX
+#else
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
     if (argc == 1)
         Test();
 
@@ -143,7 +154,7 @@ int main(int argc, char ** argv)
     std::thread srcThread([&sendBuffers, &dstAddr, &socket, &isSource]()
         {
             while (!isSource)
-                sleep(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             long long counter = 0;
             while (true)
@@ -158,7 +169,7 @@ int main(int argc, char ** argv)
 
                 sendBuffers = socket.Send(std::move(sendBuffers));
                 if (sendBuffers.empty())
-                    usleep(1);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 else
                 {
                     int a = 0;
@@ -173,16 +184,16 @@ int main(int argc, char ** argv)
             long long packetCount = 0;
             while (true)
             {
-                for (auto& buffer : recvBuffers)
+                for (auto buffer : recvBuffers)
                 {
                     buffer->GetData().resize(1500);
                 }
 
                 recvBuffers = socket.Recv(std::move(recvBuffers));
-                for (auto& buffer : recvBuffers)
+                for (auto buffer : recvBuffers)
                 {
                     long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    maxValue = std::max(*data, maxValue);
+                    maxValue = std::max<long long>(*data, maxValue);
                     packetCount++;
 
 
@@ -193,7 +204,7 @@ int main(int argc, char ** argv)
                 }
 
                 if (recvBuffers.empty())
-                    usleep(1);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 else
                 {
                     int a = 0;
@@ -205,7 +216,7 @@ int main(int argc, char ** argv)
 
 
     dstThread.join();
-    sleep(10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100000));
     return 0;
 }
 

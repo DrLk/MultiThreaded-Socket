@@ -27,7 +27,7 @@ namespace FastTransport::UDPQueue
         std::list<Packet*> CreateBuffers(int size);
 
     private:
-        uint _port;
+        unsigned int _port;
         std::vector<std::thread> _writeThreads;
         std::vector<std::thread> _readThreads;
 

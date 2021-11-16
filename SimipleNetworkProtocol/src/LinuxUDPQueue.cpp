@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <algorithm>
+#include <memory>
 
 #include "Packet.h"
 
@@ -112,7 +113,7 @@ namespace FastTransport::UDPQueue
         while (true)
         {
             if (sleep)
-                usleep(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             if (sendQueue.empty())
             {
@@ -169,7 +170,7 @@ namespace FastTransport::UDPQueue
         while (true)
         {
             if (sleep)
-                usleep(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             if (recvFreeQueue.empty())
             {
@@ -201,7 +202,7 @@ namespace FastTransport::UDPQueue
             }
 
             if (recvFreeQueue.empty())
-                usleep(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             for (auto it = recvFreeQueue.begin(); it != recvFreeQueue.end(); )
             {

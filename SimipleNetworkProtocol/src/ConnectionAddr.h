@@ -1,10 +1,14 @@
 #pragma once
 
+#ifdef POSIX
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#else
+#include <Ws2tcpip.h>
+#endif;
 #include <cstring>
 #include <string>
-
+#include <stdexcept>
 
 
 namespace FastTransport
