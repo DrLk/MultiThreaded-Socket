@@ -3,7 +3,9 @@
 #include <vector>
 #include <list>
 #include <chrono>
+#include <memory>
 
+#include "IPacket.h"
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
 #include "ConnectionKey.h"
@@ -22,7 +24,9 @@ namespace FastTransport
         public:
             virtual ~IConnection() { }
             virtual void Send(std::vector<char>&& data) = 0;
+            virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
+            virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) = 0;
         };
 
         class Connection : public IConnection
@@ -32,16 +36,20 @@ namespace FastTransport
             {
                 for (int i = 0; i < 1000; i++)
                 {
-                    _freeBuffers.push_back(BufferOwner::ElementType(1500));
+                    //_freeBuffers.push_back(std::make_unique<IPacket>());
+                    _freeBuffers.push_back(std::move(std::make_unique<BufferOwner>(1500)));
+                    //_freeBuffers.push_back(BufferOwner(1500));
                 }
             }
 
             virtual void Send(std::vector<char>&& data) override;
+            virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) override;
 
             virtual std::vector<char> Recv(int size) override;
+            virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) override;
 
 
-            void OnRecvPackets(std::shared_ptr<BufferOwner>& packet);
+            void OnRecvPackets(std::unique_ptr<IPacket>&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             std::list<OutgoingPacket>& GetPacketsToSend();
@@ -54,15 +62,16 @@ namespace FastTransport
             SendQueue _sendQueue;
 
         public:
-            void SendPacket(std::shared_ptr<BufferOwner>& packet, bool needAck = true);
+            void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = true);
 
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
 
-            LockedList<BufferOwner::ElementType> _freeBuffers;
+            LockedList<std::unique_ptr<IPacket>> _freeBuffers;
 
-            LockedList<std::vector<char>> _sendUserData;
+            std::list<std::unique_ptr<IPacket>> _sendUserData;
+            std::mutex _sendUserDataMutex;
             LockedList<std::vector<char>> _recvUserData;
 
         private:

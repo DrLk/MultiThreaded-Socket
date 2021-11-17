@@ -3,18 +3,19 @@
 
 #include "BufferOwner.h"
 #include "Connection.h"
+#include "IPacket.h"
 
 namespace FastTransport
 {
     namespace Protocol
     {
 
-        Connection* ListenState::Listen(std::shared_ptr<BufferOwner>& packet, ConnectionID myID)
+        Connection* ListenState::Listen(std::unique_ptr<IPacket>&& packet, ConnectionID myID)
         {
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
                 Connection* connection =  new Connection(new WaitingSynState(),packet->GetAddr(), myID);
-                connection->OnRecvPackets(packet);
+                connection->OnRecvPackets(std::move(packet));
                 return connection;
             }
 
@@ -24,20 +25,19 @@ namespace FastTransport
         IConnectionState* SendingSynState::SendPackets(Connection& connection)
         {
             std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
-            BufferOwner::ElementType& element = connection._freeBuffers.back();
-            auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+            std::unique_ptr<IPacket>&& synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
             synPacket->GetHeader().SetConnectionID(connection.GetConnectionKey()._id);
 
-            connection.SendPacket(synPacket, false);
+            connection.SendPacket(std::move(synPacket), false);
 
             connection._state = new WaitingSynAckState();
             return connection._state;
         }
 
-        IConnectionState* WaitingSynState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
+        IConnectionState* WaitingSynState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
             auto header = packet->GetHeader();
             if (!header.IsValid())
@@ -63,21 +63,20 @@ namespace FastTransport
         IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
         {
             std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
-            BufferOwner::ElementType& element = connection._freeBuffers.back();
-            auto synPacket = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+            std::unique_ptr<IPacket> synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
             synPacket->GetSynAckHeader().SetPacketType(PacketType::SYN_ACK);
             synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
             synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
 
-            connection.SendPacket(synPacket, false);
+            connection.SendPacket(std::move(synPacket), false);
 
             connection._state = new DataState();
             return connection._state;
         }
 
-        IConnectionState* WaitingSynAckState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
+        IConnectionState* WaitingSynAckState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
             auto header = packet->GetHeader();
 
@@ -98,7 +97,7 @@ namespace FastTransport
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue.AddPacket(packet);
+                    connection._recvQueue.AddPacket(std::move(packet));
                     break;
                 }
             default:
@@ -123,8 +122,7 @@ namespace FastTransport
             while (!acks.empty())
             {
                 std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
-                BufferOwner::ElementType& element = connection._freeBuffers.back();
-                auto packet = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
+                std::unique_ptr<IPacket> packet = std::move(connection._freeBuffers.back());
                 connection._freeBuffers.pop_back();
 
                 packet->GetHeader().SetPacketType(PacketType::SACK);
@@ -149,37 +147,37 @@ namespace FastTransport
 
                 packet->GetAcks().SetAcks(packetAcks);
 
-                connection.SendPacket(packet, false);
+                connection.SendPacket(std::move(packet), false);
             }
 
             connection._sendQueue.CheckTimeouts();
 
 
 
-            std::list<std::vector<char>> userData;
+            std::list<std::unique_ptr<IPacket>> userData;
             {
-                std::lock_guard<std::mutex> lock(connection._sendUserData._mutex);
+                std::lock_guard<std::mutex> lock(connection._sendUserDataMutex);
                 userData = std::move(connection._sendUserData);
             }
 
-            for (auto data : userData)
+            for (auto& packet : userData)
             {
-                std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                /*std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
                 BufferOwner::ElementType& element = connection._freeBuffers.back();
                 auto packet = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
-                connection._freeBuffers.pop_back();
+                connection._freeBuffers.pop_back();*/
 
                 packet->GetHeader().SetPacketType(PacketType::DATA);
                 packet->GetHeader().SetConnectionID(connection._destinationID);
 
-                packet->GetPayload().SetPayload(data);
-                connection.SendPacket(packet);
+                //packet->GetPayload().SetPayload(data);
+                connection.SendPacket(std::move(packet));
             }
 
             return this;
         }
 
-        IConnectionState* DataState::OnRecvPackets(std::shared_ptr<BufferOwner>& packet, Connection& connection)
+        IConnectionState* DataState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
             auto header = packet->GetHeader();
 
@@ -196,7 +194,7 @@ namespace FastTransport
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue.AddPacket(packet);
+                    connection._recvQueue.AddPacket(std::move(packet));
                     break;
                 }
             default:

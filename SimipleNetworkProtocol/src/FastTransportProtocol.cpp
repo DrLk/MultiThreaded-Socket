@@ -6,9 +6,9 @@ namespace FastTransport
     namespace Protocol
     {
 
-        static std::list<std::shared_ptr<BufferOwner>> Recv()
+        static std::list<std::unique_ptr<IPacket>> Recv()
         {
-            std::list<std::shared_ptr<BufferOwner>> result;
+            std::list<std::unique_ptr<IPacket>> result;
 
             return result;
         }
@@ -35,13 +35,13 @@ namespace FastTransport
 
         }
 
-        void FastTransportContext::OnReceive(std::list<BufferOwner::Ptr>&& packets)
+        void FastTransportContext::OnReceive(std::list<std::unique_ptr<IPacket>>&& packets)
         {
-            for (auto packet : packets)
-                OnReceive(packet);
+            for (auto& packet : packets)
+                OnReceive(std::move(packet));
         }
 
-        void FastTransportContext::OnReceive(BufferOwner::Ptr& packet)
+        void FastTransportContext::OnReceive(std::unique_ptr<IPacket>&& packet)
         {
             HeaderBuffer::Header header = packet->GetHeader();
             if (!header.IsValid())
@@ -53,11 +53,11 @@ namespace FastTransport
 
             if (connection != _connections.end())
             {
-                connection->second->OnRecvPackets(packet);
+                connection->second->OnRecvPackets(std::move(packet));
             }
             else
             {
-                Connection* connection = _listen.Listen(packet, GenerateID());
+                Connection* connection = _listen.Listen(std::move(packet), GenerateID());
                 if (connection)
                 {
                     _incomingConnections.push_back(connection);
@@ -78,11 +78,11 @@ namespace FastTransport
         {
             while (true)
             {
-                std::list<std::shared_ptr<BufferOwner>> recvBuffers = Recv();
+                std::list<std::unique_ptr<IPacket>> recvBuffers = Recv();
 
                 for (auto& recv : recvBuffers)
                 {
-                    OnReceive(recv);
+                    OnReceive(std::move(recv));
                 }
 
 
@@ -106,6 +106,7 @@ namespace FastTransport
 
         void FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
+            //_inFlightPackets.insert({ _nextPacketNumber, std::move(packet) });
             OnSend(packets);
         }
     }

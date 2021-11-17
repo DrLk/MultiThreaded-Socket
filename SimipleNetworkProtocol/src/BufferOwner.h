@@ -24,15 +24,20 @@ namespace FastTransport
             typedef std::shared_ptr<BufferOwner> Ptr;
             BufferOwner(const BufferOwner& that) = delete;
 
-            BufferOwner(BufferType& freeBuffers, ElementType&& element) : _freeBuffers(freeBuffers), _element(std::move(element))
+            BufferOwner(BufferType& freeBuffers, ElementType&& element) : /*_freeBuffers(freeBuffers),*/ _element(std::move(element))
             {
                  
             }
 
+            BufferOwner(int size)
+            {
+
+            }
+
             ~BufferOwner()
             {
-                std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
-                _freeBuffers.push_back(std::move(_element));
+                //std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
+                //_freeBuffers.push_back(std::move(_element));
             }
 
             virtual SelectiveAckBuffer GetAcksBuffer() override
@@ -101,7 +106,7 @@ namespace FastTransport
             }
 
         private:
-            BufferType& _freeBuffers;
+            //BufferType& _freeBuffers;
             ElementType _element;
 
             ConnectionAddr _addr;

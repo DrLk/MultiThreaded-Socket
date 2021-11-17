@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BufferOwner.h"
+#include "IPacket.h"
 #include "FastTransportProtocol.h"
 
 namespace FastTransport
@@ -21,24 +22,24 @@ namespace FastTransport
 
             src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
-                std::list<BufferOwner::Ptr> buffers;
+                std::list<std::unique_ptr<IPacket>> buffers;
 
                 for (auto& packet : packets)
                 {
                     packet._sendTime == Time::now();
-                    buffers.push_back(packet._packet);
+                    buffers.push_back(std::move(packet._packet));
                 }
                 dst.OnReceive(std::move(buffers));
             };
 
             dst.OnSend = [&src](std::list<OutgoingPacket>& packets)
             {
-                std::list<BufferOwner::Ptr> buffers;
+                std::list<std::unique_ptr<IPacket>> buffers;
 
                 for (auto& packet : packets)
                 {
                     packet._sendTime == Time::now();
-                    buffers.push_back(packet._packet);
+                    buffers.push_back(std::move(packet._packet));
                 }
 
                 src.OnReceive(std::move(buffers));

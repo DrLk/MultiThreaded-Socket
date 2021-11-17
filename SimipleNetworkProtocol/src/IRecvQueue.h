@@ -16,7 +16,7 @@ namespace FastTransport
         {
         public:
             virtual ~IRecvQueue() { }
-            virtual void AddPacket(BufferOwner::Ptr& packet) = 0;
+            virtual void AddPacket(std::unique_ptr<IPacket>&& packet) = 0;
             virtual std::vector<char> GetUserData(std::size_t size) = 0;
             virtual std::list<SeqNumberType>&& GetSelectiveAcks() = 0;
 
@@ -31,7 +31,7 @@ namespace FastTransport
 
             }
 
-            virtual void AddPacket(BufferOwner::Ptr& packet) override
+            virtual void AddPacket(std::unique_ptr<IPacket>&& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
                 if ((_nextFullRecievedAck) == packetNumber)
@@ -40,7 +40,7 @@ namespace FastTransport
                 }
 
                 _selectiveAcks.push_back(packetNumber);
-                _queue[packetNumber] = packet;
+                _queue[packetNumber] = std::move(packet);
             }
 
             void ProccessUnorderedPackets()
@@ -56,7 +56,7 @@ namespace FastTransport
 
                 for (auto& value : _queue)
                 {
-                    const BufferOwner::Ptr& packet = value.second;
+                    const std::unique_ptr<IPacket>& packet = value.second;
                     if (needed >= packet->GetPayload().size())
                     {
                         result.insert(result.end(), packet->GetPayload().begin(), packet->GetPayload().end());
@@ -77,7 +77,7 @@ namespace FastTransport
                 return std::move(_selectiveAcks);
             }
 
-            std::unordered_map<SeqNumberType, BufferOwner::Ptr> _queue;
+            std::unordered_map<SeqNumberType, std::unique_ptr<IPacket>> _queue;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;
             SeqNumberType _firstFullRecievedAck;

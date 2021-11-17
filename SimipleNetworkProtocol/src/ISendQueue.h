@@ -4,6 +4,7 @@
 #include <vector>
 #include <chrono>
 
+#include "IPacket.h"
 #include "BufferOwner.h"
 
 namespace FastTransport
@@ -16,8 +17,8 @@ namespace FastTransport
         class OutgoingPacket
         {
         public:
-            OutgoingPacket(BufferOwner::Ptr& packet) : _packet(packet)  { }
-            BufferOwner::Ptr _packet;
+            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet))  { }
+            std::unique_ptr<IPacket> _packet;
             TimePoint _sendTime;
         };
         class ISendQueue
@@ -40,15 +41,11 @@ namespace FastTransport
 
             }
 
-            void SendPacket(BufferOwner::Ptr& packet, bool needAck = false)
+            void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = false)
             {
                 packet->GetSynAckHeader().SetMagic();
-                if (needAck)
-                {
-                    packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
-                    _inFlightPackets.insert({ _nextPacketNumber, packet });
-                }
-                _needToSend.push_back(packet);
+                packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
+                _needToSend.push_back(std::move(packet));
             }
 
             virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) override
@@ -65,12 +62,12 @@ namespace FastTransport
             void CheckTimeouts()
             {
                 TimePoint now = Time::now();
-                for (auto pair : _inFlightPackets)
+                for (auto& pair : _inFlightPackets)
                 {
-                    OutgoingPacket packet = pair.second;
+                    OutgoingPacket&& packet = std::move(pair.second);
                     if (std::chrono::duration_cast<ms>(now - packet._sendTime) > ms(10))
                     {
-                        _needToSend.push_back(packet);
+                        _needToSend.push_back(std::move(packet));
                     }
                 }
             }

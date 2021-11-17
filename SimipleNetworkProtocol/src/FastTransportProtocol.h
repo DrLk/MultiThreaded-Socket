@@ -7,6 +7,7 @@
 #include "ConnectionKey.h"
 #include "Connection.h"
 #include "IConnectionState.h"
+#include "IPacket.h"
 #include "BufferOwner.h"
 #include "SpeedController.h"
 
@@ -24,8 +25,8 @@ namespace FastTransport
                     buffer.resize(1500);
             }
 
-            void OnReceive(std::list<BufferOwner::Ptr>&& packet);
-            void OnReceive(BufferOwner::Ptr& packet);
+            void OnReceive(std::list<std::unique_ptr<IPacket>>&& packet);
+            void OnReceive(std::unique_ptr<IPacket>&& packet);
             std::function<void(std::list<OutgoingPacket>& packets)> OnSend;
 
             IConnection* Accept();
