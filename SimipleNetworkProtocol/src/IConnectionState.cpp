@@ -1,7 +1,5 @@
 #include "IConnectionState.h"
 
-
-#include "BufferOwner.h"
 #include "Connection.h"
 #include "IPacket.h"
 
@@ -25,7 +23,7 @@ namespace FastTransport
         IConnectionState* SendingSynState::SendPackets(Connection& connection)
         {
             std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
-            std::unique_ptr<IPacket>&& synPacket = std::move(connection._freeBuffers.back());
+            std::unique_ptr<IPacket> synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
@@ -119,7 +117,7 @@ namespace FastTransport
         IConnectionState* DataState::SendPackets(Connection& connection)
         {
             std::list<SeqNumberType> acks = std::move(connection._recvQueue.GetSelectiveAcks());
-            while (!acks.empty())
+            while (!acks.empty()) //maybe error after std::move second loop
             {
                 std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
                 std::unique_ptr<IPacket> packet = std::move(connection._freeBuffers.back());
@@ -162,11 +160,6 @@ namespace FastTransport
 
             for (auto& packet : userData)
             {
-                /*std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
-                BufferOwner::ElementType& element = connection._freeBuffers.back();
-                auto packet = std::make_shared<BufferOwner>(connection._freeBuffers, std::move(element));
-                connection._freeBuffers.pop_back();*/
-
                 packet->GetHeader().SetPacketType(PacketType::DATA);
                 packet->GetHeader().SetConnectionID(connection._destinationID);
 
@@ -189,7 +182,7 @@ namespace FastTransport
                 }
             case PacketType::SACK:
                 {
-                    connection._sendQueue.ProcessAcks(packet->GetAcks());
+                    connection._inFlightQueue.ProcessAcks(packet->GetAcks());
                     break;
                 }
             case PacketType::DATA:

@@ -29,7 +29,7 @@ namespace FastTransport
                  
             }
 
-            BufferOwner(int size)
+            BufferOwner(int size) : _element(size)
             {
 
             }

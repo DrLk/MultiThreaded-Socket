@@ -1,6 +1,5 @@
 #include "Connection.h"
 
-#include "BufferOwner.h"
 #include "IConnectionState.h"
 
 namespace FastTransport
@@ -14,9 +13,9 @@ namespace FastTransport
             _state = _state->OnRecvPackets(std::move(packet), *this);
         }
 
-        void Connection::Send(std::vector<char>&& data)
+        void Connection::Send(std::unique_ptr<IPacket>&& data)
         {
-            //_sendUserData.push_back(std::move(data));
+            _sendUserData.push_back(std::move(data));
         }
 
         std::list<std::unique_ptr<IPacket>> Connection::Send(std::list<std::unique_ptr<IPacket>>&& data)

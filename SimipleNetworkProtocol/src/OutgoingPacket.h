@@ -1,20 +1,23 @@
 #pragma once
 
 #include <chrono>
-#include "BufferOwner.h"
+
+#include "IPacket.h"
 
 namespace FastTransport
 {
     namespace   Protocol
     {
-        class OutgoingPacket : public FreeableBuffer
+        typedef std::chrono::steady_clock Time;
+        typedef std::chrono::steady_clock::time_point TimePoint;
+        typedef std::chrono::milliseconds ms;
+
+        class OutgoingPacket
         {
         public:
-            OutgoingPacket(std::shared_ptr<BufferOwner>& buffer) : FreeableBuffer(buffer) { }
-            OutgoingPacket(std::shared_ptr<BufferOwner>&& buffer) noexcept : FreeableBuffer(std::move(buffer)) { }
-        private:
-
-            std::chrono::microseconds _time;
+            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet)) { }
+            std::unique_ptr<IPacket> _packet;
+            TimePoint _sendTime;
         };
     }
 }

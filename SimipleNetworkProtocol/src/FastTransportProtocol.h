@@ -8,7 +8,6 @@
 #include "Connection.h"
 #include "IConnectionState.h"
 #include "IPacket.h"
-#include "BufferOwner.h"
 #include "SpeedController.h"
 
 namespace FastTransport
@@ -20,9 +19,9 @@ namespace FastTransport
         public:
             FastTransportContext()
             {
-                _freeBuffers.resize(100);
+                /*_freeBuffers.resize(100);
                 for (auto buffer : _freeBuffers)
-                    buffer.resize(1500);
+                    buffer.resize(1500);*/
             }
 
             void OnReceive(std::list<std::unique_ptr<IPacket>>&& packet);
@@ -46,7 +45,7 @@ namespace FastTransport
             }
 
         private:
-            BufferOwner::BufferType _freeBuffers;
+            LockedList<std::unique_ptr<IPacket>> _freeBuffers;
             ListenState _listen;
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;

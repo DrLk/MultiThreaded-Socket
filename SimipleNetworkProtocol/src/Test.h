@@ -1,6 +1,5 @@
 #pragma once
 
-#include "BufferOwner.h"
 #include "IPacket.h"
 #include "FastTransportProtocol.h"
 
@@ -45,7 +44,8 @@ namespace FastTransport
                 src.OnReceive(std::move(buffers));
             };
 
-            std::vector<char> data(100);
+            std::unique_ptr<IPacket> data = std::make_unique<BufferOwner>(1500);
+            data->GetPayload();
             IConnection* srcConnection = src.Connect(dstAddr);
 
             src.ConnectionsRun();

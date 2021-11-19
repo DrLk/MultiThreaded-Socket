@@ -5,27 +5,17 @@
 #include <chrono>
 
 #include "IPacket.h"
-#include "BufferOwner.h"
+#include "OutgoingPacket.h"
 
 namespace FastTransport
 {
     namespace Protocol
     {
-        typedef std::chrono::steady_clock Time;
-        typedef std::chrono::steady_clock::time_point TimePoint;
-        typedef std::chrono::milliseconds ms;
-        class OutgoingPacket
-        {
-        public:
-            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet))  { }
-            std::unique_ptr<IPacket> _packet;
-            TimePoint _sendTime;
-        };
+
         class ISendQueue
         {
         public:
             virtual ~ISendQueue() { }
-            virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) = 0;
         };
 
         class SendQueue : public ISendQueue
@@ -46,17 +36,6 @@ namespace FastTransport
                 packet->GetSynAckHeader().SetMagic();
                 packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
                 _needToSend.push_back(std::move(packet));
-            }
-
-            virtual void ProcessAcks(const SelectiveAckBuffer::Acks& acks) override
-            {
-                if (!acks.IsValid())
-                    return;
-
-                for (SeqNumberType number : acks.GetAcks())
-                {
-                    _inFlightPackets.erase(number);
-                }
             }
 
             void CheckTimeouts()

@@ -8,8 +8,10 @@
 #include "IPacket.h"
 #include "IRecvQueue.h"
 #include "ISendQueue.h"
+#include "IInFilghtQueue.h"
 #include "ConnectionKey.h"
 #include "LockedList.h"
+#include "BufferOwner.h"
 
 using namespace std::chrono_literals;
 
@@ -23,7 +25,7 @@ namespace FastTransport
         {
         public:
             virtual ~IConnection() { }
-            virtual void Send(std::vector<char>&& data) = 0;
+            virtual void Send(std::unique_ptr<IPacket>&& data) = 0;
             virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) = 0;
             virtual std::vector<char> Recv(int size) = 0;
             virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) = 0;
@@ -42,7 +44,7 @@ namespace FastTransport
                 }
             }
 
-            virtual void Send(std::vector<char>&& data) override;
+            virtual void Send(std::unique_ptr<IPacket>&& data) override;
             virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) override;
 
             virtual std::vector<char> Recv(int size) override;
@@ -60,6 +62,7 @@ namespace FastTransport
 
             RecvQueue _recvQueue;
             SendQueue _sendQueue;
+            IInflightQueue _inFlightQueue;
 
         public:
             void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = true);
