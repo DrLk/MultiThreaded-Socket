@@ -50,6 +50,8 @@ namespace FastTransport
             {
                 throw std::runtime_error("Not implemented");
             }
+
+            virtual void Copy(const IPacket& packet) = 0;
         };
 
         class TestPacket : public IPacket, public FreeableBuffer

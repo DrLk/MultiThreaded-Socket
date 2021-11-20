@@ -56,6 +56,8 @@ namespace FastTransport
             const ConnectionKey& GetConnectionKey() const;
             std::list<OutgoingPacket>& GetPacketsToSend();
 
+            void AddInflightPackets(std::list<OutgoingPacket>&& packets);
+
             void Close();
 
             void Run();

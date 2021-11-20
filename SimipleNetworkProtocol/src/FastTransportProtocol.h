@@ -50,7 +50,7 @@ namespace FastTransport
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
 
-            void Send(std::list<OutgoingPacket>& packets);
+            std::list<OutgoingPacket> Send(std::list<OutgoingPacket>& packets);
 
         };
     }

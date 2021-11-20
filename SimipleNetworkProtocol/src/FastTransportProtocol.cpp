@@ -100,14 +100,44 @@ namespace FastTransport
                 packets.splice(packets.begin(), connection.second->GetPacketsToSend());
             }
 
-            if (!packets.empty())
-                Send(packets);
+            std::list<OutgoingPacket> inFlightPackets = Send(packets);
+            
+            std::unordered_map<ConnectionKey, std::list<OutgoingPacket>> connectionOutgoingPackets;
+            for (auto& outgoingPacket : packets)
+            {
+                auto& packet = outgoingPacket._packet;
+                ConnectionKey key(packet->GetAddr(), packet->GetHeader().GetConnectionID());
+
+                connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
+
+            }
+
+            for (auto& outgoing : connectionOutgoingPackets)
+            {
+                auto connection = _connections.find(outgoing.first);
+
+                if (connection != _connections.end())
+                {
+                    connection->second->AddInflightPackets(std::move(outgoing.second));
+                }
+                else
+                {
+                    //needs return free packets to pool
+                    throw std::runtime_error("Not implemented");
+                }
+
+
+            }
+            //inFlightPackets.begin()->_packet->
+
+
         }
 
-        void FastTransportContext::Send(std::list<OutgoingPacket>& packets)
+        std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
-            //_inFlightPackets.insert({ _nextPacketNumber, std::move(packet) });
             OnSend(packets);
+
+            return std::move(packets);
         }
     }
 }

@@ -21,27 +21,33 @@ namespace FastTransport
 
             src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
-                std::list<std::unique_ptr<IPacket>> buffers;
-
+                std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
                 {
-                    packet._sendTime == Time::now();
-                    buffers.push_back(std::move(packet._packet));
+                    packet._sendTime = Time::now();
+
+                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<BufferOwner>(1500);
+                    rcvPacket->Copy(*packet._packet);
+                    recvPackets.push_back(std::move(rcvPacket));
                 }
-                dst.OnReceive(std::move(buffers));
+
+                dst.OnReceive(std::move(recvPackets));
             };
 
             dst.OnSend = [&src](std::list<OutgoingPacket>& packets)
             {
-                std::list<std::unique_ptr<IPacket>> buffers;
-
+                std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
                 {
-                    packet._sendTime == Time::now();
-                    buffers.push_back(std::move(packet._packet));
+                    packet._sendTime = Time::now();
+
+                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<BufferOwner>(1500);
+                    rcvPacket->Copy(*packet._packet);
+                    recvPackets.push_back(std::move(rcvPacket));
+
                 }
 
-                src.OnReceive(std::move(buffers));
+                src.OnReceive(std::move(recvPackets));
             };
 
             std::unique_ptr<IPacket> data = std::make_unique<BufferOwner>(1500);

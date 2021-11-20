@@ -47,6 +47,11 @@ namespace FastTransport
             return _sendQueue.GetPacketsToSend();
         }
 
+        void Connection::AddInflightPackets(std::list<OutgoingPacket>&& packets)
+        {
+            _inFlightQueue.AddQueue(std::move(packets));
+        }
+
         void Connection::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck /*= true*/)
         {
             _sendQueue.SendPacket(std::move(packet), needAck);

@@ -38,17 +38,9 @@ namespace FastTransport
                 _needToSend.push_back(std::move(packet));
             }
 
-            void CheckTimeouts()
+            void ReSendPackets(std::list<OutgoingPacket>&& packets)
             {
-                TimePoint now = Time::now();
-                for (auto& pair : _inFlightPackets)
-                {
-                    OutgoingPacket&& packet = std::move(pair.second);
-                    if (std::chrono::duration_cast<ms>(now - packet._sendTime) > ms(10))
-                    {
-                        _needToSend.push_back(std::move(packet));
-                    }
-                }
+                _needToSend.splice(_needToSend.end(), std::move(packets));
             }
 
             std::list<OutgoingPacket>& GetPacketsToSend()
@@ -56,7 +48,6 @@ namespace FastTransport
                 return _needToSend;
             }
 
-            std::unordered_map<SeqNumberType, OutgoingPacket> _inFlightPackets;
             std::list<OutgoingPacket> _needToSend;
             SeqNumberType _nextPacketNumber;
 

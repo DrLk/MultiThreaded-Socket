@@ -148,9 +148,10 @@ namespace FastTransport
                 connection.SendPacket(std::move(packet), false);
             }
 
-            connection._sendQueue.CheckTimeouts();
-
-
+            {
+                std::list<OutgoingPacket> packets = connection._inFlightQueue.CheckTimeouts();
+                connection._sendQueue.ReSendPackets(std::move(packets));
+            }
 
             std::list<std::unique_ptr<IPacket>> userData;
             {

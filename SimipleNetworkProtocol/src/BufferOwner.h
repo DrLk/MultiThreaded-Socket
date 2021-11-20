@@ -105,6 +105,15 @@ namespace FastTransport
                 _time = time;
             }
 
+            virtual void Copy(const IPacket& packet) override
+            {
+                const BufferOwner& that = dynamic_cast<const BufferOwner&>(packet);
+
+                _addr = that._addr;
+                _time = that._time;
+                _element = that._element;
+            }
+
         private:
             //BufferType& _freeBuffers;
             ElementType _element;
