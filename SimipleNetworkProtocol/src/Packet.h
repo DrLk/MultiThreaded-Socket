@@ -24,7 +24,7 @@ namespace FastTransport
             typedef std::shared_ptr<Packet> Ptr;
             Packet(const Packet& that) = delete;
 
-            Packet(BufferType& freeBuffers, ElementType&& element) : /*_freeBuffers(freeBuffers),*/ _element(std::move(element))
+            Packet(BufferType& freeBuffers, ElementType&& element) : _element(std::move(element))
             {
                  
             }
@@ -36,16 +36,9 @@ namespace FastTransport
 
             ~Packet()
             {
-                //std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
-                //_freeBuffers.push_back(std::move(_element));
             }
 
             virtual SelectiveAckBuffer GetAcksBuffer() override
-            {
-                throw std::runtime_error("Not Implemented");
-            }
-
-            virtual HeaderBuffer GetHeaderBuffer() override
             {
                 throw std::runtime_error("Not Implemented");
             }
@@ -55,9 +48,9 @@ namespace FastTransport
                 return SelectiveAckBuffer::Acks(_element.data(), _element.size());
             }
 
-            virtual HeaderBuffer::Header GetHeader() override
+            virtual Header GetHeader() override
             {
-                return HeaderBuffer::Header(_element.data(), _element.size());
+                return Header(_element.data(), _element.size());
             }
 
             virtual PayloadBuffer::Payload GetPayload() override
@@ -75,7 +68,7 @@ namespace FastTransport
                 throw std::runtime_error("Not Implemented");
             }
 
-            void SetHeader(const HeaderBuffer::Header& header)
+            void SetHeader(const Header& header)
             {
                 throw std::runtime_error("Not Implemented");
             }

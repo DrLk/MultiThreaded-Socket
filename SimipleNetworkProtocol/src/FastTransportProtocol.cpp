@@ -43,7 +43,7 @@ namespace FastTransport
 
         void FastTransportContext::OnReceive(std::unique_ptr<IPacket>&& packet)
         {
-            HeaderBuffer::Header header = packet->GetHeader();
+            Header header = packet->GetHeader();
             if (!header.IsValid())
             {
                 throw std::runtime_error("Not implemented");

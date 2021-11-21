@@ -27,78 +27,69 @@ namespace FastTransport
         };
 
         const MagicNumber Magic_Number = 0x12345678;
-        class HeaderBuffer
+        class Header : protected std::basic_string_view<char>
         {
         public:
-
-            class Header : protected std::basic_string_view<char>
-            {
-            public:
-                Header(char* start, size_t size) : std::basic_string_view<char>(start, size)
-                {
-                }
-
-                static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType);
-
-                bool IsValid() const
-                {
-                    if (size() < Size)
-                        return false;
-
-                    return *reinterpret_cast<const MagicNumber*>(data()) == Magic_Number;
-                }
-                PacketType GetPacketType() const
-                {
-                    return *reinterpret_cast<const PacketType*>(data() + sizeof(MagicNumber));
-                }
-                ConnectionID GetSrcConnectionID() const
-                {
-                    return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType));
-                }
-                ConnectionID GetDstConnectionID() const
-                {
-                    return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
-                }
-                SeqNumberType GetSeqNumber() const
-                {
-                    return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID));
-                }
-                void SetMagic()
-                {
-                    *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = Magic_Number;
-                }
-                void SetPacketType(PacketType type)
-                {
-                    *reinterpret_cast<PacketType*>(const_cast<char*>(data() + sizeof(MagicNumber))) = type;
-                }
-                void SetSrcConnectionID(ConnectionID id)
-                {
-                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType))) = id;
-                }
-
-                void SetDstConnectionID(ConnectionID id)
-                {
-                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) +sizeof(ConnectionID))) = id;
-                }
-
-                void SetSeqNumber(SeqNumberType seq)
-                {
-                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID))) = seq;
-                }
-            };
-
-            HeaderBuffer(const Header& header) : _header(header)
+            Header(char* start, size_t size) : std::basic_string_view<char>(start, size)
             {
             }
 
-            void SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber);
-            bool IsValid() const;
-            ConnectionID GetConnectionID() const;
-            PacketType GetType() const;
-            SeqNumberType GetSeqNumber() const;
+            static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType);
 
-        private:
-            Header _header;
+            bool IsValid() const
+            {
+                if (size() < Size)
+                    return false;
+
+                return *reinterpret_cast<const MagicNumber*>(data()) == Magic_Number;
+            }
+            PacketType GetPacketType() const
+            {
+                return *reinterpret_cast<const PacketType*>(data() + sizeof(MagicNumber));
+            }
+            ConnectionID GetSrcConnectionID() const
+            {
+                return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType));
+            }
+            ConnectionID GetDstConnectionID() const
+            {
+                return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
+            }
+            SeqNumberType GetSeqNumber() const
+            {
+                return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID));
+            }
+            SeqNumberType GetAckNumber() const
+            {
+                return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType));
+            }
+            void SetMagic()
+            {
+                *reinterpret_cast<MagicNumber*>(const_cast<char*>(data())) = Magic_Number;
+            }
+            void SetPacketType(PacketType type)
+            {
+                *reinterpret_cast<PacketType*>(const_cast<char*>(data() + sizeof(MagicNumber))) = type;
+            }
+            void SetSrcConnectionID(ConnectionID id)
+            {
+                *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType))) = id;
+            }
+
+            void SetDstConnectionID(ConnectionID id)
+            {
+                *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) +sizeof(ConnectionID))) = id;
+            }
+
+            void SetSeqNumber(SeqNumberType seq)
+            {
+                *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID))) = seq;
+            }
+
+            void SetAckNumber(SeqNumberType ack)
+            {
+                *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType))) = ack;
+            }
         };
 
         class SelectiveAckBuffer
@@ -111,11 +102,11 @@ namespace FastTransport
 
                 Acks(char* start, size_t size) : _start(0), _size(0)
                 {
-                    size_t ackPacketStart = HeaderBuffer::Header::Size + sizeof(MaxAcks);
+                    size_t ackPacketStart = Header::Size + sizeof(MaxAcks);
                     if (size >= ackPacketStart)
-                        _size = *reinterpret_cast<SeqNumberType*>(start + HeaderBuffer::Header::Size);
-                    if ((unsigned long long)size >= (HeaderBuffer::Header::Size + sizeof(MaxAcks) + _size *sizeof(SeqNumberType)))
-                        _start = reinterpret_cast<SeqNumberType*>(start + HeaderBuffer::Header::Size);
+                        _size = *reinterpret_cast<SeqNumberType*>(start + Header::Size);
+                    if ((unsigned long long)size >= (Header::Size + sizeof(MaxAcks) + _size *sizeof(SeqNumberType)))
+                        _start = reinterpret_cast<SeqNumberType*>(start + Header::Size);
                     else
                         _size = 0;
                 }
@@ -166,11 +157,11 @@ namespace FastTransport
                 static const SeqNumberType MaxPayload = 1300;
                 Payload(PayloadType* start, size_t size) : _start(0), _size(0)
                 {
-                    size_t ackPacketStart = HeaderBuffer::Header::Size + sizeof(MaxPayload);
+                    size_t ackPacketStart = Header::Size + sizeof(MaxPayload);
                     if (size >= ackPacketStart)
-                        _size = *reinterpret_cast<PayloadType*>(start + HeaderBuffer::Header::Size);
-                    if ((unsigned long long)size >= (HeaderBuffer::Header::Size + sizeof(MaxPayload) + _size))
-                        _start = reinterpret_cast<PayloadType*>(start + HeaderBuffer::Header::Size);
+                        _size = *reinterpret_cast<PayloadType*>(start + Header::Size);
+                    if ((unsigned long long)size >= (Header::Size + sizeof(MaxPayload) + _size))
+                        _start = reinterpret_cast<PayloadType*>(start + Header::Size);
                     else
                         _size = 0;
                 }

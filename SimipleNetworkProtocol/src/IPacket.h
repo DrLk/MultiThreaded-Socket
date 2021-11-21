@@ -10,13 +10,13 @@ namespace FastTransport
         {
 
         public:
-            virtual SelectiveAckBuffer GetAcksBuffer() = 0;
+            virtual ~IPacket() = default;
 
-            virtual HeaderBuffer GetHeaderBuffer() = 0;
+            virtual SelectiveAckBuffer GetAcksBuffer() = 0;
 
             virtual SelectiveAckBuffer::Acks GetAcks() = 0;
 
-            virtual HeaderBuffer::Header GetHeader() = 0;
+            virtual Header GetHeader() = 0;
 
             virtual ConnectionAddr GetDstAddr() = 0;
 
