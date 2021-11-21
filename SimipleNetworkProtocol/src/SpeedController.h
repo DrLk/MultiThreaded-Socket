@@ -154,7 +154,7 @@ namespace FastTransport
 
             void GetStableSendInterval()
             {
-                std::max_element(_samples.begin(), _samples.end(), std::bind(&Sample::IsBetter, std::placeholders::_1, std::placeholders::_2));
+                //std::max_element(_samples.begin(), _samples.end(), std::bind(&Sample::IsBetter, std::placeholders::_1, std::placeholders::_2));
                 for (Sample& sample : _samples)
                 {
                     sample.GetRealSpeed();

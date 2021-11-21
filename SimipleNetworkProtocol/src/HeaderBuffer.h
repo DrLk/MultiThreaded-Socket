@@ -39,7 +39,7 @@ namespace FastTransport
                 {
                 }
 
-                static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(SeqNumberType);
+                static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType);
 
                 bool IsValid() const
                 {
@@ -52,13 +52,17 @@ namespace FastTransport
                 {
                     return *reinterpret_cast<const PacketType*>(data() + sizeof(MagicNumber));
                 }
-                ConnectionID GetConnectionID() const
+                ConnectionID GetSrcConnectionID() const
                 {
                     return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType));
                 }
+                ConnectionID GetDstConnectionID() const
+                {
+                    return *reinterpret_cast<const ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
+                }
                 SeqNumberType GetSeqNumber() const
                 {
-                    return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID));
+                    return *reinterpret_cast<const SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID));
                 }
                 void SetMagic()
                 {
@@ -68,13 +72,19 @@ namespace FastTransport
                 {
                     *reinterpret_cast<PacketType*>(const_cast<char*>(data() + sizeof(MagicNumber))) = type;
                 }
-                void SetConnectionID(ConnectionID id)
+                void SetSrcConnectionID(ConnectionID id)
                 {
                     *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType))) = id;
                 }
+
+                void SetDstConnectionID(ConnectionID id)
+                {
+                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) +sizeof(ConnectionID))) = id;
+                }
+
                 void SetSeqNumber(SeqNumberType seq)
                 {
-                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID))) = seq;
+                    *reinterpret_cast<SeqNumberType*>(const_cast<char*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID))) = seq;
                 }
             };
 

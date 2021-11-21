@@ -49,7 +49,7 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
-            auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetConnectionID()));
+            auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
 
             if (connection != _connections.end())
             {
@@ -106,7 +106,7 @@ namespace FastTransport
             for (auto& outgoingPacket : inFlightPackets)
             {
                 auto& packet = outgoingPacket._packet;
-                ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetConnectionID());
+                ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetSrcConnectionID());
 
                 connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
 

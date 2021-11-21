@@ -17,7 +17,7 @@ namespace FastTransport
             }
         }
 
-        std::list<std::unique_ptr<OutgoingPacket>> IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
+        void IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
         {
             if (!acks.IsValid())
                 throw std::runtime_error("Not Implemented");
@@ -26,8 +26,6 @@ namespace FastTransport
             {
                 _queue.erase(number);
             }
-
-            throw std::runtime_error("Not Implemented");
         }
 
         std::list<OutgoingPacket> IInflightQueue::CheckTimeouts()

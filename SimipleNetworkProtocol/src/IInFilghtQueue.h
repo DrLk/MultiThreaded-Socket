@@ -17,7 +17,7 @@ namespace FastTransport
         public:
             void AddQueue(std::unique_ptr<OutgoingPacket>&& packet);
             void AddQueue(std::list<OutgoingPacket>&& packets);
-            std::list<std::unique_ptr<OutgoingPacket>> ProcessAcks(const SelectiveAckBuffer::Acks& acks);
+            void ProcessAcks(const SelectiveAckBuffer::Acks& acks);
             std::list<OutgoingPacket> CheckTimeouts();
         };
     }

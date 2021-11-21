@@ -27,7 +27,7 @@ namespace FastTransport
             connection._freeBuffers.pop_back();
 
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
-            synPacket->GetHeader().SetConnectionID(connection.GetConnectionKey()._id);
+            synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
 
             connection.SendPacket(std::move(synPacket), false);
 
@@ -46,7 +46,7 @@ namespace FastTransport
 
             if (header.GetPacketType() == PacketType::SYN)
             {
-                connection._destinationID = packet->GetHeader().GetConnectionID();
+                connection._destinationID = packet->GetHeader().GetSrcConnectionID();
                 connection._state = new SendingSynAckState();
 
                 return connection._state;
@@ -64,9 +64,9 @@ namespace FastTransport
             std::unique_ptr<IPacket> synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
-            synPacket->GetSynAckHeader().SetPacketType(PacketType::SYN_ACK);
-            synPacket->GetSynAckHeader().SetConnectionID(connection._destinationID);
-            synPacket->GetSynAckHeader().SetRemoteConnectionID(connection.GetConnectionKey()._id);
+            synPacket->GetHeader().SetPacketType(PacketType::SYN_ACK);
+            synPacket->GetHeader().SetDstConnectionID(connection._destinationID);
+            synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
 
             connection.SendPacket(std::move(synPacket), false);
 
@@ -88,8 +88,8 @@ namespace FastTransport
             {
             case PacketType::SYN_ACK:
                 {
-                    auto synAckHeader = packet->GetSynAckHeader();
-                    connection._destinationID = synAckHeader.GetRemoteConnectionID();
+                    auto synAckHeader = packet->GetHeader();
+                    connection._destinationID = synAckHeader.GetSrcConnectionID();
                     connection._state = new DataState();
                     break;
                 }
@@ -124,7 +124,8 @@ namespace FastTransport
                 connection._freeBuffers.pop_back();
 
                 packet->GetHeader().SetPacketType(PacketType::SACK);
-                packet->GetHeader().SetConnectionID(connection._destinationID);
+                packet->GetHeader().SetSrcConnectionID(connection._key._id);
+                packet->GetHeader().SetDstConnectionID(connection._destinationID);
 
 
                 std::list<SeqNumberType> packetAcks;
@@ -162,7 +163,8 @@ namespace FastTransport
             for (auto& packet : userData)
             {
                 packet->GetHeader().SetPacketType(PacketType::DATA);
-                packet->GetHeader().SetConnectionID(connection._destinationID);
+                packet->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
+                packet->GetHeader().SetDstConnectionID(connection._destinationID);
 
                 //packet->GetPayload().SetPayload(data);
                 connection.SendPacket(std::move(packet));

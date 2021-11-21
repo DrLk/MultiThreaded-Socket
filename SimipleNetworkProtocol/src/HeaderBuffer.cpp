@@ -4,7 +4,7 @@ namespace FastTransport
 {
     namespace Protocol
     {
-        void HeaderBuffer::SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber)
+        /*void HeaderBuffer::SetHeader(PacketType packetType, ConnectionID connectionID, SeqNumberType seqNumber)
         {
             _header.SetMagic();
             _header.SetPacketType(packetType);
@@ -31,6 +31,6 @@ namespace FastTransport
         SeqNumberType HeaderBuffer::GetSeqNumber() const
         {
             return _header.GetSeqNumber();
-        }
+        }*/
     }
 }
