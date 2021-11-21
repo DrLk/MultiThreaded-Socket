@@ -33,7 +33,7 @@ namespace FastTransport
 
             void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = false)
             {
-                packet->GetSynAckHeader().SetMagic();
+                packet->GetHeader().SetMagic();
                 packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
                 _needToSend.push_back(std::move(packet));
             }

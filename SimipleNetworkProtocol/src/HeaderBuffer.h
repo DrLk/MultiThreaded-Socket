@@ -87,26 +87,6 @@ namespace FastTransport
                 }
             };
 
-            class SynAckHeader : public Header
-            {
-            public:
-                static const int Size = Header::Size + sizeof(ConnectionID);
-                SynAckHeader(char* start, size_t size) : Header(start, size)
-                {
-                }
-
-                ConnectionID GetRemoteConnectionID() const
-                {
-                    return *reinterpret_cast<const ConnectionID*>(data() + Header::Size);
-                }
-
-                void SetRemoteConnectionID(ConnectionID seq)
-                {
-                    *reinterpret_cast<ConnectionID*>(const_cast<char*>(data() + Header::Size)) = seq;
-                }
-
-            };
-
             HeaderBuffer(const Header& header) : _header(header)
             {
             }

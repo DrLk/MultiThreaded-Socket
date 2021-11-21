@@ -60,11 +60,6 @@ namespace FastTransport
                 return HeaderBuffer::Header(_element.data(), _element.size());
             }
 
-            virtual HeaderBuffer::SynAckHeader GetSynAckHeader() override
-            {
-                return HeaderBuffer::SynAckHeader(_element.data(), _element.size());
-            }
-
             virtual PayloadBuffer::Payload GetPayload() override
             {
                 return PayloadBuffer::Payload(_element.data(), _element.size());
