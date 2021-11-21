@@ -77,6 +77,11 @@ namespace FastTransport
                 return std::move(_selectiveAcks);
             }
 
+            SeqNumberType GetLastAck() const
+            {
+                return _firstFullRecievedAck;
+            }
+
             std::unordered_map<SeqNumberType, std::unique_ptr<IPacket>> _queue;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _nextFullRecievedAck;

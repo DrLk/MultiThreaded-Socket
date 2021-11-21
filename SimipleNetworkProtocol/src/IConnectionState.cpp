@@ -126,6 +126,7 @@ namespace FastTransport
                 packet->GetHeader().SetPacketType(PacketType::SACK);
                 packet->GetHeader().SetSrcConnectionID(connection._key._id);
                 packet->GetHeader().SetDstConnectionID(connection._destinationID);
+                packet->GetHeader().SetAckNumber(connection._recvQueue.GetLastAck());
 
 
                 std::list<SeqNumberType> packetAcks;

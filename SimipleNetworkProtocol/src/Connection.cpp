@@ -54,8 +54,6 @@ namespace FastTransport
 
         void Connection::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck /*= true*/)
         {
-            auto srcid = packet->GetHeader().GetSrcConnectionID();
-            auto dstid = packet->GetHeader().GetDstConnectionID();
             _sendQueue.SendPacket(std::move(packet), needAck);
         }
 
