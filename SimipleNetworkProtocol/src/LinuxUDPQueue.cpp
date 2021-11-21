@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "Packet.h"
+#include "UDPPacket.h"
 
 #define BUFLEN 512	//Max length of buffer
 

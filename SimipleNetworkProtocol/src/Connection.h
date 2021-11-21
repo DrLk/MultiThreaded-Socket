@@ -11,7 +11,7 @@
 #include "IInFilghtQueue.h"
 #include "ConnectionKey.h"
 #include "LockedList.h"
-#include "BufferOwner.h"
+#include "Packet.h"
 
 using namespace std::chrono_literals;
 
@@ -39,8 +39,8 @@ namespace FastTransport
                 for (int i = 0; i < 1000; i++)
                 {
                     //_freeBuffers.push_back(std::make_unique<IPacket>());
-                    _freeBuffers.push_back(std::move(std::make_unique<BufferOwner>(1500)));
-                    //_freeBuffers.push_back(BufferOwner(1500));
+                    _freeBuffers.push_back(std::move(std::make_unique<Packet>(1500)));
+                    //_freeBuffers.push_back(Packet(1500));
                 }
             }
 

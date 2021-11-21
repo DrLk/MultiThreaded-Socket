@@ -16,8 +16,8 @@ namespace FastTransport
             ConnectionAddr srcAddr;
             ConnectionAddr dstAddr;
 
-            BufferOwner::ElementType element(1500);
-            BufferOwner::BufferType freeElements;
+            Packet::ElementType element(1500);
+            Packet::BufferType freeElements;
 
             src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
@@ -26,7 +26,7 @@ namespace FastTransport
                 {
                     packet._sendTime = Time::now();
 
-                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<BufferOwner>(1500);
+                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
                     recvPackets.push_back(std::move(rcvPacket));
                 }
@@ -41,7 +41,7 @@ namespace FastTransport
                 {
                     packet._sendTime = Time::now();
 
-                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<BufferOwner>(1500);
+                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
                     recvPackets.push_back(std::move(rcvPacket));
 
@@ -50,7 +50,7 @@ namespace FastTransport
                 src.OnReceive(std::move(recvPackets));
             };
 
-            std::unique_ptr<IPacket> data = std::make_unique<BufferOwner>(1500);
+            std::unique_ptr<IPacket> data = std::make_unique<Packet>(1500);
             data->GetPayload();
             IConnection* srcConnection = src.Connect(dstAddr);
 
@@ -78,8 +78,8 @@ namespace FastTransport
             int a = 0;
             a++;
 
-            BufferOwner::ElementType element2(1500);
-            BufferOwner::Ptr synAckPacket = std::make_shared<BufferOwner>(freeElements, std::move(element));
+            Packet::ElementType element2(1500);
+            Packet::Ptr synAckPacket = std::make_shared<Packet>(freeElements, std::move(element));
 
 
         }

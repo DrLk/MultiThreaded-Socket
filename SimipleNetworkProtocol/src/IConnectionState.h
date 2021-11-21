@@ -10,7 +10,7 @@ namespace FastTransport
     namespace Protocol
     {
         class Connection;
-        class BufferOwner;
+        class Packet;
 
 
         enum ConnectionState

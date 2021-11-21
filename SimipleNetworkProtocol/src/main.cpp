@@ -3,7 +3,6 @@
 #include "Test.h"
 #include "LinuxUDPQueue.h"
 #include "FastTransportProtocol.h"
-#include "BufferOwner.h"
 #include "IConnectionState.h"
 
 #include <memory>
@@ -26,8 +25,8 @@ void Test()
     dstSocket.Init();
 
 
-    std::list<Packet*> recvBuffers = dstSocket.CreateBuffers(10000);
-    std::list<Packet*> sendBuffers = srcSocket.CreateBuffers(10000);
+    std::list<FastTransport::UDPQueue::Packet*> recvBuffers = dstSocket.CreateBuffers(10000);
+    std::list<FastTransport::UDPQueue::Packet*> sendBuffers = srcSocket.CreateBuffers(10000);
 
     sockaddr_in dstAddr;
     // zero out the structure
@@ -135,8 +134,8 @@ int main(int argc, char ** argv)
 
     socket.Init();
 
-    std::list<Packet*> recvBuffers = socket.CreateBuffers(10000);
-    std::list<Packet*> sendBuffers = socket.CreateBuffers(10000);
+    std::list<FastTransport::UDPQueue::Packet*> recvBuffers = socket.CreateBuffers(10000);
+    std::list<FastTransport::UDPQueue::Packet*> sendBuffers = socket.CreateBuffers(10000);
 
     sockaddr_in dstAddr;
     // zero out the structure

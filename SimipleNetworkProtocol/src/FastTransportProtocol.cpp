@@ -86,7 +86,7 @@ namespace FastTransport
                 }
 
 
-                //std::list<BufferOwner> buffers;
+                //std::list<Packet> buffers;
                 //Send(buffers);
 
             }

@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "HeaderBuffer.h"
-#include "BufferOwner.h"
+//#include "BufferOwner.h"
 
 
 namespace FastTransport
@@ -55,7 +55,7 @@ namespace FastTransport
                 return true;
             }
 
-            void AddPacket(const BufferOwner::Ptr& packet)
+            void AddPacket(const Packet::Ptr& packet)
             {
                 SeqNumberType number = packet->GetHeader().GetSeqNumber();
                 if (_packets.empty())
@@ -112,7 +112,7 @@ namespace FastTransport
             }
 
         private:
-            std::unordered_map<SeqNumberType, BufferOwner::Ptr> _packets;
+            std::unordered_map<SeqNumberType, Packet::Ptr> _packets;
 
             int _lostPackets;
             SeqNumberType _start;

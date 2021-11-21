@@ -18,15 +18,9 @@ namespace FastTransport
 
             virtual HeaderBuffer::Header GetHeader() = 0;
 
-            virtual ConnectionAddr GetDstAddr()
-            {
-                throw std::runtime_error("Not implemented");
-            }
+            virtual ConnectionAddr GetDstAddr() = 0;
 
-            virtual PayloadBuffer::Payload GetPayload()
-            {
-                throw std::runtime_error("Not implemented");
-            }
+            virtual PayloadBuffer::Payload GetPayload() = 0;
 
             virtual void Copy(const IPacket& packet) = 0;
         };
