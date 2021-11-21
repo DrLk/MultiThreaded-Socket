@@ -11,7 +11,10 @@ namespace FastTransport
 
         void IInflightQueue::AddQueue(std::list<OutgoingPacket>&& packets)
         {
-
+            for (auto& packet : packets)
+            {
+                _queue[packet._packet->GetHeader().GetSeqNumber()] = std::move(packet);
+            }
         }
 
         std::list<std::unique_ptr<OutgoingPacket>> IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)

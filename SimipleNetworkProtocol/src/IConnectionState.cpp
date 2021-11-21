@@ -12,7 +12,7 @@ namespace FastTransport
         {
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
-                Connection* connection =  new Connection(new WaitingSynState(),packet->GetAddr(), myID);
+                Connection* connection =  new Connection(new WaitingSynState(),packet->GetDstAddr(), myID);
                 connection->OnRecvPackets(std::move(packet));
                 return connection;
             }

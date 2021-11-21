@@ -26,11 +26,6 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
-            virtual AddrBuffer GetAddrBuffer()
-            {
-                throw std::runtime_error("Not implemented");
-            }
-
             virtual SelectiveAckBuffer::Acks GetAcks()
             {
                 throw std::runtime_error("Not implemented");
@@ -41,7 +36,7 @@ namespace FastTransport
                 throw std::runtime_error("Not implemented");
             }
 
-            virtual ConnectionAddr GetAddr()
+            virtual ConnectionAddr GetDstAddr()
             {
                 throw std::runtime_error("Not implemented");
             }
@@ -72,11 +67,6 @@ namespace FastTransport
                 return HeaderBuffer(_header, this->shared_from_this());
             }
 
-            virtual AddrBuffer GetAddrBuffer() override
-            {
-                return AddrBuffer(_addr, this->shared_from_this());
-            }
-
             virtual SelectiveAckBuffer::Acks GetAcks() override
             {
                 return _acks;
@@ -87,7 +77,7 @@ namespace FastTransport
                 return _header;
             }
 
-            virtual ConnectionAddr GetAddr() override
+            virtual ConnectionAddr GetDstAddr() override
             {
                 return _addr;
             }

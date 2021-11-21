@@ -10,13 +10,13 @@ namespace FastTransport
         class ConnectionKey
         {
         public:
-            ConnectionKey(ConnectionAddr addr, ConnectionID id) : _id(id), _addr(addr) { }
+            ConnectionKey(ConnectionAddr addr, ConnectionID id) : _id(id), _dstAddr(addr) { }
             ConnectionID _id;
-            ConnectionAddr _addr;
+            ConnectionAddr _dstAddr;
 
             bool operator==(const ConnectionKey that) const
             {
-                return _id == that._id && _addr == that._addr;
+                return _id == that._id && _dstAddr == that._dstAddr;
             }
         };
     }

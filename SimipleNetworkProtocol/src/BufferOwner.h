@@ -50,11 +50,6 @@ namespace FastTransport
                 throw std::runtime_error("Not Implemented");
             }
 
-            virtual AddrBuffer GetAddrBuffer() override
-            {
-                return AddrBuffer(_addr, this->shared_from_this());
-            }
-
             virtual SelectiveAckBuffer::Acks GetAcks() override
             {
                 return SelectiveAckBuffer::Acks(_element.data(), _element.size());
@@ -75,9 +70,9 @@ namespace FastTransport
                 return PayloadBuffer::Payload(_element.data(), _element.size());
             }
 
-            virtual ConnectionAddr GetAddr() override
+            virtual ConnectionAddr GetDstAddr() override
             {
-                return _addr;
+                return _dstAddr;
             }
 
             void SetAcks(const SelectiveAckBuffer::Acks& acks)
@@ -92,7 +87,7 @@ namespace FastTransport
 
             void SetAddr(const ConnectionAddr& addr)
             {
-                _addr = addr;
+                _dstAddr = addr;
             }
 
             std::chrono::nanoseconds GetTime() const
@@ -109,16 +104,16 @@ namespace FastTransport
             {
                 const BufferOwner& that = dynamic_cast<const BufferOwner&>(packet);
 
-                _addr = that._addr;
+                _dstAddr = that._dstAddr;
                 _time = that._time;
                 _element = that._element;
             }
 
         private:
-            //BufferType& _freeBuffers;
             ElementType _element;
 
-            ConnectionAddr _addr;
+            ConnectionAddr _srcAddr;
+            ConnectionAddr _dstAddr;
             std::chrono::nanoseconds _time;
         };
 

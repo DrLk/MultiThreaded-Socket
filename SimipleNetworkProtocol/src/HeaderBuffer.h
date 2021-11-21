@@ -222,19 +222,19 @@ namespace FastTransport
         class AddrBuffer : public FreeableBuffer
         {
         public:
-            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _addr(addr)
+            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _dstAddr(addr)
             {
             }
-            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _addr(addr)
+            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _dstAddr(addr)
             {
             }
 
-            const ConnectionAddr& GetAddr() const
+            const ConnectionAddr& GetDstAddr() const
             {
-                return _addr;
+                return _dstAddr;
             }
 
-            ConnectionAddr _addr;
+            ConnectionAddr _dstAddr;
         };
 
     }
