@@ -16,7 +16,7 @@ namespace FastTransport
     namespace   Protocol
     {
 
-        class BufferOwner : public IPacket, public FreeableBuffer
+        class BufferOwner : public IPacket
         {
         public:
             typedef std::vector<char> ElementType;

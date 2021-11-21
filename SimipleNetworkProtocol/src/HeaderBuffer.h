@@ -5,7 +5,6 @@
 #include <list>
 
 #include "ConnectionAddr.h"
-#include "FreeableBuffer.h"
 
 namespace FastTransport
 {
@@ -28,7 +27,7 @@ namespace FastTransport
         };
 
         const MagicNumber Magic_Number = 0x12345678;
-        class HeaderBuffer : public FreeableBuffer
+        class HeaderBuffer
         {
         public:
 
@@ -108,10 +107,7 @@ namespace FastTransport
 
             };
 
-            HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _header(header)
-            {
-            }
-            HeaderBuffer(const Header& header, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _header(header)
+            HeaderBuffer(const Header& header) : _header(header)
             {
             }
 
@@ -125,7 +121,7 @@ namespace FastTransport
             Header _header;
         };
 
-        class SelectiveAckBuffer : public FreeableBuffer
+        class SelectiveAckBuffer
         {
         public:
             class Acks
@@ -173,17 +169,14 @@ namespace FastTransport
                 int _size;
             };
 
-            SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _acks(acks)
-            {
-            }
-            SelectiveAckBuffer(const Acks& acks, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _acks(acks)
+            SelectiveAckBuffer(const Acks& acks) : _acks(acks)
             {
             }
 
             Acks _acks;
         };
 
-        class PayloadBuffer : public FreeableBuffer
+        class PayloadBuffer
         {
         public:
             typedef char PayloadType;
@@ -219,23 +212,17 @@ namespace FastTransport
                 unsigned int _size;
             };
 
-            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _payload(start, count)
-            {
-            }
-            PayloadBuffer(PayloadType* start, int count, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _payload(start, count)
+            PayloadBuffer(PayloadType* start, int count) : _payload(start, count)
             {
             }
 
             Payload _payload;
         };
 
-        class AddrBuffer : public FreeableBuffer
+        class AddrBuffer
         {
         public:
-            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>& buffer) : FreeableBuffer(buffer), _dstAddr(addr)
-            {
-            }
-            AddrBuffer(const ConnectionAddr& addr, std::shared_ptr<FreeableBuffer>&& buffer) : FreeableBuffer(std::move(buffer)), _dstAddr(addr)
+            AddrBuffer(const ConnectionAddr& addr) : _dstAddr(addr)
             {
             }
 

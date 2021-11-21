@@ -1,6 +1,5 @@
 #pragma once
 #include "HeaderBuffer.h"
-#include "FreeableBuffer.h"
 #include "ConnectionAddr.h"
 
 namespace FastTransport
@@ -49,7 +48,7 @@ namespace FastTransport
             virtual void Copy(const IPacket& packet) = 0;
         };
 
-        class TestPacket : public IPacket, public FreeableBuffer
+        class TestPacket : public IPacket
         {
         private:
             SelectiveAckBuffer::Acks _acks;
@@ -59,12 +58,12 @@ namespace FastTransport
         public:
             virtual SelectiveAckBuffer GetAcksBuffer() override
             {
-                return SelectiveAckBuffer(_acks, this->shared_from_this());
+                return SelectiveAckBuffer(_acks);
             }
 
             virtual HeaderBuffer GetHeaderBuffer() override
             {
-                return HeaderBuffer(_header, this->shared_from_this());
+                return HeaderBuffer(_header);
             }
 
             virtual SelectiveAckBuffer::Acks GetAcks() override
