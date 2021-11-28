@@ -8,9 +8,9 @@
 #include <Winsock2.h>
 #endif
 
-namespace FastTransport::UDPQueue
+namespace FastTransport::Protocol
 {
-    class Packet
+    /*class Packet
     {
     public:
         Packet(int size = 0) : _data(size)
@@ -31,5 +31,5 @@ namespace FastTransport::UDPQueue
         std::vector<char> _data;
         sockaddr_in _addr;
 
-    };
+    };*/
 }

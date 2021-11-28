@@ -4,23 +4,21 @@
 #include <algorithm>
 #include <memory>
 
-#include "UDPPacket.h"
+#include "Packet.h"
 
 #define BUFLEN 512	//Max length of buffer
 
 
-namespace FastTransport::UDPQueue
+namespace FastTransport::Protocol
 {
     void die(char* s)
     {
         throw std::runtime_error(s);
     }
 
-    LinuxUDPQueue::LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : _port(port)
+    LinuxUDPQueue::LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : 
+        _port(port), _threadCount(threadCount), _sendQueueSizePerThread(sendQueueSizePerThread), _recvQueueSizePerThread(recvQueueSizePerThread)
     {
-        _threadCount = threadCount;
-        _sendQueueSizePerThread = sendQueueSizePerThread;
-        _recvQueueSizePerThread = recvQueueSizePerThread;
     }
 
     LinuxUDPQueue::~LinuxUDPQueue()
@@ -47,28 +45,14 @@ namespace FastTransport::UDPQueue
         }
     }
 
-    std::list<Packet*> LinuxUDPQueue::Recv(std::list<Packet*>&& freeBuffers)
+    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers)
     {
         {
             std::lock_guard<std::mutex> lock(_recvFreeQueue._mutex);
             _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
         }
 
-        for (std::shared_ptr<RecvThreadQueue>& recvThreadQueue : _recvThreadQueues)
-        {
-            std::list<Packet*> packets;
-            {
-                std::lock_guard<std::mutex> lock(recvThreadQueue->_recvThreadQueue._mutex);
-                packets = std::move(recvThreadQueue->_recvThreadQueue);
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(_recvQueue._mutex);
-                _recvQueue.splice(_recvQueue.end(), std::move(packets));
-            }
-        }
-
-        std::list<Packet*> result;
+        std::list<std::unique_ptr<IPacket>> result;
         {
             std::lock_guard<std::mutex> lock(_recvQueue._mutex);
             result = std::move(_recvQueue);
@@ -76,14 +60,14 @@ namespace FastTransport::UDPQueue
         return result;
     }
 
-    std::list<Packet*> LinuxUDPQueue::Send(std::list<Packet*>&& data)
+    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::Send(std::list<std::unique_ptr<IPacket>>&& data)
     {
         {
             std::lock_guard<std::mutex> lock(_sendQueue._mutex);
             _sendQueue.splice(_sendQueue.end(), std::move(data));
         }
 
-        std::list<Packet*> result;
+        std::list<std::unique_ptr<IPacket>> result;
         {
             std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
             result = std::move(_sendFreeQueue);
@@ -93,12 +77,12 @@ namespace FastTransport::UDPQueue
     }
 
 
-    std::list<Packet*> LinuxUDPQueue::CreateBuffers(int size)
+    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::CreateBuffers(int size)
     {
-        std::list<Packet*> buffers;
+        std::list<std::unique_ptr<IPacket>> buffers;
         for (int i = 0; i < size; i++)
         {
-            buffers.emplace_back(new Packet());
+            buffers.emplace_back(new Packet(1500));
         }
 
         return buffers;
@@ -106,7 +90,7 @@ namespace FastTransport::UDPQueue
 
     void LinuxUDPQueue::WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index)
     {
-        std::list<Packet*> sendQueue;
+        std::list<std::unique_ptr<IPacket>> sendQueue;
 
         bool sleep = false;
 
@@ -143,15 +127,19 @@ namespace FastTransport::UDPQueue
                 }
             }
 
-            for (Packet* packet : sendQueue)
+            for (const auto& packet : sendQueue)
             {
-                unsigned short currentPort = (unsigned short)(ntohs(packet->GetAddr().sin_port) + (unsigned short)index);
-                packet->GetAddr().sin_port = htons(currentPort);
+                unsigned short currentPort = (unsigned short)(ntohs(packet->GetDstAddr().GetPort()) + (unsigned short)index);
+                /*packet->GetDstAddr().GetPort() = htons(currentPort);
                 size_t result = socket.SendTo(packet->GetData(), (sockaddr*) & (packet->GetAddr()), sizeof(sockaddr));
-                //size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
-                if (result != packet->GetData().size())
+                size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
+                if (result != packet->GetPayload().size())
                     throw std::runtime_error("sendto()");
+                    */
+
             }
+
+            udpQueue.OnSend(sendQueue);
 
             if (!sendQueue.empty())
             {
@@ -164,7 +152,7 @@ namespace FastTransport::UDPQueue
 
     void LinuxUDPQueue::ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
-        std::list<Packet*> recvFreeQueue;
+        std::list<std::unique_ptr<IPacket>> recvFreeQueue;
         bool sleep = false;
 
         while (true)
@@ -206,33 +194,26 @@ namespace FastTransport::UDPQueue
 
             for (auto it = recvFreeQueue.begin(); it != recvFreeQueue.end(); )
             {
-                Packet* packet = *it;
+                const std::unique_ptr<IPacket>& packet = *it;
                 socklen_t len = sizeof(sockaddr_in);;
                 //size_t result = recvfrom(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, &addr, &len);
-                size_t result = socket.RecvFrom(packet->GetData(), (sockaddr*)& packet->GetAddr(), &len);
-                packet->GetData().resize(result);
+                /*size_t result = socket.RecvFrom(packet->GetPayload(), (sockaddr*)&packet->GetAddr(), &len);
+                packet->GetPayload().resize(result);
                 packet->GetAddr().sin_port = htons((unsigned short)(ntohs(packet->GetAddr().sin_port) - index));
                 if (result <= 0)
-                    throw std::runtime_error("sendto()");
+                    throw std::runtime_error("sendto()");*/
 
                 auto temp = it;
                 it++;
                 {
-                    std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueue._mutex);
                     recvThreadQueue._recvThreadQueue.splice(recvThreadQueue._recvThreadQueue.begin(), recvFreeQueue, temp);
                 }
 
             }
 
-            std::list<Packet*> packets;
-            {
-                std::lock_guard<std::mutex> lock(recvThreadQueue._recvThreadQueue._mutex);
-                packets = std::move(recvThreadQueue._recvThreadQueue);
-            }
-
             {
                 std::lock_guard<std::mutex> lock(udpQueue._recvQueue._mutex);
-                udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(packets));
+                udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(recvThreadQueue._recvThreadQueue));
             }
         }
     }

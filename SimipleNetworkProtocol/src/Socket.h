@@ -10,7 +10,7 @@
 #endif
 #include<string.h> //memset
 
-namespace FastTransport::UDPQueue
+namespace FastTransport::Protocol
 {
     class Socket
     {

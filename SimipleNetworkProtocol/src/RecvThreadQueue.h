@@ -2,12 +2,13 @@
 
 #include<mutex>
 #include<vector>
-#include <exception>
+#include <memory>
+#include <list>
 
 #include "UDPPacket.h"
-#include "LockedList.h"
+#include "IPacket.h"
 
-namespace FastTransport::UDPQueue
+namespace FastTransport::Protocol
 {
     class RecvThreadQueue
     {
@@ -19,7 +20,7 @@ namespace FastTransport::UDPQueue
         RecvThreadQueue(const RecvThreadQueue&) = delete;
         RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
 
-        LockedList<Packet*> _recvThreadQueue;
+        std::list<std::unique_ptr<IPacket>> _recvThreadQueue;
 
     };
 }

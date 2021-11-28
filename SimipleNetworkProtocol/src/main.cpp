@@ -11,12 +11,12 @@
 #include <list>
 
 
-using namespace FastTransport::UDPQueue;
 using namespace FastTransport::Protocol;
 
 void Test()
 {
-    TestConnection();
+    //TestTimer();
+    //TestConnection();
 
     LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
     LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
@@ -25,8 +25,8 @@ void Test()
     dstSocket.Init();
 
 
-    std::list<FastTransport::UDPQueue::Packet*> recvBuffers = dstSocket.CreateBuffers(10000);
-    std::list<FastTransport::UDPQueue::Packet*> sendBuffers = srcSocket.CreateBuffers(10000);
+    std::list<std::unique_ptr<IPacket>> recvBuffers = dstSocket.CreateBuffers(10000);
+    std::list<std::unique_ptr<IPacket>> sendBuffers = srcSocket.CreateBuffers(10000);
 
     sockaddr_in dstAddr;
     // zero out the structure
@@ -50,10 +50,12 @@ void Test()
             {
                 for (auto& buffer : sendBuffers)
                 {
+                    /*
                     buffer->GetAddr() = dstAddr;
                     buffer->GetData().resize(sizeof(counter));
-                    long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
+                    const long long* data = reinterpret_cast<const long long*>(buffer->GetPayload().data());
                     *data = counter++;
+                    */
                 }
 
                 sendBuffers = srcSocket.Send(std::move(sendBuffers));
@@ -68,10 +70,10 @@ void Test()
         }
     );
 
-    for (auto& buffer : recvBuffers)
+    /*for (auto& buffer : recvBuffers)
     {
-        buffer->GetData().resize(1500);
-    }
+        buffer->GetPayload().resize(1500);
+    }*/
     std::thread dstThread([&recvBuffers, &dstSocket]()
         {
             auto buffer = std::move(recvBuffers);
@@ -80,11 +82,11 @@ void Test()
             while (true)
             {
                 buffer = dstSocket.Recv(std::move(buffer));
-                for (auto buffer : buffer)
+                for (auto& buffer : buffer)
                 {
-                    buffer->GetData().resize(1500);
-                    long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    maxValue = std::max<long long>(*data, maxValue);
+                    //buffer->GetPayload().resize(1500);
+                    //const long long* data = reinterpret_cast<const long long*>(buffer->GetPayload().data());
+                    //maxValue = std::max<long long>(*data, maxValue);
                     packetCount++;
                 }
 
@@ -134,8 +136,8 @@ int main(int argc, char ** argv)
 
     socket.Init();
 
-    std::list<FastTransport::UDPQueue::Packet*> recvBuffers = socket.CreateBuffers(10000);
-    std::list<FastTransport::UDPQueue::Packet*> sendBuffers = socket.CreateBuffers(10000);
+    std::list<std::unique_ptr<IPacket>> recvBuffers = socket.CreateBuffers(10000);
+    std::list<std::unique_ptr<IPacket>> sendBuffers = socket.CreateBuffers(10000);
 
     sockaddr_in dstAddr;
     // zero out the structure
@@ -160,10 +162,10 @@ int main(int argc, char ** argv)
             {
                 for (auto& buffer : sendBuffers)
                 {
-                    buffer->GetAddr() = dstAddr;
+                    /*buffer->GetAddr() = dstAddr;
                     buffer->GetData().resize(sizeof(counter));
-                    long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    *data = counter++;
+                    const long long* data = reinterpret_cast<const long long*>(buffer->GetPayload().data());
+                    *data = counter++;*/
                 }
 
                 sendBuffers = socket.Send(std::move(sendBuffers));
@@ -183,16 +185,16 @@ int main(int argc, char ** argv)
             long long packetCount = 0;
             while (true)
             {
-                for (auto buffer : recvBuffers)
+                /*for (auto buffer : recvBuffers)
                 {
-                    buffer->GetData().resize(1500);
-                }
+                    buffer->GetPayload().resize(1500);
+                }*/
 
                 recvBuffers = socket.Recv(std::move(recvBuffers));
-                for (auto buffer : recvBuffers)
+                for (const auto& buffer : recvBuffers)
                 {
-                    long long* data = reinterpret_cast<long long*>(buffer->GetData().data());
-                    maxValue = std::max<long long>(*data, maxValue);
+                    //const long long* data = reinterpret_cast<const long long*>(buffer->GetPayload().data());
+                    //maxValue = std::max<long long>(*data, maxValue);
                     packetCount++;
 
 

@@ -1,19 +1,19 @@
 #pragma once
 
-#include<vector>
-#include<list>
-#include<thread>
-#include<mutex>
-#include<memory>
+#include <vector>
+#include <list>
+#include <thread>
+#include <mutex>
+#include <memory>
+#include <functional>
 
 #include "RecvThreadQueue.h"
 #include "Socket.h"
 #include "LockedList.h"
+#include "IPacket.h"
 
-namespace FastTransport::UDPQueue
+namespace FastTransport::Protocol
 {
-    class Packet;
-
     class LinuxUDPQueue
     {
     public:
@@ -21,21 +21,24 @@ namespace FastTransport::UDPQueue
         ~LinuxUDPQueue();
         void Init();
 
-        std::list<Packet*> Recv(std::list<Packet*>&& freeBuffers);
-        std::list<Packet*> Send(std::list<Packet*>&& data);
+        std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers);
+        std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data);
 
-        std::list<Packet*> CreateBuffers(int size);
+        std::list<std::unique_ptr<IPacket>> CreateBuffers(int size);
+
+        std::function<void(const std::list<std::unique_ptr<IPacket>>& packets)> OnSend;
+        std::function<void(std::list<std::unique_ptr<IPacket>>& packets)> OnRecv;
 
     private:
         unsigned int _port;
         std::vector<std::thread> _writeThreads;
         std::vector<std::thread> _readThreads;
 
-        LockedList<Packet*> _sendQueue;
-        LockedList<Packet*> _recvQueue;
+        LockedList<std::unique_ptr<IPacket>> _sendQueue;
+        LockedList<std::unique_ptr<IPacket>> _recvQueue;
 
-        LockedList<Packet*> _sendFreeQueue;
-        LockedList<Packet*> _recvFreeQueue;
+        LockedList<std::unique_ptr<IPacket>> _sendFreeQueue;
+        LockedList<std::unique_ptr<IPacket>> _recvFreeQueue;
 
         static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index);
         static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
