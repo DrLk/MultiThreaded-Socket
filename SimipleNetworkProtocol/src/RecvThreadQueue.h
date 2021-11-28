@@ -5,7 +5,6 @@
 #include <memory>
 #include <list>
 
-#include "UDPPacket.h"
 #include "IPacket.h"
 
 namespace FastTransport::Protocol
