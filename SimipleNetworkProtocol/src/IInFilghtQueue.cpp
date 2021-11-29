@@ -4,6 +4,8 @@ namespace FastTransport
 {
     namespace Protocol
     {
+        using namespace std::chrono_literals;
+
         void IInflightQueue::AddQueue(std::unique_ptr<OutgoingPacket>&& packet)
         {
 
@@ -31,11 +33,11 @@ namespace FastTransport
         std::list<OutgoingPacket> IInflightQueue::CheckTimeouts()
         {
             std::list<OutgoingPacket> needToSend;
-            TimePoint now = Time::now();
+            clock::time_point now = clock::now();
             for (auto& pair : _queue)
             {
                 OutgoingPacket&& packet = std::move(pair.second);
-                if (std::chrono::duration_cast<ms>(now - packet._sendTime) > ms(10))
+                if ((now - packet._sendTime) > clock::duration(10ms))
                 {
                     needToSend.push_back(std::move(packet));
                 }

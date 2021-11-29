@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "RecvThreadQueue.h"
+#include "SendThreadQueue.h"
 #include "Socket.h"
 #include "LockedList.h"
 #include "IPacket.h"
@@ -16,6 +17,8 @@ namespace FastTransport::Protocol
 {
     class LinuxUDPQueue
     {
+        friend SendThreadQueue;
+
     public:
         LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
         ~LinuxUDPQueue();
@@ -40,10 +43,10 @@ namespace FastTransport::Protocol
         LockedList<std::unique_ptr<IPacket>> _sendFreeQueue;
         LockedList<std::unique_ptr<IPacket>> _recvFreeQueue;
 
-        static void WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index);
         static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
 
         std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
+        std::vector<std::shared_ptr<SendThreadQueue>> _sendThreadQueues;
 
         int _threadCount;
 

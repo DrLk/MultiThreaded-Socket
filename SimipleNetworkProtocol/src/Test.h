@@ -1,9 +1,12 @@
 #pragma once
 
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "IPacket.h"
 #include "FastTransportProtocol.h"
+#include "PeriodicExecutor.h"
 
 namespace FastTransport
 {
@@ -12,7 +15,6 @@ namespace FastTransport
         void TestConnection()
         {
             ConnectionAddr addr("127.0.0.1", 8);
-            ConnectionAddr addr2("127.0.0.2", 8);
             FastTransportContext src;
             FastTransportContext dst;
             ConnectionAddr srcAddr;
@@ -26,7 +28,7 @@ namespace FastTransport
                 std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
                 {
-                    packet._sendTime = Time::now();
+                    packet._sendTime = std::chrono::steady_clock::now();
 
                     std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
@@ -41,7 +43,7 @@ namespace FastTransport
                 std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
                 {
-                    packet._sendTime = Time::now();
+                    packet._sendTime = std::chrono::steady_clock::now();
 
                     std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
@@ -88,24 +90,70 @@ namespace FastTransport
         void TestTimer()
         {
             unsigned long long counter = 0;
-            std::time_t end_time;
-            ms elapsed_seconds;
-            auto start = std::chrono::system_clock::now();
+            typedef std::chrono::steady_clock clock;
+            auto start = clock::now();
             // Some computation here
             while (true)
             {
                 counter++;
-                auto end = std::chrono::system_clock::now();
+                auto end = clock::now();
 
-                elapsed_seconds = std::chrono::duration_cast<ms>(end - start);
-                if (elapsed_seconds > ms(1000))
+                auto elapsed_seconds = end - start;
+
+                if (elapsed_seconds > 5000ms)
                     break;
-                end_time = std::chrono::system_clock::to_time_t(end);
             }
 
-            std::cout << "finished computation at " << std::ctime(&end_time)
-                << "elapsed time: " << elapsed_seconds.count() << "ms\n" << "counter: " << counter << std::endl;
+            std::cout << "counter: " << counter << std::endl;
 
+        }
+
+
+        void TestSleep()
+        {
+            std::atomic<unsigned long long> counter = 0;
+
+            std::vector<std::thread> threads;
+            for (auto i = 0; i < 10; i++)
+            {
+                threads.emplace_back([&counter]()
+                    {
+                        auto start = std::chrono::system_clock::now();
+                        while (true)
+                        {
+                            counter++;
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                            //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+                            auto end = std::chrono::system_clock::now();
+                            if ((end - start) > 1000ms)
+                            {
+                                start = end;
+                                std::cout << counter << std::endl;
+                                counter = 0;
+                            }
+
+                        }
+                    });
+            }
+
+            threads.front().join();
+        }
+
+        void TestPeriodicExecutor()
+        {
+            PeriodicExecutor pe([]()
+                {
+#define RUNS_NUMBER 50
+                    static std::atomic<long long> counter = 0;
+                    if (counter++ % RUNS_NUMBER == 0)
+                        std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl << "counter: " << counter << std::endl;
+
+                    //std::this_thread::sleep_for(1ms);
+                }, std::chrono::milliseconds(1000 / RUNS_NUMBER));
+
+            while (true)
+                pe.Run();
         }
     }
 }

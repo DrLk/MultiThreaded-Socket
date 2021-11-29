@@ -15,7 +15,6 @@ namespace FastTransport
 {
     namespace   Protocol
     {
-
         class Packet : public IPacket
         {
         public:

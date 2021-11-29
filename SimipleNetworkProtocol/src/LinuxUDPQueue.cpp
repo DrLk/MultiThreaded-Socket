@@ -39,8 +39,9 @@ namespace FastTransport::Protocol
 
         for (int i = 0; i < _threadCount; i++)
         {
-            _writeThreads.push_back(std::thread(WriteThread, std::ref(*this), std::ref(*_sockets[i]), i));
-            _recvThreadQueues.emplace_back(std::make_shared<RecvThreadQueue>());
+            _sendThreadQueues.push_back(std::make_shared<SendThreadQueue>());
+            _writeThreads.push_back(std::thread(SendThreadQueue::WriteThread, std::ref(*this), std::ref(*_sendThreadQueues.back()), std::ref(*_sockets[i]), i));
+            _recvThreadQueues.push_back(std::make_shared<RecvThreadQueue>());
             _readThreads.push_back(std::thread(ReadThread, std::ref(*this), std::ref(*_recvThreadQueues.back()), std::ref(*_sockets[i]), i));
         }
     }
@@ -88,68 +89,7 @@ namespace FastTransport::Protocol
         return buffers;
     }
 
-    void LinuxUDPQueue::WriteThread(LinuxUDPQueue& udpQueue, const Socket& socket, unsigned short index)
-    {
-        std::list<std::unique_ptr<IPacket>> sendQueue;
-
-        bool sleep = false;
-
-        while (true)
-        {
-            if (sleep)
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-            if (sendQueue.empty())
-            {
-                std::lock_guard<std::mutex> lock(udpQueue._sendQueue._mutex);
-                if (udpQueue._sendQueue.empty())
-                {
-                    sleep = true;
-                    continue;
-                }
-                else
-                {
-                    sleep = false;
-                }
-
-                if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size())
-                {
-                    auto end = udpQueue._sendQueue.begin();
-                    for (size_t i = 0; i < udpQueue._sendQueueSizePerThread; i++)
-                    {
-                        end++;
-                    }
-                    sendQueue.splice(sendQueue.begin(), udpQueue._sendQueue, udpQueue._sendQueue.begin(), end);
-                }
-                else
-                {
-                    sendQueue = std::move(udpQueue._sendQueue);
-                }
-            }
-
-            for (const auto& packet : sendQueue)
-            {
-                unsigned short currentPort = (unsigned short)(ntohs(packet->GetDstAddr().GetPort()) + (unsigned short)index);
-                /*packet->GetDstAddr().GetPort() = htons(currentPort);
-                size_t result = socket.SendTo(packet->GetData(), (sockaddr*) & (packet->GetAddr()), sizeof(sockaddr));
-                size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
-                if (result != packet->GetPayload().size())
-                    throw std::runtime_error("sendto()");
-                    */
-
-            }
-
-            udpQueue.OnSend(sendQueue);
-
-            if (!sendQueue.empty())
-            {
-                std::lock_guard<std::mutex> lock(udpQueue._sendFreeQueue._mutex);
-                udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), std::move(sendQueue));
-            }
-        }
-
-    }
-
+    
     void LinuxUDPQueue::ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
         std::list<std::unique_ptr<IPacket>> recvFreeQueue;

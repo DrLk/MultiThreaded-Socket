@@ -8,17 +8,15 @@ namespace FastTransport
 {
     namespace   Protocol
     {
-        typedef std::chrono::steady_clock Time;
-        typedef std::chrono::steady_clock::time_point TimePoint;
-        typedef std::chrono::milliseconds ms;
-
         class OutgoingPacket
         {
+            typedef std::chrono::steady_clock clock;
+
         public:
             OutgoingPacket() = default;
             OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet)) { }
             std::unique_ptr<IPacket> _packet;
-            TimePoint _sendTime;
+            clock::time_point _sendTime;
         };
     }
 }

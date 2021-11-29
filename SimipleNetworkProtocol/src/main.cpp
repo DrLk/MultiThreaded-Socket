@@ -1,9 +1,9 @@
 #include <cstdio>
 
-#include "Test.h"
 #include "LinuxUDPQueue.h"
 #include "FastTransportProtocol.h"
 #include "IConnectionState.h"
+#include "Test.h"
 
 #include <memory>
 #include <algorithm>
@@ -17,16 +17,18 @@ void Test()
 {
     //TestTimer();
     //TestConnection();
+    //TestSleep();
+    TestPeriodicExecutor();
 
-    LinuxUDPQueue srcSocket(8888, 5, 1000, 1000);
-    LinuxUDPQueue dstSocket(9999, 5, 1000, 1000);
+    LinuxUDPQueue srcSocket(8888, 50, 1000, 100);
+    //LinuxUDPQueue dstSocket(9999, 50, 1000, 100);
 
     srcSocket.Init();
-    dstSocket.Init();
+    //dstSocket.Init();
 
 
-    std::list<std::unique_ptr<IPacket>> recvBuffers = dstSocket.CreateBuffers(10000);
-    std::list<std::unique_ptr<IPacket>> sendBuffers = srcSocket.CreateBuffers(10000);
+    std::list<std::unique_ptr<IPacket>> sendBuffers = srcSocket.CreateBuffers(100000);
+    //std::list<std::unique_ptr<IPacket>> recvBuffers = dstSocket.CreateBuffers(100000);
 
     sockaddr_in dstAddr;
     // zero out the structure
@@ -38,10 +40,29 @@ void Test()
     //auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
     //auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
 
-    if (result)
+    if (!result)
     { 
         errno;
     }
+
+    srcSocket.OnSend = [](const std::list<std::unique_ptr<IPacket>>& packets) {
+        static std::atomic<unsigned long long> _counter = 0;
+        static auto start = std::chrono::system_clock::now();
+        auto end = std::chrono::system_clock::now();
+        auto duration = start - end;
+        auto elapsed_seconds = end - start;
+
+        _counter += packets.size();
+        if (elapsed_seconds > 1000ms)
+        {
+            std::cout << _counter << std::endl;
+            start = end;
+            _counter = 0;
+        }
+
+        std::this_thread::sleep_for(1ms);
+
+    };
 
     std::thread srcThread([&sendBuffers, &dstAddr, &srcSocket]()
         {
@@ -70,11 +91,7 @@ void Test()
         }
     );
 
-    /*for (auto& buffer : recvBuffers)
-    {
-        buffer->GetPayload().resize(1500);
-    }*/
-    std::thread dstThread([&recvBuffers, &dstSocket]()
+    /*std::thread dstThread([&recvBuffers, &dstSocket]()
         {
             auto buffer = std::move(recvBuffers);
             long long maxValue = 0;
@@ -99,11 +116,11 @@ void Test()
                 }
             }
         }
-    );
+    );*/
 
 
     srcThread.join();
-    dstThread.join();
+    //dstThread.join();
     std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 }
 

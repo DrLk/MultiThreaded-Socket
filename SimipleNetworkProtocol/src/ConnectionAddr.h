@@ -47,7 +47,7 @@ namespace FastTransport
 
             unsigned int GetPort() const
             {
-                throw std::runtime_error("Not Implemented");
+                return ntohs(((sockaddr_in*)&_storage)->sin_port);
             }
         private:
             sockaddr_storage _storage;

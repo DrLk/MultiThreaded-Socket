@@ -12,6 +12,8 @@ namespace FastTransport
     {
         class IInflightQueue
         {
+            typedef std::chrono::steady_clock clock;
+
             std::unordered_map<SeqNumberType, OutgoingPacket> _queue;
 
         public:
