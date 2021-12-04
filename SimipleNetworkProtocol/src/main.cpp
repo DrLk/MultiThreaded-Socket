@@ -17,8 +17,8 @@ void Test()
 {
     //TestTimer();
     //TestConnection();
-    //TestSleep();
-    TestPeriodicExecutor();
+    TestSleep();
+    //TestPeriodicExecutor();
 
     LinuxUDPQueue srcSocket(8888, 50, 1000, 100);
     //LinuxUDPQueue dstSocket(9999, 50, 1000, 100);

@@ -109,6 +109,12 @@ namespace FastTransport
         }
 
 
+	/*
+	 * Linux rpi4 aarch64 manjaro 13.12.2021 counter about 12k per second per thread.
+	 * 10 threads perform over 110k counter per seconds
+	 * 
+	 * Windows perform about 100 counter per second per thread.
+	 */
         void TestSleep()
         {
             std::atomic<unsigned long long> counter = 0;
@@ -122,7 +128,7 @@ namespace FastTransport
                         while (true)
                         {
                             counter++;
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                            std::this_thread::sleep_for(std::chrono::microseconds(1));
                             //std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
                             auto end = std::chrono::system_clock::now();
