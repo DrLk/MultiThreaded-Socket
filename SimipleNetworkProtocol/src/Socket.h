@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef POSIX
+#ifdef WIN32
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#else
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#else
-#include <WinSock2.h>
-#include <WS2tcpip.h>
 #endif
 #include<string.h> //memset
 
@@ -22,10 +22,10 @@ namespace FastTransport::Protocol
 
         ~Socket()
         {
-#ifdef POSIX
-            close(_socket);
-#else
+#ifdef WIN32
             closesocket(_socket);
+#else
+            close(_socket);
 #endif
         }
 
@@ -65,10 +65,10 @@ namespace FastTransport::Protocol
         }
 
     private:
-#ifdef POSIX
-        int _socket;
-#else
+#ifdef WIN32
         SOCKET _socket;
+#else
+        int _socket;
 #endif
         unsigned short _port;
     };

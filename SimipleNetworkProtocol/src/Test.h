@@ -144,12 +144,12 @@ namespace FastTransport
         {
             PeriodicExecutor pe([]()
                 {
-#define RUNS_NUMBER 50
+#define RUNS_NUMBER 500
                     static std::atomic<long long> counter = 0;
                     if (counter++ % RUNS_NUMBER == 0)
                         std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl << "counter: " << counter << std::endl;
 
-                    //std::this_thread::sleep_for(1ms);
+                    std::this_thread::sleep_for(1ms);
                 }, std::chrono::milliseconds(1000 / RUNS_NUMBER));
 
             while (true)

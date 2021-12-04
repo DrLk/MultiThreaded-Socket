@@ -127,8 +127,7 @@ void Test()
 
 int main(int argc, char ** argv)
 {
-#ifdef POSIX
-#else
+#ifdef WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif

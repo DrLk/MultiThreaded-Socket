@@ -16,4 +16,6 @@ add_executable(SimpleNetworkProtocol ${SRC_FILES})
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocol wsock32 ws2_32)
+else()
+  target_link_libraries(SimpleNetworkProtocol pthread)
 endif()

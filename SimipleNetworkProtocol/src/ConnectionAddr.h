@@ -1,11 +1,11 @@
 #pragma once
 
-#ifdef POSIX
+#ifdef WIN32
+#include <Ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#else
-#include <Ws2tcpip.h>
-#endif;
+#endif
 #include <cstring>
 #include <string>
 #include <stdexcept>
