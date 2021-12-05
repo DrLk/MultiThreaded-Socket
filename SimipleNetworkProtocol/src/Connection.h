@@ -38,9 +38,7 @@ namespace FastTransport
             {
                 for (int i = 0; i < 1000; i++)
                 {
-                    //_freeBuffers.push_back(std::make_unique<IPacket>());
                     _freeBuffers.push_back(std::move(std::make_unique<Packet>(1500)));
-                    //_freeBuffers.push_back(Packet(1500));
                 }
             }
 

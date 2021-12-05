@@ -20,9 +20,6 @@ namespace FastTransport
             ConnectionAddr srcAddr;
             ConnectionAddr dstAddr;
 
-            Packet::ElementType element(1500);
-            Packet::BufferType freeElements;
-
             src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
                 std::list<std::unique_ptr<IPacket>> recvPackets;
@@ -58,13 +55,30 @@ namespace FastTransport
 
             srcConnection->Send(std::move(data));
 
-            int a = 0;
-            a++;
+            while (true)
+            {
+                IConnection* dstConnection;
+                while (true)
+                {
+                    dstConnection = dst.Accept();
 
-            Packet::ElementType element2(1500);
-            Packet::Ptr synAckPacket = std::make_shared<Packet>(freeElements, std::move(element));
+                    if (dstConnection)
+                        break;
 
-            std::this_thread::sleep_for(1000h);
+                    std::this_thread::sleep_for(500ms);
+                }
+                std::list <std::unique_ptr<IPacket>> recvPackets;
+                std::unique_ptr<IPacket> recvPacket = std::make_unique<Packet>(1500);;
+                recvPackets.push_back(std::move(recvPacket));
+                auto data = dstConnection->Recv(std::move(recvPackets));
+                if (!data.empty())
+                {
+                    int a = 0;
+                    a++;
+                }
+
+                std::this_thread::sleep_for(500ms);
+            }
         }
 
         void TestTimer()
