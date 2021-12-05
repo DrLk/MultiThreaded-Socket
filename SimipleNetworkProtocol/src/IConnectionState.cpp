@@ -143,6 +143,8 @@ namespace FastTransport
                 else
                 {
                     packetAcks = std::move(acks);
+                    //TODO: Is it needed to call clear???
+                    acks.clear();
                 }
 
                 packet->GetAcks().SetAcks(packetAcks);

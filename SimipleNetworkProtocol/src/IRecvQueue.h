@@ -68,7 +68,7 @@ namespace FastTransport
                     data.push_back(std::move(packet));
                     _beginFullRecievedAck++;
                 }
-                return std::move(data);
+                return data;
             }
 
             virtual std::list<SeqNumberType>&& GetSelectiveAcks() override

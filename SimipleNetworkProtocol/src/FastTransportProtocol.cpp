@@ -21,9 +21,6 @@ namespace FastTransport
             _udpQueue(port, 2, 1000, 1000)
         {
             _udpQueue.Init();
-                /*_freeBuffers.resize(100);
-                for (auto buffer : _freeBuffers)
-                    buffer.resize(1500);*/
         }
 
         FastTransportContext::~FastTransportContext()
@@ -72,6 +69,11 @@ namespace FastTransport
 
             auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
 
+            int a = 1, b = 2;
+            const auto& [x, y] = std::tie(a, b);
+
+            auto [q, w] = (*_connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID())));
+
             if (connection != _connections.end())
             {
                 connection->second->OnRecvPackets(std::move(packet));
@@ -89,9 +91,9 @@ namespace FastTransport
 
         void FastTransportContext::ConnectionsRun()
         {
-            for (auto connection : _connections)
+            for (auto& [key, connection] : _connections)
             {
-                connection.second->Run();
+                connection->Run();
             }
 
             SendQueueStep();
@@ -100,9 +102,9 @@ namespace FastTransport
         void FastTransportContext::SendQueueStep()
         {
             std::list<OutgoingPacket> packets;
-            for (auto connection : _connections)
+            for (auto& [key, connection] : _connections)
             {
-                packets.splice(packets.begin(), connection.second->GetPacketsToSend());
+                packets.splice(packets.begin(), connection->GetPacketsToSend());
             }
 
             std::list<OutgoingPacket> inFlightPackets = Send(packets);
@@ -117,13 +119,13 @@ namespace FastTransport
 
             }
 
-            for (auto& outgoing : connectionOutgoingPackets)
+            for (auto& [connectionKey, outgoingPacket] : connectionOutgoingPackets)
             {
-                auto connection = _connections.find(outgoing.first);
+                auto connection = _connections.find(connectionKey);
 
                 if (connection != _connections.end())
                 {
-                    connection->second->ProcessSentPackets(std::move(outgoing.second));
+                    connection->second->ProcessSentPackets(std::move(outgoingPacket));
                 }
                 else
                 {
