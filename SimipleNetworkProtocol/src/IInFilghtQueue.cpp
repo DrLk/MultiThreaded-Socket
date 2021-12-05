@@ -1,33 +1,45 @@
 #include "IInFilghtQueue.h"
 
+using namespace std::chrono_literals;
+
+
 namespace FastTransport
 {
     namespace Protocol
     {
-        using namespace std::chrono_literals;
-
-        void IInflightQueue::AddQueue(OutgoingPacket&& packet)
+        std::list<std::unique_ptr<IPacket>> IInflightQueue::AddQueue(std::list<OutgoingPacket>&& packets)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
 
-        }
-
-        void IInflightQueue::AddQueue(std::list<OutgoingPacket>&& packets)
-        {
             for (auto& packet : packets)
             {
-                _queue[packet._packet->GetHeader().GetSeqNumber()] = std::move(packet);
+                if (packet._needAck)
+                    _queue[packet._packet->GetHeader().GetSeqNumber()] = std::move(packet);
+                else
+                    freePackets.push_back(std::move(packet._packet));
             }
+
+            return freePackets;
         }
 
-        void IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
+        std::list<std::unique_ptr<IPacket>> IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
+
             if (!acks.IsValid())
                 throw std::runtime_error("Not Implemented");
 
             for (SeqNumberType number : acks.GetAcks())
             {
-                _queue.erase(number);
+                const auto& it = _queue.find(number);
+                if (it != _queue.end())
+                {
+                    freePackets.push_back(std::move(it->second._packet));
+                    _queue.erase(it);
+                }
             }
+
+            return freePackets;
         }
 
         std::list<OutgoingPacket> IInflightQueue::CheckTimeouts()

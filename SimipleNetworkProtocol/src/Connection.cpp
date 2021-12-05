@@ -47,9 +47,14 @@ namespace FastTransport
             return _sendQueue.GetPacketsToSend();
         }
 
-        void Connection::AddInflightPackets(std::list<OutgoingPacket>&& packets)
+        void Connection::ProcessSentPackets(std::list<OutgoingPacket>&& packets)
         {
-            _inFlightQueue.AddQueue(std::move(packets));
+            auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
+
+            {
+                std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
+                _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
+            }
         }
 
         void Connection::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck /*= true*/)

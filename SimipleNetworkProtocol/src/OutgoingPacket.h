@@ -14,12 +14,13 @@ namespace FastTransport
 
         public:
             OutgoingPacket() = default;
-            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet))
+            OutgoingPacket(std::unique_ptr<IPacket>&& packet, bool needAck) : _packet(std::move(packet)), _needAck(needAck)
             {
             }
 
             std::unique_ptr<IPacket> _packet;
             clock::time_point _sendTime;
+            bool _needAck;
         };
     }
 }

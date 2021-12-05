@@ -17,9 +17,8 @@ namespace FastTransport
             std::unordered_map<SeqNumberType, OutgoingPacket> _queue;
 
         public:
-            void AddQueue(OutgoingPacket&& packet);
-            void AddQueue(std::list<OutgoingPacket>&& packets);
-            void ProcessAcks(const SelectiveAckBuffer::Acks& acks);
+            std::list<std::unique_ptr<IPacket>> AddQueue(std::list<OutgoingPacket>&& packets);
+            std::list<std::unique_ptr<IPacket>> ProcessAcks(const SelectiveAckBuffer::Acks& acks);
             std::list<OutgoingPacket> CheckTimeouts();
         };
     }

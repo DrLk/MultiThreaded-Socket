@@ -186,7 +186,11 @@ namespace FastTransport
                 }
             case PacketType::SACK:
                 {
-                    connection._inFlightQueue.ProcessAcks(packet->GetAcks());
+                    auto freePackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
+                    {
+                        std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                        connection._freeBuffers.splice(connection._freeBuffers.end(), std::move(freePackets));
+                    }
                     break;
                 }
             case PacketType::DATA:

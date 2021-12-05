@@ -141,7 +141,7 @@ namespace FastTransport
 
                 if (connection != _connections.end())
                 {
-                    connection->second->AddInflightPackets(std::move(outgoing.second));
+                    connection->second->ProcessSentPackets(std::move(outgoing.second));
                 }
                 else
                 {

@@ -56,7 +56,8 @@ namespace FastTransport::Protocol
         std::list<std::unique_ptr<IPacket>> result;
         {
             std::lock_guard<std::mutex> lock(_recvQueue._mutex);
-            result = std::move(_recvQueue);
+            if(!_recvQueue.empty())
+                result = std::move(_recvQueue);
         }
         return result;
     }
@@ -71,7 +72,8 @@ namespace FastTransport::Protocol
         std::list<OutgoingPacket> result;
         {
             std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
-            result = std::move(_sendFreeQueue);
+            if (!_sendFreeQueue.empty())
+                result = std::move(_sendFreeQueue);
         }
 
         return result;

@@ -38,7 +38,7 @@ namespace FastTransport
                 packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
                 {
                     std::lock_guard<std::mutex> lock(_needToSend._mutex);
-                    _needToSend.push_back(std::move(packet));
+                    _needToSend.emplace_back(std::move(packet), needAck);
                 }
             }
 
