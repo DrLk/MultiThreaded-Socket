@@ -6,7 +6,7 @@ namespace FastTransport
     {
         using namespace std::chrono_literals;
 
-        void IInflightQueue::AddQueue(std::unique_ptr<OutgoingPacket>&& packet)
+        void IInflightQueue::AddQueue(OutgoingPacket&& packet)
         {
 
         }

@@ -16,10 +16,11 @@ namespace FastTransport
         }
 
 
-        FastTransportContext::FastTransportContext() : _shutdownContext(false), 
-            _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this))
+        FastTransportContext::FastTransportContext(int port) : _shutdownContext(false), 
+            _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this)),
+            _udpQueue(port, 2, 1000, 1000)
         {
-
+            _udpQueue.Init();
                 /*_freeBuffers.resize(100);
                 for (auto buffer : _freeBuffers)
                     buffer.resize(1500);*/
@@ -160,6 +161,8 @@ namespace FastTransport
         std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
             OnSend(packets);
+
+            _udpQueue.Send(std::move(packets));
 
             return std::move(packets);
         }

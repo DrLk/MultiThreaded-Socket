@@ -18,7 +18,7 @@ namespace FastTransport
         class FastTransportContext
         {
         public:
-            FastTransportContext();
+            FastTransportContext(int port);
             ~FastTransportContext();
 
             void OnReceive(std::list<std::unique_ptr<IPacket>>&& packet);
@@ -51,6 +51,8 @@ namespace FastTransport
             std::thread _recvContextThread;
 
             std::atomic<bool> _shutdownContext;
+
+            UDPQueue _udpQueue;
 
             static void SendThread(FastTransportContext& context);
             static void RecvThread(FastTransportContext& context);

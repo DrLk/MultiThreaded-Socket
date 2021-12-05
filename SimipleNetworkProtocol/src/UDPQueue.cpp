@@ -61,14 +61,14 @@ namespace FastTransport::Protocol
         return result;
     }
 
-    std::list<std::unique_ptr<IPacket>> UDPQueue::Send(std::list<std::unique_ptr<IPacket>>&& data)
+    std::list<OutgoingPacket> UDPQueue::Send(std::list<OutgoingPacket>&& data)
     {
         {
             std::lock_guard<std::mutex> lock(_sendQueue._mutex);
             _sendQueue.splice(_sendQueue.end(), std::move(data));
         }
 
-        std::list<std::unique_ptr<IPacket>> result;
+        std::list<OutgoingPacket> result;
         {
             std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
             result = std::move(_sendFreeQueue);

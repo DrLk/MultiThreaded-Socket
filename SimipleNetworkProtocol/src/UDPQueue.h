@@ -12,6 +12,7 @@
 #include "Socket.h"
 #include "LockedList.h"
 #include "IPacket.h"
+#include "OutgoingPacket.h"
 
 namespace FastTransport::Protocol
 {
@@ -25,11 +26,11 @@ namespace FastTransport::Protocol
         void Init();
 
         std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers);
-        std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data);
+        std::list<OutgoingPacket> Send(std::list<OutgoingPacket>&& data);
 
         std::list<std::unique_ptr<IPacket>> CreateBuffers(int size);
 
-        std::function<void(const std::list<std::unique_ptr<IPacket>>& packets)> OnSend;
+        std::function<void(const std::list<OutgoingPacket>& packets)> OnSend;
         std::function<void(std::list<std::unique_ptr<IPacket>>& packets)> OnRecv;
 
     private:
@@ -37,10 +38,10 @@ namespace FastTransport::Protocol
         std::vector<std::thread> _writeThreads;
         std::vector<std::thread> _readThreads;
 
-        LockedList<std::unique_ptr<IPacket>> _sendQueue;
+        LockedList<OutgoingPacket> _sendQueue;
         LockedList<std::unique_ptr<IPacket>> _recvQueue;
 
-        LockedList<std::unique_ptr<IPacket>> _sendFreeQueue;
+        LockedList<OutgoingPacket> _sendFreeQueue;
         LockedList<std::unique_ptr<IPacket>> _recvFreeQueue;
 
         static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);

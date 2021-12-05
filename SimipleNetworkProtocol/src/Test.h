@@ -15,8 +15,8 @@ namespace FastTransport
         void TestConnection()
         {
             ConnectionAddr addr("127.0.0.1", 8);
-            FastTransportContext src;
-            FastTransportContext dst;
+            FastTransportContext src(10100);
+            FastTransportContext dst(10200);
             ConnectionAddr srcAddr;
             ConnectionAddr dstAddr;
 
