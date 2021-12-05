@@ -17,7 +17,7 @@ namespace FastTransport
 
 
         FastTransportContext::FastTransportContext() : _shutdownContext(false), 
-            _sendThread(SendThread, std::ref(*this)), _recvThread(RecvThread, std::ref(*this))
+            _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this))
         {
 
                 /*_freeBuffers.resize(100);
@@ -29,8 +29,8 @@ namespace FastTransport
         {
             _shutdownContext = true;
 
-            _sendThread.join();
-            _recvThread.join();
+            _sendContextThread.join();
+            _recvContextThread.join();
         }
 
         IConnection* FastTransportContext::Accept()

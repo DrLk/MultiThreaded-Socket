@@ -9,6 +9,7 @@
 #include "IConnectionState.h"
 #include "IPacket.h"
 #include "SpeedController.h"
+#include "UDPQueue.h"
 
 namespace FastTransport
 {
@@ -46,8 +47,8 @@ namespace FastTransport
 
             std::list<OutgoingPacket> Send(std::list<OutgoingPacket>& packets);
 
-            std::thread _sendThread;
-            std::thread _recvThread;
+            std::thread _sendContextThread;
+            std::thread _recvContextThread;
 
             std::atomic<bool> _shutdownContext;
 
