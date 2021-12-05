@@ -97,24 +97,6 @@ namespace FastTransport
             SendQueueStep();
         }
 
-        void FastTransportContext::Run()
-        {
-            while (true)
-            {
-                std::list<std::unique_ptr<IPacket>> recvBuffers = Recv();
-
-                for (auto& recv : recvBuffers)
-                {
-                    OnReceive(std::move(recv));
-                }
-
-
-                //std::list<Packet> buffers;
-                //Send(buffers);
-
-            }
-        }
-
         void FastTransportContext::SendQueueStep()
         {
             std::list<OutgoingPacket> packets;

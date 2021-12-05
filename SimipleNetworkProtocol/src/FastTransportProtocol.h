@@ -22,13 +22,10 @@ namespace FastTransport
             ~FastTransportContext();
 
             void OnReceive(std::list<std::unique_ptr<IPacket>>&& packet);
-            void OnReceive(std::unique_ptr<IPacket>&& packet);
             std::function<void(std::list<OutgoingPacket>& packets)> OnSend;
 
             IConnection* Accept();
             IConnection* Connect(const ConnectionAddr&);
-
-            void Run();
 
             ConnectionID GenerateID()
             {
@@ -51,6 +48,8 @@ namespace FastTransport
             std::atomic<bool> _shutdownContext;
 
             UDPQueue _udpQueue;
+
+            void OnReceive(std::unique_ptr<IPacket>&& packet);
 
             static void SendThread(FastTransportContext& context);
             static void RecvThread(FastTransportContext& context);
