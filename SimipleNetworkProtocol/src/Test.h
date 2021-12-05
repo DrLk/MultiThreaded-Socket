@@ -153,5 +153,28 @@ namespace FastTransport
             while (true)
                 pe.Run();
         }
+
+        void TestRecvQueue()
+        {
+            RecvQueue queue;
+
+            std::vector<std::unique_ptr<IPacket>> packets;
+            for (int i = 0; i < 10; i++)
+            {
+                auto packet = new Packet(1500);
+                packet->GetHeader().SetSeqNumber(i + 2);
+                packets.emplace_back(packet);
+            }
+
+            std::unique_ptr<IPacket> packet = std::make_unique<Packet>(1500);
+            for (auto& packet : packets)
+            {
+                queue.AddPacket(std::move(packet));
+            }
+
+            queue.ProccessUnorderedPackets();
+
+            auto data = queue.GetUserData(10);
+        }
     }
 }

@@ -31,6 +31,11 @@ namespace FastTransport
 
             }
 
+            void InitFirstSeqNumber(SeqNumberType number)
+            {
+                _lastNumberReaded = number;
+            }
+
             virtual void AddPacket(std::unique_ptr<IPacket>&& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
@@ -87,6 +92,7 @@ namespace FastTransport
             std::list < std::unique_ptr<IPacket>> _data;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _beginFullRecievedAck;
+            SeqNumberType _lastNumberReaded;
         };
     }
 }
