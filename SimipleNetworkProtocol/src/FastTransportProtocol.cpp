@@ -69,11 +69,6 @@ namespace FastTransport
 
             auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
 
-            int a = 1, b = 2;
-            const auto& [x, y] = std::tie(a, b);
-
-            auto [q, w] = (*_connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID())));
-
             if (connection != _connections.end())
             {
                 connection->second->OnRecvPackets(std::move(packet));
@@ -147,6 +142,14 @@ namespace FastTransport
             OnReceive(std::move(packets));
         }
 
+        void FastTransportContext::CheckRecvQueue()
+        {
+            for (auto& [key, connection] : _connections)
+            {
+                connection->ProcessRecvPackets();
+            }
+        }
+
         std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
             if (OnSend || !packets.empty())
@@ -174,6 +177,7 @@ namespace FastTransport
             PeriodicExecutor pe([&context]()
                 {
                     context.RecvQueueStep();
+                    context.CheckRecvQueue();
                 }, 20ms);
 
             while (!context._shutdownContext)

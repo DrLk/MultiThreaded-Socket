@@ -55,6 +55,7 @@ namespace FastTransport
             std::list<OutgoingPacket> GetPacketsToSend();
 
             void ProcessSentPackets(std::list<OutgoingPacket>&& packets);
+            void ProcessRecvPackets();
 
             void Close();
 

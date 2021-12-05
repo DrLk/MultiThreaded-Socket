@@ -117,7 +117,7 @@ namespace FastTransport
         IConnectionState* DataState::SendPackets(Connection& connection)
         {
             std::list<SeqNumberType> acks = std::move(connection._recvQueue.GetSelectiveAcks());
-            //TODO:: maybe error after std::move second loop
+            //TODO: maybe error after std::move second loop
             while (!acks.empty())
             {
                 std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);

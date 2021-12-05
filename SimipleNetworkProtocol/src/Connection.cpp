@@ -56,6 +56,11 @@ namespace FastTransport
                 _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
             }
         }
+        
+        void Connection::ProcessRecvPackets()
+        {
+            _recvQueue.ProccessUnorderedPackets();
+        }
 
         void Connection::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck /*= true*/)
         {

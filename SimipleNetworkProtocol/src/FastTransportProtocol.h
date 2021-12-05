@@ -57,6 +57,7 @@ namespace FastTransport
             void ConnectionsRun();
             void SendQueueStep();
             void RecvQueueStep();
+            void CheckRecvQueue();
 
         };
     }
