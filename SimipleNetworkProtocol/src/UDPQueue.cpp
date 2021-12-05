@@ -1,4 +1,4 @@
-#include"LinuxUDPQueue.h"
+#include"UDPQueue.h"
 
 #include <exception>
 #include <algorithm>
@@ -16,16 +16,16 @@ namespace FastTransport::Protocol
         throw std::runtime_error(s);
     }
 
-    LinuxUDPQueue::LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : 
+    UDPQueue::UDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread) : 
         _port(port), _threadCount(threadCount), _sendQueueSizePerThread(sendQueueSizePerThread), _recvQueueSizePerThread(recvQueueSizePerThread)
     {
     }
 
-    LinuxUDPQueue::~LinuxUDPQueue()
+    UDPQueue::~UDPQueue()
     {
     }
 
-    void LinuxUDPQueue::Init()
+    void UDPQueue::Init()
     {
         for (int i = 0; i < _threadCount; i++)
         {
@@ -46,7 +46,7 @@ namespace FastTransport::Protocol
         }
     }
 
-    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers)
+    std::list<std::unique_ptr<IPacket>> UDPQueue::Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers)
     {
         {
             std::lock_guard<std::mutex> lock(_recvFreeQueue._mutex);
@@ -61,7 +61,7 @@ namespace FastTransport::Protocol
         return result;
     }
 
-    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::Send(std::list<std::unique_ptr<IPacket>>&& data)
+    std::list<std::unique_ptr<IPacket>> UDPQueue::Send(std::list<std::unique_ptr<IPacket>>&& data)
     {
         {
             std::lock_guard<std::mutex> lock(_sendQueue._mutex);
@@ -78,7 +78,7 @@ namespace FastTransport::Protocol
     }
 
 
-    std::list<std::unique_ptr<IPacket>> LinuxUDPQueue::CreateBuffers(int size)
+    std::list<std::unique_ptr<IPacket>> UDPQueue::CreateBuffers(int size)
     {
         std::list<std::unique_ptr<IPacket>> buffers;
         for (int i = 0; i < size; i++)
@@ -90,7 +90,7 @@ namespace FastTransport::Protocol
     }
 
     
-    void LinuxUDPQueue::ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
+    void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
         std::list<std::unique_ptr<IPacket>> recvFreeQueue;
         bool sleep = false;

@@ -15,13 +15,13 @@
 
 namespace FastTransport::Protocol
 {
-    class LinuxUDPQueue
+    class UDPQueue
     {
         friend SendThreadQueue;
 
     public:
-        LinuxUDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
-        ~LinuxUDPQueue();
+        UDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
+        ~UDPQueue();
         void Init();
 
         std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers);
@@ -43,7 +43,7 @@ namespace FastTransport::Protocol
         LockedList<std::unique_ptr<IPacket>> _sendFreeQueue;
         LockedList<std::unique_ptr<IPacket>> _recvFreeQueue;
 
-        static void ReadThread(LinuxUDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
+        static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
 
         std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
         std::vector<std::shared_ptr<SendThreadQueue>> _sendThreadQueues;

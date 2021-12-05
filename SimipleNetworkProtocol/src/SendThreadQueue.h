@@ -6,7 +6,7 @@
 
 namespace FastTransport::Protocol
 {
-    class LinuxUDPQueue;
+    class UDPQueue;
     class Socket;
 
     class SendThreadQueue
@@ -16,7 +16,7 @@ namespace FastTransport::Protocol
     public:
         SendThreadQueue();
 
-        static void WriteThread(LinuxUDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, unsigned short index);
+        static void WriteThread(UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, unsigned short index);
 
     private:
         std::chrono::milliseconds _pauseTime;

@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include "LinuxUDPQueue.h"
+#include "UDPQueue.h"
 #include "IPacket.h"
 
 
@@ -13,7 +13,7 @@ namespace FastTransport::Protocol
     }
 
 
-    void SendThreadQueue::WriteThread(LinuxUDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, unsigned short index)
+    void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, unsigned short index)
     {
         std::list<std::unique_ptr<IPacket>> sendQueue;
 

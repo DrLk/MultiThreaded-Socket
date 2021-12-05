@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "LinuxUDPQueue.h"
+#include "UDPQueue.h"
 #include "FastTransportProtocol.h"
 #include "IConnectionState.h"
 #include "Test.h"
@@ -20,8 +20,8 @@ void Test()
     //TestSleep();
     //TestPeriodicExecutor();
 
-    LinuxUDPQueue srcSocket(8888, 50, 1000, 100);
-    //LinuxUDPQueue dstSocket(9999, 50, 1000, 100);
+    UDPQueue srcSocket(8888, 50, 1000, 100);
+    //UDPQueue dstSocket(9999, 50, 1000, 100);
 
     srcSocket.Init();
     //dstSocket.Init();
@@ -149,7 +149,7 @@ int main(int argc, char ** argv)
 
     unsigned short dstPort = (unsigned short)std::stoi(argv[6]);
     std::string dstIP = argv[7];
-    LinuxUDPQueue socket(port, threadCount, sendBufferSize, recvBufferSize);
+    UDPQueue socket(port, threadCount, sendBufferSize, recvBufferSize);
 
     socket.Init();
 
