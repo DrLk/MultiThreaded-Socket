@@ -160,11 +160,10 @@ namespace FastTransport
 
         std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
-            OnSend(packets);
+            if (OnSend || !packets.empty())
+                OnSend(packets);
 
-            _udpQueue.Send(std::move(packets));
-
-            return std::move(packets);
+            return _udpQueue.Send(std::move(packets));
         }
 
         void FastTransportContext::SendThread(FastTransportContext& context)
