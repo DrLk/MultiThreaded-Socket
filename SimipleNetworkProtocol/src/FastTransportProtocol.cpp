@@ -155,7 +155,12 @@ namespace FastTransport
 
         void FastTransportContext::RecvQueueStep()
         {
+            //TODO: get 1k freePackets
+            std::list<std::unique_ptr<IPacket>> freePackets;
 
+            auto packets = _udpQueue.Recv(std::move(freePackets));
+
+            OnReceive(std::move(packets));
         }
 
         std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)

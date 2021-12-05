@@ -20,16 +20,6 @@ void Test()
     //TestSleep();
     //TestPeriodicExecutor();
 
-    UDPQueue srcSocket(8888, 50, 1000, 100);
-    //UDPQueue dstSocket(9999, 50, 1000, 100);
-
-    srcSocket.Init();
-    //dstSocket.Init();
-
-
-    std::list<std::unique_ptr<IPacket>> sendBuffers = srcSocket.CreateBuffers(100000);
-    //std::list<std::unique_ptr<IPacket>> recvBuffers = dstSocket.CreateBuffers(100000);
-
     sockaddr_in dstAddr;
     // zero out the structure
     memset((char*)& dstAddr, 0, sizeof(dstAddr));

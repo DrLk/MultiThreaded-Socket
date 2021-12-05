@@ -30,8 +30,6 @@ namespace FastTransport
 
             void Run();
 
-            void RecvQueueStep();
-
             ConnectionID GenerateID()
             {
                 static ConnectionID _nextID = 0;
@@ -59,6 +57,7 @@ namespace FastTransport
 
             void ConnectionsRun();
             void SendQueueStep();
+            void RecvQueueStep();
 
         };
     }

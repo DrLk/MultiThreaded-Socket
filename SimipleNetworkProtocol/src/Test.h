@@ -38,8 +38,6 @@ namespace FastTransport
                 std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
                 {
-                    packet._sendTime = std::chrono::steady_clock::now();
-
                     std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
                     recvPackets.push_back(std::move(rcvPacket));

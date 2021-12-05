@@ -58,12 +58,11 @@ namespace FastTransport::Protocol
             {
                 unsigned short currentPort = (unsigned short)(ntohs(packet._packet->GetDstAddr().GetPort()) + (unsigned short)index);
                 packet._sendTime = clock::now();
-                /*packet->GetDstAddr().GetPort() = htons(currentPort);
-                size_t result = socket.SendTo(packet->GetData(), (sockaddr*) & (packet->GetAddr()), sizeof(sockaddr));
-                size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
-                if (result != packet->GetPayload().size())
-                    throw std::runtime_error("sendto()");
-                    */
+                //packet.GetDstAddr().GetPort() = htons(currentPort);
+                //size_t result = socket.SendTo(packet._packet->GetHeader(), (sockaddr*) & (packet._packet->GetDstAddr()), sizeof(sockaddr));
+                //size_t result = sendto(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, packet->GetAddr(), sizeof(sockaddr));
+                //if (result != packet->GetPayload().size())
+                    //throw std::runtime_error("sendto()");
 
             }
 
