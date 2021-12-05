@@ -17,12 +17,8 @@ namespace FastTransport
         class FastTransportContext
         {
         public:
-            FastTransportContext()
-            {
-                /*_freeBuffers.resize(100);
-                for (auto buffer : _freeBuffers)
-                    buffer.resize(1500);*/
-            }
+            FastTransportContext();
+            ~FastTransportContext();
 
             void OnReceive(std::list<std::unique_ptr<IPacket>>&& packet);
             void OnReceive(std::unique_ptr<IPacket>&& packet);
@@ -31,10 +27,8 @@ namespace FastTransport
             IConnection* Accept();
             IConnection* Connect(const ConnectionAddr&);
 
-            void ConnectionsRun();
             void Run();
 
-            void SendQueueStep();
             void RecvQueueStep();
 
             ConnectionID GenerateID()
@@ -51,6 +45,17 @@ namespace FastTransport
             std::vector<Connection*> _incomingConnections;
 
             std::list<OutgoingPacket> Send(std::list<OutgoingPacket>& packets);
+
+            std::thread _sendThread;
+            std::thread _recvThread;
+
+            std::atomic<bool> _shutdownContext;
+
+            static void SendThread(FastTransportContext& context);
+            static void RecvThread(FastTransportContext& context);
+
+            void ConnectionsRun();
+            void SendQueueStep();
 
         };
     }

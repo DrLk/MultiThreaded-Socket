@@ -58,25 +58,7 @@ namespace FastTransport
             data->GetPayload();
             IConnection* srcConnection = src.Connect(dstAddr);
 
-            src.ConnectionsRun();
-            src.SendQueueStep();
-            dst.ConnectionsRun();
-            dst.SendQueueStep();
-            src.ConnectionsRun();
-            src.SendQueueStep();
-            dst.ConnectionsRun();
-            dst.SendQueueStep();
-
             srcConnection->Send(std::move(data));
-
-            src.ConnectionsRun();
-            src.SendQueueStep();
-            dst.ConnectionsRun();
-            dst.SendQueueStep();
-            src.ConnectionsRun();
-            src.SendQueueStep();
-            dst.ConnectionsRun();
-            dst.SendQueueStep();
 
             int a = 0;
             a++;
@@ -84,7 +66,7 @@ namespace FastTransport
             Packet::ElementType element2(1500);
             Packet::Ptr synAckPacket = std::make_shared<Packet>(freeElements, std::move(element));
 
-
+            std::this_thread::sleep_for(1000h);
         }
 
         void TestTimer()

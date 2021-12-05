@@ -15,9 +15,9 @@ using namespace FastTransport::Protocol;
 
 void Test()
 {
+    TestConnection();
     //TestTimer();
-    //TestConnection();
-    TestSleep();
+    //TestSleep();
     //TestPeriodicExecutor();
 
     LinuxUDPQueue srcSocket(8888, 50, 1000, 100);
@@ -45,7 +45,8 @@ void Test()
         errno;
     }
 
-    srcSocket.OnSend = [](const std::list<std::unique_ptr<IPacket>>& packets) {
+    srcSocket.OnSend = [](const std::list<std::unique_ptr<IPacket>>& packets) 
+    {
         static std::atomic<unsigned long long> _counter = 0;
         static auto start = std::chrono::system_clock::now();
         auto end = std::chrono::system_clock::now();

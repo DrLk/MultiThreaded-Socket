@@ -42,7 +42,7 @@ namespace FastTransport
             return _key;
         }
 
-        std::list<OutgoingPacket>& Connection::GetPacketsToSend()
+        std::list<OutgoingPacket> Connection::GetPacketsToSend()
         {
             return _sendQueue.GetPacketsToSend();
         }

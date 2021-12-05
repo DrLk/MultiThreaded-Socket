@@ -6,6 +6,7 @@
 
 #include "IPacket.h"
 #include "OutgoingPacket.h"
+#include "LockedList.h"
 
 namespace FastTransport
 {
@@ -35,20 +36,31 @@ namespace FastTransport
             {
                 packet->GetHeader().SetMagic();
                 packet->GetHeader().SetSeqNumber(++_nextPacketNumber);
-                _needToSend.push_back(std::move(packet));
+                {
+                    std::lock_guard<std::mutex> lock(_needToSend._mutex);
+                    _needToSend.push_back(std::move(packet));
+                }
             }
 
             void ReSendPackets(std::list<OutgoingPacket>&& packets)
             {
+                std::lock_guard<std::mutex> lock(_needToSend._mutex);
                 _needToSend.splice(_needToSend.end(), std::move(packets));
             }
 
-            std::list<OutgoingPacket>& GetPacketsToSend()
+            //make list of list to get fast 1k packets
+            std::list<OutgoingPacket> GetPacketsToSend()
             {
-                return _needToSend;
+                std::list<OutgoingPacket> result;
+                {
+                    std::lock_guard<std::mutex> lock(_needToSend._mutex);
+                    result = std::move(_needToSend);
+                }
+
+                return result;
             }
 
-            std::list<OutgoingPacket> _needToSend;
+            LockedList<OutgoingPacket> _needToSend;
             SeqNumberType _nextPacketNumber;
 
         };

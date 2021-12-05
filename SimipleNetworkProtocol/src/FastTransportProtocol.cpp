@@ -1,5 +1,7 @@
 #include "FastTransportProtocol.h"
 
+#include "PeriodicExecutor.h"
+
 
 namespace FastTransport
 {
@@ -11,6 +13,24 @@ namespace FastTransport
             std::list<std::unique_ptr<IPacket>> result;
 
             return result;
+        }
+
+
+        FastTransportContext::FastTransportContext() : _shutdownContext(false), 
+            _sendThread(SendThread, std::ref(*this)), _recvThread(RecvThread, std::ref(*this))
+        {
+
+                /*_freeBuffers.resize(100);
+                for (auto buffer : _freeBuffers)
+                    buffer.resize(1500);*/
+        }
+
+        FastTransportContext::~FastTransportContext()
+        {
+            _shutdownContext = true;
+
+            _sendThread.join();
+            _recvThread.join();
         }
 
         IConnection* FastTransportContext::Accept()
@@ -72,6 +92,8 @@ namespace FastTransport
             {
                 connection.second->Run();
             }
+
+            SendQueueStep();
         }
 
         void FastTransportContext::Run()
@@ -128,8 +150,10 @@ namespace FastTransport
 
 
             }
-            //inFlightPackets.begin()->_packet->
+        }
 
+        void FastTransportContext::RecvQueueStep()
+        {
 
         }
 
@@ -139,5 +163,34 @@ namespace FastTransport
 
             return std::move(packets);
         }
+
+        void FastTransportContext::SendThread(FastTransportContext& context)
+        {
+            PeriodicExecutor pe([&context]()
+                {
+                    context.ConnectionsRun();
+                }, 20ms);
+
+            while (!context._shutdownContext)
+            {
+                pe.Run();
+            }
+
+        }
+
+        void FastTransportContext::RecvThread(FastTransportContext& context)
+        {
+            PeriodicExecutor pe([&context]()
+                {
+                    context.RecvQueueStep();
+                }, 20ms);
+
+            while (!context._shutdownContext)
+            {
+                pe.Run();
+            }
+
+        }
+
     }
 }
