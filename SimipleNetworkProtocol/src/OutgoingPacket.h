@@ -14,7 +14,10 @@ namespace FastTransport
 
         public:
             OutgoingPacket() = default;
-            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet)) { }
+            OutgoingPacket(std::unique_ptr<IPacket>&& packet) : _packet(std::move(packet))
+            {
+            }
+
             std::unique_ptr<IPacket> _packet;
             clock::time_point _sendTime;
         };

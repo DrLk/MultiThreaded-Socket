@@ -23,7 +23,7 @@ namespace FastTransport::Protocol
             auto now = clock::now();
             auto waitInterval = now - _end;
             clock::duration d(10ms);
-            if ((_interval - waitInterval) > 20ms)
+            if ((_interval - waitInterval) > 10ms)
             {
                 const auto& d = _interval - waitInterval;
                 std::this_thread::sleep_for(d);

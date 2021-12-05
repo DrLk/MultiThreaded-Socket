@@ -34,13 +34,17 @@ namespace FastTransport
         {
             std::list<OutgoingPacket> needToSend;
             clock::time_point now = clock::now();
-            for (auto& pair : _queue)
+            for (auto it = _queue.begin(); it != _queue.end();)
             {
-                OutgoingPacket&& packet = std::move(pair.second);
+                OutgoingPacket&& packet = std::move(it->second);
                 if ((now - packet._sendTime) > clock::duration(10ms))
                 {
                     needToSend.push_back(std::move(packet));
+
+                    it = _queue.erase(it);
                 }
+                else
+                    it++;
             }
 
             return needToSend;
