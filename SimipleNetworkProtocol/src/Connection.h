@@ -7,7 +7,7 @@
 
 #include "IPacket.h"
 #include "IRecvQueue.h"
-#include "ISendQueue.h"
+#include "SendQueue.h"
 #include "IInFilghtQueue.h"
 #include "ConnectionKey.h"
 #include "LockedList.h"

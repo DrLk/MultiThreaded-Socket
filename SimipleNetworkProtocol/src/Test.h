@@ -47,16 +47,18 @@ namespace FastTransport
                 src.OnReceive(std::move(recvPackets));
             };
 
-            std::unique_ptr<IPacket> data = std::make_unique<Packet>(1500);
-            data->GetPayload();
             IConnection* srcConnection = src.Connect(dstAddr);
+            for (int i = 0; i < 10; i++)
+            {
+                std::unique_ptr<IPacket> data = std::make_unique<Packet>(1500);
+                data->GetPayload();
+                srcConnection->Send(std::move(data));
+            }
 
-            srcConnection->Send(std::move(data));
-
+            IConnection* dstConnection = nullptr;
             while (true)
             {
-                IConnection* dstConnection;
-                while (true)
+                while (!dstConnection)
                 {
                     dstConnection = dst.Accept();
 
@@ -159,10 +161,11 @@ namespace FastTransport
             RecvQueue queue;
 
             std::vector<std::unique_ptr<IPacket>> packets;
+            constexpr SeqNumberType beginSeqNumber = 0;
             for (int i = 0; i < 10; i++)
             {
                 auto packet = new Packet(1500);
-                packet->GetHeader().SetSeqNumber(i + 2);
+                packet->GetHeader().SetSeqNumber(i + beginSeqNumber);
                 packets.emplace_back(packet);
             }
 
@@ -174,7 +177,7 @@ namespace FastTransport
 
             queue.ProccessUnorderedPackets();
 
-            auto data = queue.GetUserData(10);
+            auto data = queue.GetUserData();
         }
     }
 }

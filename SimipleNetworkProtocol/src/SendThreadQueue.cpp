@@ -28,7 +28,7 @@ namespace FastTransport::Protocol
 
             if (sendQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._sendQueue._mutex);
+                std::lock_guard lock(udpQueue._sendQueue._mutex);
                 if (udpQueue._sendQueue.empty())
                 {
                     sleep = true;
@@ -71,7 +71,7 @@ namespace FastTransport::Protocol
 
             if (!sendQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._sendFreeQueue._mutex);
+                std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
                 udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), std::move(sendQueue));
             }
         }

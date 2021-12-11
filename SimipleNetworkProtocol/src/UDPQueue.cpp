@@ -49,13 +49,13 @@ namespace FastTransport::Protocol
     std::list<std::unique_ptr<IPacket>> UDPQueue::Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers)
     {
         {
-            std::lock_guard<std::mutex> lock(_recvFreeQueue._mutex);
+            std::lock_guard lock(_recvFreeQueue._mutex);
             _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
         }
 
         std::list<std::unique_ptr<IPacket>> result;
         {
-            std::lock_guard<std::mutex> lock(_recvQueue._mutex);
+            std::lock_guard lock(_recvQueue._mutex);
             if(!_recvQueue.empty())
                 result = std::move(_recvQueue);
         }
@@ -65,13 +65,13 @@ namespace FastTransport::Protocol
     std::list<OutgoingPacket> UDPQueue::Send(std::list<OutgoingPacket>&& data)
     {
         {
-            std::lock_guard<std::mutex> lock(_sendQueue._mutex);
+            std::lock_guard lock(_sendQueue._mutex);
             _sendQueue.splice(_sendQueue.end(), std::move(data));
         }
 
         std::list<OutgoingPacket> result;
         {
-            std::lock_guard<std::mutex> lock(_sendFreeQueue._mutex);
+            std::lock_guard lock(_sendFreeQueue._mutex);
             if (!_sendFreeQueue.empty())
                 result = std::move(_sendFreeQueue);
         }
@@ -104,7 +104,7 @@ namespace FastTransport::Protocol
 
             if (recvFreeQueue.empty())
             {
-                std::lock_guard<std::mutex> lock(udpQueue._recvFreeQueue._mutex);
+                std::lock_guard lock(udpQueue._recvFreeQueue._mutex);
 
                 if (udpQueue._recvFreeQueue.empty())
                 {
@@ -154,7 +154,7 @@ namespace FastTransport::Protocol
             }
 
             {
-                std::lock_guard<std::mutex> lock(udpQueue._recvQueue._mutex);
+                std::lock_guard lock(udpQueue._recvQueue._mutex);
                 udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(recvThreadQueue._recvThreadQueue));
             }
         }

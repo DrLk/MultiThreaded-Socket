@@ -17,7 +17,7 @@ namespace FastTransport
         public:
             virtual ~IRecvQueue() { }
             virtual void AddPacket(std::unique_ptr<IPacket>&& packet) = 0;
-            virtual std::list<std::unique_ptr<IPacket>> GetUserData(std::size_t size) = 0;
+            virtual std::list<std::unique_ptr<IPacket>> GetUserData() = 0;
             virtual std::list<SeqNumberType>&& GetSelectiveAcks() = 0;
 
         public:
@@ -31,16 +31,14 @@ namespace FastTransport
 
             }
 
-            void InitFirstSeqNumber(SeqNumberType number)
-            {
-                _lastNumberReaded = number;
-            }
-
             virtual void AddPacket(std::unique_ptr<IPacket>&& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
 
-                if (packetNumber - _beginFullRecievedAck > QUEUE_SIZE)
+                if (packetNumber == (std::numeric_limits<SeqNumberType>::max)())
+                    throw std::runtime_error("Wrong packet number");
+
+                if (packetNumber - _beginFullRecievedAck >= QUEUE_SIZE)
                     return; //drop packet. queue is full
 
                 _selectiveAcks.push_back(packetNumber);
@@ -49,36 +47,39 @@ namespace FastTransport
 
             void ProccessUnorderedPackets()
             {
-                while (true)
-                {
-                    auto& nextPacket = _queue[_beginFullRecievedAck++];
-                    if (!nextPacket)
-                        break;
-
-                    _data.push_back(std::move(nextPacket));
-                }
-
-                _beginFullRecievedAck--;
-            }
-
-            virtual std::list<std::unique_ptr<IPacket>> GetUserData(std::size_t needed) override
-            {
                 std::list<std::unique_ptr<IPacket>> data;
                 while (true)
                 {
-                    auto& packet = _queue[_beginFullRecievedAck];
-                    if (!packet)
-                        return data;
+                    auto& nextPacket = _queue[_beginFullRecievedAck++ % QUEUE_SIZE];
+                    if (!nextPacket)
+                        break;
 
-                    data.push_back(std::move(packet));
-                    _beginFullRecievedAck++;
+                    data.push_back(std::move(nextPacket));
                 }
+
+                _beginFullRecievedAck--;
+
+                {
+                    std::lock_guard lock(_data._mutex);
+                    _data.splice(_data.end(), std::move(data));
+                }
+            }
+
+            virtual std::list<std::unique_ptr<IPacket>> GetUserData() override
+            {
+                std::list<std::unique_ptr<IPacket>> data;
+
+                {
+                    std::lock_guard lock(_data._mutex);
+                    data.splice(data.end(), std::move(_data));
+                }
+
                 return data;
             }
 
             virtual std::list<SeqNumberType>&& GetSelectiveAcks() override
             {
-                std::lock_guard<std::mutex> lock(_selectiveAcks._mutex);
+                std::lock_guard lock(_selectiveAcks._mutex);
                 return std::move(_selectiveAcks);
             }
 
@@ -89,7 +90,7 @@ namespace FastTransport
 
             const int QUEUE_SIZE = 10;
             std::vector<std::unique_ptr<IPacket>> _queue;
-            std::list < std::unique_ptr<IPacket>> _data;
+            LockedList< std::unique_ptr<IPacket>> _data;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _beginFullRecievedAck;
             SeqNumberType _lastNumberReaded;

@@ -20,7 +20,7 @@ namespace FastTransport
 
         std::list<std::unique_ptr<IPacket>> Connection::Send(std::list<std::unique_ptr<IPacket>>&& data)
         {
-            std::lock_guard<std::mutex> lock(_sendUserDataMutex);
+            std::lock_guard lock(_sendUserDataMutex);
             _sendUserData.splice(_sendUserData.end(), std::move(data));
 
             throw std::runtime_error("Not Implemented");
@@ -34,7 +34,7 @@ namespace FastTransport
 
         std::list<std::unique_ptr<IPacket>> Connection::Recv(std::list<std::unique_ptr<IPacket>>&& freePackets)
         {
-            throw std::runtime_error("Not Implemented");
+            return _recvQueue.GetUserData();
         }
 
         const ConnectionKey& Connection::GetConnectionKey() const
@@ -52,7 +52,7 @@ namespace FastTransport
             auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
 
             {
-                std::lock_guard<std::mutex> lock(_freeBuffers._mutex);
+                std::lock_guard lock(_freeBuffers._mutex);
                 _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
             }
         }

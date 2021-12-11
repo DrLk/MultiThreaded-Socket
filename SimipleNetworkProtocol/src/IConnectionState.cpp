@@ -22,7 +22,7 @@ namespace FastTransport
 
         IConnectionState* SendingSynState::SendPackets(Connection& connection)
         {
-            std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+            std::lock_guard lock(connection._freeBuffers._mutex);
             std::unique_ptr<IPacket> synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
@@ -60,7 +60,7 @@ namespace FastTransport
 
         IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
         {
-            std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+            std::lock_guard lock(connection._freeBuffers._mutex);
             std::unique_ptr<IPacket> synPacket = std::move(connection._freeBuffers.back());
             connection._freeBuffers.pop_back();
 
@@ -120,7 +120,7 @@ namespace FastTransport
             //TODO: maybe error after std::move second loop
             while (!acks.empty())
             {
-                std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                std::lock_guard lock(connection._freeBuffers._mutex);
                 std::unique_ptr<IPacket> packet = std::move(connection._freeBuffers.back());
                 connection._freeBuffers.pop_back();
 
@@ -160,7 +160,7 @@ namespace FastTransport
 
             std::list<std::unique_ptr<IPacket>> userData;
             {
-                std::lock_guard<std::mutex> lock(connection._sendUserDataMutex);
+                std::lock_guard lock(connection._sendUserDataMutex);
                 userData = std::move(connection._sendUserData);
             }
 
@@ -191,7 +191,7 @@ namespace FastTransport
                 {
                     auto freePackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
                     {
-                        std::lock_guard<std::mutex> lock(connection._freeBuffers._mutex);
+                        std::lock_guard lock(connection._freeBuffers._mutex);
                         connection._freeBuffers.splice(connection._freeBuffers.end(), std::move(freePackets));
                     }
                     break;
