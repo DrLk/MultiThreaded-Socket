@@ -50,7 +50,7 @@ namespace FastTransport::Protocol
                 }
                 else
                 {
-                    sendQueue = std::move(udpQueue._sendQueue);
+                    sendQueue.swap(udpQueue._sendQueue);
                 }
             }
 
@@ -69,7 +69,7 @@ namespace FastTransport::Protocol
             if (!sendQueue.empty())
             {
                 std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
-                udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), std::move(sendQueue));
+                udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), sendQueue);
             }
         }
 
