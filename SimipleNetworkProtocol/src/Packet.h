@@ -18,17 +18,11 @@ namespace FastTransport
         class Packet : public IPacket
         {
         public:
-            typedef std::vector<char> ElementType;
             typedef LockedList<ElementType> BufferType;
             typedef std::shared_ptr<Packet> Ptr;
             Packet(const Packet& that) = delete;
 
-            Packet(BufferType& freeBuffers, ElementType&& element) : _element(std::move(element))
-            {
-                 
-            }
-
-            Packet(int size) : _element(size)
+            Packet(int size) : _element(size), _time(0)
             {
 
             }
@@ -62,6 +56,12 @@ namespace FastTransport
                 return _dstAddr;
             }
 
+            //TODO: remove and use GetDstAddr for assign
+            virtual void SetAddr(const ConnectionAddr& addr) override
+            {
+                _dstAddr = addr;
+            }
+
             void SetAcks(const SelectiveAckBuffer::Acks& acks)
             {
                 throw std::runtime_error("Not Implemented");
@@ -70,11 +70,6 @@ namespace FastTransport
             void SetHeader(const Header& header)
             {
                 throw std::runtime_error("Not Implemented");
-            }
-
-            void SetAddr(const ConnectionAddr& addr)
-            {
-                _dstAddr = addr;
             }
 
             std::chrono::nanoseconds GetTime() const
@@ -87,10 +82,16 @@ namespace FastTransport
                 _time = time;
             }
 
+            ElementType& GetElement() override
+            {
+                return _element;
+            }
+
             virtual void Copy(const IPacket& packet) override
             {
                 const Packet& that = dynamic_cast<const Packet&>(packet);
 
+                _srcAddr = that._srcAddr;
                 _dstAddr = that._dstAddr;
                 _time = that._time;
                 _element = that._element;

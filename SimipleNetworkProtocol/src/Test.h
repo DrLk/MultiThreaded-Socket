@@ -179,5 +179,24 @@ namespace FastTransport
 
             auto data = queue.GetUserData();
         }
+
+        void TestSocket()
+        {
+            Socket src(10100);
+            Socket dst(10200);
+
+            src.Init();
+            dst.Init();
+
+            std::vector<char> data(1500);
+            ConnectionAddr dstAddr("127.0.0.1", 10200);
+            auto result = src.SendTo(data, dstAddr.GetAddr());
+
+            sockaddr_storage addr;
+            std::vector<char> data2(1500);
+            auto result2 = dst.RecvFrom(data2, addr);
+            int i = 0;
+            i++;
+        }
     }
 }

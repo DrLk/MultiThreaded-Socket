@@ -24,6 +24,10 @@ namespace FastTransport
                 std::memset(&_storage, 0, sizeof(_storage));
             };
 
+            ConnectionAddr(const sockaddr_storage& addr) : _storage(addr)
+            {
+            };
+
             ConnectionAddr(const std::string& addr, unsigned short port) 
             {
                 std::memset(&_storage, 0, sizeof(_storage));
@@ -49,6 +53,12 @@ namespace FastTransport
             {
                 return ntohs(((sockaddr_in*)&_storage)->sin_port);
             }
+
+            const sockaddr_storage& GetAddr() const
+            {
+                return _storage;
+            }
+
         private:
             sockaddr_storage _storage;
         };

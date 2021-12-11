@@ -136,14 +136,13 @@ namespace FastTransport::Protocol
 
             for (auto it = recvFreeQueue.begin(); it != recvFreeQueue.end(); )
             {
-                const std::unique_ptr<IPacket>& packet = *it;
-                socklen_t len = sizeof(sockaddr_in);;
-                //size_t result = recvfrom(socket._socket, packet->GetData().data(), packet->GetData().size(), 0, &addr, &len);
-                /*size_t result = socket.RecvFrom(packet->GetPayload(), (sockaddr*)&packet->GetAddr(), &len);
-                packet->GetPayload().resize(result);
-                packet->GetAddr().sin_port = htons((unsigned short)(ntohs(packet->GetAddr().sin_port) - index));
+                std::unique_ptr<IPacket>& packet = *it;
+                sockaddr_storage sockAddr;
+                size_t result = socket.RecvFrom(packet->GetElement(), sockAddr);
                 if (result <= 0)
-                    throw std::runtime_error("sendto()");*/
+                    throw std::runtime_error("sendto()");
+                ConnectionAddr connectionAddr(sockAddr);
+                packet->SetAddr(connectionAddr);
 
                 auto temp = it;
                 it++;

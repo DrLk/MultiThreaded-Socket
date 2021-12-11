@@ -125,7 +125,7 @@ namespace FastTransport
         class SpeedController
         {
         public:
-            SpeedController()
+            SpeedController() : _stableSendInterval(0)
             {
             }
 

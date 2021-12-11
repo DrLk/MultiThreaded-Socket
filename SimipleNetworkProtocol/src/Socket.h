@@ -8,7 +8,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
-#include<string.h> //memset
+#include <string.h> //memset
+#include <span>
 
 namespace FastTransport::Protocol
 {
@@ -54,14 +55,15 @@ namespace FastTransport::Protocol
 
         }
 
-        size_t SendTo(std::vector<char>& buffer, sockaddr* addr, socklen_t len) const
+        size_t SendTo(std::span<const char> buffer, const sockaddr_storage& addr) const
         {
-            return sendto(_socket, buffer.data(), buffer.size(), 0, addr, len);
+            return sendto(_socket, buffer.data(), buffer.size(), 0, (sockaddr*) &addr, sizeof(sockaddr_in));
         }
 
-        size_t RecvFrom(std::vector<char>& buffer, sockaddr* addr, socklen_t* len) const
+        size_t RecvFrom(std::span<char> buffer, sockaddr_storage& addr) const
         {
-            return recvfrom(_socket, buffer.data(), buffer.size(), 0, addr, len);
+            int len = sizeof(sockaddr_storage);
+            return recvfrom(_socket, buffer.data(), buffer.size(), 0, (sockaddr*)&addr, &len);
         }
 
     private:

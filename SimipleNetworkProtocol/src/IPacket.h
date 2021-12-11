@@ -10,6 +10,8 @@ namespace FastTransport
         {
 
         public:
+            typedef std::vector<char> ElementType;
+
             virtual ~IPacket() = default;
 
             virtual SelectiveAckBuffer GetAcksBuffer() = 0;
@@ -20,9 +22,14 @@ namespace FastTransport
 
             virtual ConnectionAddr GetDstAddr() = 0;
 
+            virtual void SetAddr(const ConnectionAddr& addr) = 0;
+
             virtual PayloadBuffer::Payload GetPayload() = 0;
 
             virtual void Copy(const IPacket& packet) = 0;
+
+            virtual ElementType& GetElement() = 0;
+
         };
     }
 }

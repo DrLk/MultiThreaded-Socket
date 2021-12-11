@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <list>
+#include <span>
 
 #include "ConnectionAddr.h"
 
@@ -27,10 +28,10 @@ namespace FastTransport
         };
 
         const MagicNumber Magic_Number = 0x12345678;
-        class Header : protected std::basic_string_view<char>
+        class Header : protected std::span<char>
         {
         public:
-            Header(char* start, size_t size) : std::basic_string_view<char>(start, size)
+            Header(char* start, size_t size) : std::span<char>(start, size)
             {
             }
 
