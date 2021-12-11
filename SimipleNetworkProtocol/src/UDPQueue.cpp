@@ -127,7 +127,7 @@ namespace FastTransport::Protocol
                 }
                 else
                 {
-                    recvFreeQueue.splice(recvFreeQueue.begin(), std::move(udpQueue._recvFreeQueue));
+                    recvFreeQueue.splice(recvFreeQueue.begin(), udpQueue._recvFreeQueue);
                 }
             }
 
@@ -154,7 +154,7 @@ namespace FastTransport::Protocol
 
             {
                 std::lock_guard lock(udpQueue._recvQueue._mutex);
-                udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), std::move(recvThreadQueue._recvThreadQueue));
+                udpQueue._recvQueue.splice(udpQueue._recvQueue.begin(), recvThreadQueue._recvThreadQueue);
             }
         }
     }

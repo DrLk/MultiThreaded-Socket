@@ -15,7 +15,7 @@ namespace FastTransport
         typedef unsigned int SeqNumberType;
         typedef int MagicNumber;
 
-        enum PacketType : short
+        enum class PacketType : short
         {
             NONE = 0,
             SYN = 1,
