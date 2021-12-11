@@ -35,13 +35,14 @@ namespace FastTransport
             return connection._state;
         }
 
-        IConnectionState* WaitingSynState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
+        std::list<std::unique_ptr<IPacket>> WaitingSynState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
             auto header = packet->GetHeader();
             if (!header.IsValid())
             {
                 connection.Close();
-                return this;
+                return freePackets;
             }
 
             if (header.GetPacketType() == PacketType::SYN)
@@ -49,12 +50,12 @@ namespace FastTransport
                 connection._destinationID = packet->GetHeader().GetSrcConnectionID();
                 connection._state = new SendingSynAckState();
 
-                return connection._state;
+                return freePackets;
             }
             else
             {
                 connection.Close();
-                return this;
+                return freePackets;
             }
         }
 
@@ -74,14 +75,16 @@ namespace FastTransport
             return connection._state;
         }
 
-        IConnectionState* WaitingSynAckState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
+        std::list<std::unique_ptr<IPacket>> WaitingSynAckState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
             auto header = packet->GetHeader();
 
             if (!header.IsValid())
             {
                 connection.Close();
-                return this;
+                freePackets.push_back(std::move(packet));
+                return freePackets;
             }
 
             switch (header.GetPacketType())
@@ -95,17 +98,20 @@ namespace FastTransport
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue.AddPacket(std::move(packet));
+                    auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
+                    if (freePacket)
+                        freePackets.push_back(std::move(freePacket));
                     break;
                 }
             default:
                 {
                     connection.Close();
-                    return this;
+                    freePackets.push_back(std::move(packet));
+                    return freePackets;
                 }
             }
 
-            return connection._state;
+            return freePackets;
         }
 
         IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
@@ -116,7 +122,7 @@ namespace FastTransport
 
         IConnectionState* DataState::SendPackets(Connection& connection)
         {
-            std::list<SeqNumberType> acks = std::move(connection._recvQueue.GetSelectiveAcks());
+            std::list<SeqNumberType> acks = connection._recvQueue.GetSelectiveAcks();
             //TODO: maybe error after std::move second loop
             while (!acks.empty())
             {
@@ -155,7 +161,8 @@ namespace FastTransport
 
             {
                 std::list<OutgoingPacket> packets = connection._inFlightQueue.CheckTimeouts();
-                connection._sendQueue.ReSendPackets(std::move(packets));
+                if(!packets.empty())
+                    connection._sendQueue.ReSendPackets(std::move(packets));
             }
 
             std::list<std::unique_ptr<IPacket>> userData;
@@ -177,8 +184,9 @@ namespace FastTransport
             return this;
         }
 
-        IConnectionState* DataState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
+        std::list<std::unique_ptr<IPacket>> DataState::OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
             auto header = packet->GetHeader();
 
             switch (header.GetPacketType())
@@ -189,25 +197,23 @@ namespace FastTransport
                 }
             case PacketType::SACK:
                 {
-                    auto freePackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
-                    {
-                        std::lock_guard lock(connection._freeBuffers._mutex);
-                        connection._freeBuffers.splice(connection._freeBuffers.end(), std::move(freePackets));
-                    }
+                    freePackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
                     break;
                 }
             case PacketType::DATA:
                 {
-                    connection._recvQueue.AddPacket(std::move(packet));
+                    auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
+                    if (freePacket)
+                        freePackets.push_back(std::move(freePacket));
                     break;
                 }
             default:
                 {
                     connection.Close();
-                    return this;
+                    return freePackets;
                 }
             }
-            return this;
+            return freePackets;
         }
 
         IConnectionState* DataState::OnTimeOut(Connection& connection)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <list>
 
 #include "HeaderBuffer.h"
 #include "IPacket.h"
@@ -23,7 +24,7 @@ namespace FastTransport
         {
         public:
             virtual ~IConnectionState() { }
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) = 0;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) = 0;
             virtual IConnectionState* SendPackets(Connection& connection) = 0;
             virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
         };
@@ -31,7 +32,12 @@ namespace FastTransport
         class BasicConnectionState : public IConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override { return this; }
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override 
+            {
+                std::list<std::unique_ptr<IPacket>> freePackets;
+                freePackets.push_back(std::move(packet));
+                return freePackets;
+            }
             virtual IConnectionState* SendPackets(Connection& connection) override { return this; }
             virtual IConnectionState* OnTimeOut(Connection& connection) override { return this; }
         };
@@ -51,13 +57,13 @@ namespace FastTransport
         class WaitingSynState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
         };
 
         class WaitingSynAckState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
             virtual IConnectionState* OnTimeOut(Connection& connection) override;
         };
 
@@ -69,7 +75,7 @@ namespace FastTransport
         class DataState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
             virtual IConnectionState* SendPackets(Connection& connection) override;
             virtual IConnectionState* OnTimeOut(Connection& connection) override;
         };
@@ -77,14 +83,14 @@ namespace FastTransport
         class ClosingState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
         };
 
 
         class ClosedState : public BasicConnectionState
         {
         public:
-            virtual IConnectionState* OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
+            virtual std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet, Connection& connection) override;
         };
     }
 }

@@ -10,7 +10,12 @@ namespace FastTransport
         void Connection::OnRecvPackets(std::unique_ptr<IPacket>&& packet)
         {
             _lastReceivedPacket = Connection::DefaultTimeOut;
-            _state = _state->OnRecvPackets(std::move(packet), *this);
+            auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
+
+            {
+                std::lock_guard lock(_freeBuffers._mutex);
+                _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
+            }
         }
 
         void Connection::Send(std::unique_ptr<IPacket>&& data)

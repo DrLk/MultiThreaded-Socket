@@ -48,7 +48,7 @@ namespace FastTransport
             };
 
             IConnection* srcConnection = src.Connect(dstAddr);
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 20; i++)
             {
                 std::unique_ptr<IPacket> data = std::make_unique<Packet>(1500);
                 data->GetPayload();

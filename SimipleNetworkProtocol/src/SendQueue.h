@@ -31,8 +31,9 @@ namespace FastTransport::Protocol
         //make list of list to get fast 1k packets
         std::list<OutgoingPacket> GetPacketsToSend();
 
+    private:
         LockedList<OutgoingPacket> _needToSend;
-        SeqNumberType _nextPacketNumber;
+        std::atomic<SeqNumberType> _nextPacketNumber;
 
     };
 }

@@ -16,9 +16,9 @@ namespace FastTransport
         {
         public:
             virtual ~IRecvQueue() { }
-            virtual void AddPacket(std::unique_ptr<IPacket>&& packet) = 0;
+            virtual std::unique_ptr<IPacket> AddPacket(std::unique_ptr<IPacket>&& packet) = 0;
             virtual std::list<std::unique_ptr<IPacket>> GetUserData() = 0;
-            virtual std::list<SeqNumberType>&& GetSelectiveAcks() = 0;
+            virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
 
         public:
         };
@@ -31,7 +31,7 @@ namespace FastTransport
 
             }
 
-            virtual void AddPacket(std::unique_ptr<IPacket>&& packet) override
+            virtual std::unique_ptr<IPacket> AddPacket(std::unique_ptr<IPacket>&& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
 
@@ -39,10 +39,19 @@ namespace FastTransport
                     throw std::runtime_error("Wrong packet number");
 
                 if (packetNumber - _beginFullRecievedAck >= QUEUE_SIZE)
-                    return; //drop packet. queue is full
+                    return packet; //drop packet. queue is full
 
-                _selectiveAcks.push_back(packetNumber);
+                if (packetNumber < _beginFullRecievedAck)
+                    return packet;
+
+                {
+                    std::lock_guard lock(_selectiveAcks._mutex);
+                    _selectiveAcks.push_back(packetNumber);
+                }
+
                 _queue[(packetNumber) % QUEUE_SIZE] = std::move(packet);
+
+                return nullptr;
             }
 
             void ProccessUnorderedPackets()
@@ -77,10 +86,16 @@ namespace FastTransport
                 return data;
             }
 
-            virtual std::list<SeqNumberType>&& GetSelectiveAcks() override
+            virtual std::list<SeqNumberType> GetSelectiveAcks() override
             {
-                std::lock_guard lock(_selectiveAcks._mutex);
-                return std::move(_selectiveAcks);
+                std::list<SeqNumberType> selectiveAcks;
+
+                {
+                    std::lock_guard lock(_selectiveAcks._mutex);
+                    selectiveAcks = std::move(_selectiveAcks);
+                }
+
+                return selectiveAcks;
             }
 
             SeqNumberType GetLastAck() const
