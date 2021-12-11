@@ -30,9 +30,6 @@ namespace FastTransport::Protocol
 
         std::list<std::unique_ptr<IPacket>> CreateBuffers(int size);
 
-        std::function<void(const std::list<OutgoingPacket>& packets)> OnSend;
-        std::function<void(std::list<std::unique_ptr<IPacket>>& packets)> OnRecv;
-
     private:
         unsigned int _port;
         std::vector<std::thread> _writeThreads;

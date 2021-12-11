@@ -66,9 +66,6 @@ namespace FastTransport::Protocol
 
             }
 
-            if (udpQueue.OnSend)
-                udpQueue.OnSend(sendQueue);
-
             if (!sendQueue.empty())
             {
                 std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
