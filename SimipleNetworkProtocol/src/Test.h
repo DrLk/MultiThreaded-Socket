@@ -17,10 +17,10 @@ namespace FastTransport
             ConnectionAddr addr("127.0.0.1", 8);
             FastTransportContext src(10100);
             FastTransportContext dst(10200);
-            ConnectionAddr srcAddr;
-            ConnectionAddr dstAddr;
+            ConnectionAddr srcAddr("127.0.0.1", 10100);
+            ConnectionAddr dstAddr("127.0.0.1", 10200);
 
-            src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
+            /*src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
                 std::list<std::unique_ptr<IPacket>> recvPackets;
                 for (auto& packet : packets)
@@ -45,7 +45,7 @@ namespace FastTransport
                 }
 
                 src.OnReceive(std::move(recvPackets));
-            };
+            };*/
 
             IConnection* srcConnection = src.Connect(dstAddr);
             for (int i = 0; i < 20; i++)

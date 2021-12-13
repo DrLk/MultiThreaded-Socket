@@ -27,7 +27,6 @@ namespace FastTransport
             virtual ~IConnection() { }
             virtual void Send(std::unique_ptr<IPacket>&& data) = 0;
             virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) = 0;
-            virtual std::vector<char> Recv(int size) = 0;
             virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) = 0;
         };
 
@@ -39,17 +38,17 @@ namespace FastTransport
                 for (int i = 0; i < 1000; i++)
                 {
                     _freeBuffers.push_back(std::move(std::make_unique<Packet>(1500)));
+                    _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
                 }
             }
 
             virtual void Send(std::unique_ptr<IPacket>&& data) override;
             virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) override;
 
-            virtual std::vector<char> Recv(int size) override;
             virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) override;
 
 
-            void OnRecvPackets(std::unique_ptr<IPacket>&& packet);
+            std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             std::list<OutgoingPacket> GetPacketsToSend();
@@ -73,6 +72,7 @@ namespace FastTransport
             ConnectionID _destinationID;
 
             LockedList<std::unique_ptr<IPacket>> _freeBuffers;
+            LockedList<std::unique_ptr<IPacket>> _freeRecvPackets;
 
             std::list<std::unique_ptr<IPacket>> _sendUserData;
             std::mutex _sendUserDataMutex;

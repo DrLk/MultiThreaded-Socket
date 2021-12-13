@@ -16,6 +16,12 @@ namespace FastTransport
 
             bool operator==(const ConnectionKey that) const
             {
+                if (_dstAddr == that._dstAddr)
+                {
+                    int a = 0;
+                    a++;
+                }
+
                 return _id == that._id && _dstAddr == that._dstAddr;
             }
         };

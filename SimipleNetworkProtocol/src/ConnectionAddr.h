@@ -46,10 +46,15 @@ namespace FastTransport
             ConnectionAddr(const ConnectionAddr& that) : _storage(that._storage) { }
             bool operator==(const ConnectionAddr& that) const
             {
-                return std::memcmp(&_storage, &that._storage, sizeof(sockaddr_storage)) == 0;
+                return std::memcmp(&_storage, &that._storage, sizeof(sockaddr_in)) == 0;
             }
 
-            unsigned int GetPort() const
+            void SetPort(unsigned short port)
+            {
+                ((sockaddr_in*)&_storage)->sin_port = htons(port);
+            }
+
+            unsigned short GetPort() const
             {
                 return ntohs(((sockaddr_in*)&_storage)->sin_port);
             }

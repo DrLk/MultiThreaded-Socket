@@ -138,10 +138,16 @@ namespace FastTransport::Protocol
             {
                 std::unique_ptr<IPacket>& packet = *it;
                 sockaddr_storage sockAddr;
-                size_t result = socket.RecvFrom(packet->GetElement(), sockAddr);
+                int result = socket.RecvFrom(packet->GetElement(), sockAddr);
+                // WSAEWOULDBLOCK
                 if (result <= 0)
-                    throw std::runtime_error("sendto()");
+                {
+                    break;
+                }
+
+                packet->GetElement().resize(result);
                 ConnectionAddr connectionAddr(sockAddr);
+                connectionAddr.SetPort(connectionAddr.GetPort() - index);
                 packet->SetAddr(connectionAddr);
 
                 auto temp = it;

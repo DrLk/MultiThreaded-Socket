@@ -59,8 +59,12 @@ namespace FastTransport::Protocol
                 unsigned short currentPort = (unsigned short)(ntohs(packet._packet->GetDstAddr().GetPort()) + (unsigned short)index);
                 packet._sendTime = clock::now();
                 const auto& data = packet._packet->GetElement();
-                const auto& sockaddr = packet._packet->GetDstAddr();
-                size_t result = socket.SendTo(data, sockaddr.GetAddr());
+                auto& sockaddr = packet._packet->GetDstAddr();
+                sockaddr.SetPort(sockaddr.GetPort() + index);
+
+                int result = socket.SendTo(data, sockaddr.GetAddr());
+                sockaddr.SetPort(sockaddr.GetPort() - index);
+                // WSAEWOULDBLOCK
                 if (result != data.size())
                     throw std::runtime_error("sendto()");
 

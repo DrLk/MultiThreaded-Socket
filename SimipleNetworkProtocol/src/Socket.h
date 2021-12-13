@@ -52,7 +52,8 @@ namespace FastTransport::Protocol
             {
                 throw std::runtime_error("bind");
             }
-
+            u_long mode = 1;  // 1 to enable non-blocking socket
+            ioctlsocket(_socket, FIONBIO, &mode);
         }
 
         size_t SendTo(std::span<const char> buffer, const sockaddr_storage& addr) const
@@ -63,7 +64,8 @@ namespace FastTransport::Protocol
         size_t RecvFrom(std::span<char> buffer, sockaddr_storage& addr) const
         {
             int len = sizeof(sockaddr_storage);
-            return recvfrom(_socket, buffer.data(), buffer.size(), 0, (sockaddr*)&addr, &len);
+            int receivedBytes = recvfrom(_socket, buffer.data(), buffer.size(), 0, (sockaddr*)&addr, &len);
+            return receivedBytes;
         }
 
     private:

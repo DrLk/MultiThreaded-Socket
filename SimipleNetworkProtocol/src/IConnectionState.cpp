@@ -13,6 +13,7 @@ namespace FastTransport
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
                 Connection* connection =  new Connection(new WaitingSynState(),packet->GetDstAddr(), myID);
+                //TODO: return free packets
                 connection->OnRecvPackets(std::move(packet));
                 return connection;
             }
@@ -28,6 +29,7 @@ namespace FastTransport
 
             synPacket->GetHeader().SetPacketType(PacketType::SYN);
             synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
+            synPacket->SetAddr(connection.GetConnectionKey()._dstAddr);
 
             connection.SendPacket(std::move(synPacket), false);
 
@@ -68,6 +70,7 @@ namespace FastTransport
             synPacket->GetHeader().SetPacketType(PacketType::SYN_ACK);
             synPacket->GetHeader().SetDstConnectionID(connection._destinationID);
             synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
+            synPacket->SetAddr(connection.GetConnectionKey()._dstAddr);
 
             connection.SendPacket(std::move(synPacket), false);
 
@@ -134,6 +137,7 @@ namespace FastTransport
                 packet->GetHeader().SetSrcConnectionID(connection._key._id);
                 packet->GetHeader().SetDstConnectionID(connection._destinationID);
                 packet->GetHeader().SetAckNumber(connection._recvQueue.GetLastAck());
+                packet->SetAddr(connection.GetConnectionKey()._dstAddr);
 
 
                 std::list<SeqNumberType> packetAcks;
@@ -176,6 +180,7 @@ namespace FastTransport
                 packet->GetHeader().SetPacketType(PacketType::DATA);
                 packet->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
                 packet->GetHeader().SetDstConnectionID(connection._destinationID);
+                packet->SetAddr(connection.GetConnectionKey()._dstAddr);
 
                 //packet->GetPayload().SetPayload(data);
                 connection.SendPacket(std::move(packet));

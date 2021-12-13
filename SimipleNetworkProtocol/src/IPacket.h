@@ -20,7 +20,7 @@ namespace FastTransport
 
             virtual Header GetHeader() = 0;
 
-            virtual ConnectionAddr GetDstAddr() = 0;
+            virtual ConnectionAddr& GetDstAddr() = 0;
 
             virtual void SetAddr(const ConnectionAddr& addr) = 0;
 

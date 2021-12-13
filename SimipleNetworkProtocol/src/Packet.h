@@ -51,7 +51,7 @@ namespace FastTransport
                 return PayloadBuffer::Payload(_element.data(), _element.size());
             }
 
-            virtual ConnectionAddr GetDstAddr() override
+            virtual ConnectionAddr& GetDstAddr() override
             {
                 return _dstAddr;
             }

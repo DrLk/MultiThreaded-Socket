@@ -7,15 +7,12 @@ namespace FastTransport
     namespace Protocol
     {
 
-        void Connection::OnRecvPackets(std::unique_ptr<IPacket>&& packet)
+        std::list<std::unique_ptr<IPacket>> Connection::OnRecvPackets(std::unique_ptr<IPacket>&& packet)
         {
             _lastReceivedPacket = Connection::DefaultTimeOut;
             auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
-            {
-                std::lock_guard lock(_freeBuffers._mutex);
-                _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
-            }
+            return freePackets;
         }
 
         void Connection::Send(std::unique_ptr<IPacket>&& data)
@@ -31,14 +28,13 @@ namespace FastTransport
             throw std::runtime_error("Not Implemented");
         }
 
-        std::vector<char> Connection::Recv(int size)
-        {
-            throw std::runtime_error("Not Implemented");
-
-        }
-
         std::list<std::unique_ptr<IPacket>> Connection::Recv(std::list<std::unique_ptr<IPacket>>&& freePackets)
         {
+            {
+                std::lock_guard lock(_freeRecvPackets._mutex);
+                _freeRecvPackets.splice(_freeRecvPackets.end(), std::move(freePackets));
+            }
+
             return _recvQueue.GetUserData();
         }
 

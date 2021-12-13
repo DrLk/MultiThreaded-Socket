@@ -20,6 +20,10 @@ namespace FastTransport
             _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this)),
             _udpQueue(port, 2, 1000, 1000)
         {
+            for (int i = 0; i < 1000; i++)
+            { 
+                _freeListenPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+            }
             _udpQueue.Init();
         }
 
@@ -53,14 +57,23 @@ namespace FastTransport
 
         }
 
-        void FastTransportContext::OnReceive(std::list<std::unique_ptr<IPacket>>&& packets)
+        std::list<std::unique_ptr<IPacket>> FastTransportContext::OnReceive(std::list<std::unique_ptr<IPacket>>&& packets)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
+
             for (auto& packet : packets)
-                OnReceive(std::move(packet));
+            {
+                auto packets = OnReceive(std::move(packet));
+                freePackets.splice(freePackets.end(), packets);
+            }
+
+            return freePackets;
         }
 
-        void FastTransportContext::OnReceive(std::unique_ptr<IPacket>&& packet)
+        std::list<std::unique_ptr<IPacket>> FastTransportContext::OnReceive(std::unique_ptr<IPacket>&& packet)
         {
+            std::list<std::unique_ptr<IPacket>> freePackets;
+
             Header header = packet->GetHeader();
             if (!header.IsValid())
             {
@@ -71,7 +84,8 @@ namespace FastTransport
 
             if (connection != _connections.end())
             {
-                connection->second->OnRecvPackets(std::move(packet));
+                auto packets =connection->second->OnRecvPackets(std::move(packet));
+                freePackets.splice(freePackets.end(), packets);
             }
             else
             {
@@ -82,6 +96,8 @@ namespace FastTransport
                     _connections.insert({ connection->GetConnectionKey(), connection });
                 }
             }
+
+            return freePackets;
         }
 
         void FastTransportContext::ConnectionsRun()
@@ -136,10 +152,19 @@ namespace FastTransport
         {
             //TODO: get 1k freePackets
             std::list<std::unique_ptr<IPacket>> freePackets;
+            {
+                std::lock_guard lock(_freeListenPackets._mutex);
+                freePackets.splice(freePackets.end(), _freeListenPackets);
+            }
 
-            auto packets = _udpQueue.Recv(std::move(freePackets));
+            auto receivedPackets = _udpQueue.Recv(std::move(freePackets));
 
-            OnReceive(std::move(packets));
+            auto packets = OnReceive(std::move(receivedPackets));
+
+            {
+                std::lock_guard lock(_freeListenPackets._mutex);
+                _freeListenPackets.splice(_freeListenPackets.end(), packets);
+            }
         }
 
         void FastTransportContext::CheckRecvQueue()
@@ -152,7 +177,7 @@ namespace FastTransport
 
         std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
         {
-            if (OnSend || !packets.empty())
+            if (OnSend)
                 OnSend(packets);
 
             return _udpQueue.Send(std::move(packets));
