@@ -39,10 +39,10 @@ namespace FastTransport
                     throw std::runtime_error("Wrong packet number");
 
                 if (packetNumber - _beginFullRecievedAck >= QUEUE_SIZE)
-                    return packet; //drop packet. queue is full
+                    return std::move(packet); //drop packet. queue is full
 
                 if (packetNumber < _beginFullRecievedAck)
-                    return packet;
+                    return std::move(packet);
 
                 {
                     std::lock_guard lock(_selectiveAcks._mutex);

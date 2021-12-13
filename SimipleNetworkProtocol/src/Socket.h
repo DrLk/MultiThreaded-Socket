@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #endif
 #include <string.h> //memset
 #include <span>
@@ -53,7 +54,11 @@ namespace FastTransport::Protocol
                 throw std::runtime_error("bind");
             }
             u_long mode = 1;  // 1 to enable non-blocking socket
+#ifdef WIN32
             ioctlsocket(_socket, FIONBIO, &mode);
+#else
+            ioctl(_socket, FIONBIO, &mode);
+#endif
         }
 
         size_t SendTo(std::span<const char> buffer, const sockaddr_storage& addr) const
@@ -63,7 +68,7 @@ namespace FastTransport::Protocol
 
         size_t RecvFrom(std::span<char> buffer, sockaddr_storage& addr) const
         {
-            int len = sizeof(sockaddr_storage);
+            socklen_t len = sizeof(sockaddr_storage);
             int receivedBytes = recvfrom(_socket, buffer.data(), buffer.size(), 0, (sockaddr*)&addr, &len);
             return receivedBytes;
         }

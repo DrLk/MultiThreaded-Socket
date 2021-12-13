@@ -3,6 +3,7 @@
 #include "ISendQueue.h"
 
 #include <vector>
+#include <atomic>
 
 #include "LockedList.h"
 #include "OutgoingPacket.h"
