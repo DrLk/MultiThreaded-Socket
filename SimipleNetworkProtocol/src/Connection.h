@@ -37,7 +37,7 @@ namespace FastTransport
             {
                 for (int i = 0; i < 1000; i++)
                 {
-                    _freeBuffers.push_back(std::move(std::make_unique<Packet>(1500)));
+                    _freeSendPackets.push_back(std::move(std::make_unique<Packet>(1500)));
                     _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
                 }
             }
@@ -48,7 +48,7 @@ namespace FastTransport
             virtual IPacket::List Recv(IPacket::List&& freePackets) override;
 
 
-            IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
+            IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             OutgoingPacket::List GetPacketsToSend();
@@ -71,7 +71,7 @@ namespace FastTransport
             ConnectionKey _key;
             ConnectionID _destinationID;
 
-            LockedList<IPacket::Ptr> _freeBuffers;
+            LockedList<IPacket::Ptr> _freeSendPackets;
             LockedList<IPacket::Ptr> _freeRecvPackets;
 
             IPacket::List _sendUserData;

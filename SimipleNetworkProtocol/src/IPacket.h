@@ -12,6 +12,7 @@ namespace FastTransport
         public:
             typedef std::unique_ptr<IPacket> Ptr;
             typedef std::list<Ptr> List;
+            typedef std::pair<List, List> PairList;
 
             typedef std::vector<char> ElementType;
 

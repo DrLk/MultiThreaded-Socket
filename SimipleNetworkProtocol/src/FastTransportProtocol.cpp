@@ -22,7 +22,7 @@ namespace FastTransport
         {
             for (int i = 0; i < 1000; i++)
             { 
-                _freeListenPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+                _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
             }
             _udpQueue.Init();
         }
@@ -57,22 +57,23 @@ namespace FastTransport
 
         }
 
-        IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
+        IPacket::PairList FastTransportContext::OnReceive(IPacket::List&& packets)
         {
-            IPacket::List freePackets;
+            IPacket::PairList freePackets;
 
             for (auto& packet : packets)
             {
                 auto packets = OnReceive(std::move(packet));
-                freePackets.splice(freePackets.end(), packets);
+                freePackets.first.splice(freePackets.first.end(), packets.first);
+                freePackets.second.splice(freePackets.second.end(), packets.second);
             }
 
             return freePackets;
         }
 
-        IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
+        IPacket::PairList FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         {
-            IPacket::List freePackets;
+            IPacket::PairList freePackets;
 
             Header header = packet->GetHeader();
             if (!header.IsValid())
@@ -85,7 +86,8 @@ namespace FastTransport
             if (connection != _connections.end())
             {
                 auto freeRecvPackets =connection->second->OnRecvPackets(std::move(packet));
-                freePackets.splice(freePackets.end(), std::move(freeRecvPackets));
+                freePackets.first.splice(freePackets.first.end(), std::move(freeRecvPackets.first));
+                freePackets.second.splice(freePackets.second.end(), std::move(freeRecvPackets.second));
             }
             else
             {
@@ -96,7 +98,7 @@ namespace FastTransport
                     _connections.insert({ connection->GetConnectionKey(), connection });
                 }
 
-                freePackets.splice(freePackets.end(), std::move(freeRecvPackets));
+                freePackets.first.splice(freePackets.first.end(), std::move(freeRecvPackets));
             }
 
             return freePackets;
@@ -155,8 +157,8 @@ namespace FastTransport
             //TODO: get 1k freePackets
             IPacket::List freePackets;
             {
-                std::lock_guard lock(_freeListenPackets._mutex);
-                freePackets.splice(freePackets.end(), _freeListenPackets);
+                std::lock_guard lock(_freeRecvPackets._mutex);
+                freePackets.splice(freePackets.end(), _freeRecvPackets);
             }
 
             auto receivedPackets = _udpQueue.Recv(std::move(freePackets));
@@ -164,8 +166,13 @@ namespace FastTransport
             auto packets = OnReceive(std::move(receivedPackets));
 
             {
-                std::lock_guard lock(_freeListenPackets._mutex);
-                _freeListenPackets.splice(_freeListenPackets.end(), packets);
+                std::lock_guard lock(_freeRecvPackets._mutex);
+                _freeRecvPackets.splice(_freeRecvPackets.end(), packets.first);
+            }
+
+            {
+                std::lock_guard lock(_freeRecvPackets._mutex);
+                _freeSendPackets.splice(_freeSendPackets.end(), packets.second);
             }
         }
 

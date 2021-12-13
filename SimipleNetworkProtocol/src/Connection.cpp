@@ -7,14 +7,14 @@ namespace FastTransport
     namespace Protocol
     {
 
-        IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
+        IPacket::PairList Connection::OnRecvPackets(IPacket::Ptr&& packet)
         {
             _lastReceivedPacket = Connection::DefaultTimeOut;
             auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
             {
                 std::lock_guard lock(_freeRecvPackets._mutex);
-                freePackets.splice(freePackets.end(), std::move(_freeRecvPackets));
+                freePackets.first.splice(freePackets.first.end(), std::move(_freeRecvPackets));
             }
 
             return freePackets;
@@ -58,8 +58,8 @@ namespace FastTransport
             auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
 
             {
-                std::lock_guard lock(_freeBuffers._mutex);
-                _freeBuffers.splice(_freeBuffers.end(), std::move(freePackets));
+                std::lock_guard lock(_freeSendPackets._mutex);
+                _freeSendPackets.splice(_freeSendPackets.end(), std::move(freePackets));
             }
         }
         
