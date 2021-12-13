@@ -25,10 +25,10 @@ namespace FastTransport::Protocol
         ~UDPQueue();
         void Init();
 
-        std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freeBuffers);
+        IPacket::List Recv(IPacket::List&& freeBuffers);
         std::list<OutgoingPacket> Send(std::list<OutgoingPacket>&& data);
 
-        std::list<IPacket::Ptr> CreateBuffers(int size);
+        IPacket::List CreateBuffers(int size);
 
     private:
         unsigned int _port;

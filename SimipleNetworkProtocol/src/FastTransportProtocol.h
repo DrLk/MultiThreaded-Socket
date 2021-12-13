@@ -21,7 +21,7 @@ namespace FastTransport
             FastTransportContext(int port);
             ~FastTransportContext();
 
-            std::list<IPacket::Ptr> OnReceive(std::list<IPacket::Ptr>&& packet);
+            IPacket::List OnReceive(IPacket::List&& packet);
             std::function<void(std::list<OutgoingPacket>& packets)> OnSend;
 
             IConnection* Accept();
@@ -51,7 +51,7 @@ namespace FastTransport
 
             UDPQueue _udpQueue;
 
-            std::list<IPacket::Ptr> OnReceive(IPacket::Ptr&& packet);
+            IPacket::List OnReceive(IPacket::Ptr&& packet);
 
             static void SendThread(FastTransportContext& context);
             static void RecvThread(FastTransportContext& context);

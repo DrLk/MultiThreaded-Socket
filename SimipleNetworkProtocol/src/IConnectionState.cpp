@@ -37,9 +37,9 @@ namespace FastTransport
             return connection._state;
         }
 
-        std::list<IPacket::Ptr> WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+        IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             auto header = packet->GetHeader();
             if (!header.IsValid())
             {
@@ -78,9 +78,9 @@ namespace FastTransport
             return connection._state;
         }
 
-        std::list<IPacket::Ptr> WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+        IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             auto header = packet->GetHeader();
 
             if (!header.IsValid())
@@ -169,7 +169,7 @@ namespace FastTransport
                     connection._sendQueue.ReSendPackets(std::move(packets));
             }
 
-            std::list<IPacket::Ptr> userData;
+            IPacket::List userData;
             {
                 std::lock_guard lock(connection._sendUserDataMutex);
                 userData = std::move(connection._sendUserData);
@@ -189,9 +189,9 @@ namespace FastTransport
             return this;
         }
 
-        std::list<IPacket::Ptr> DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+        IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             auto header = packet->GetHeader();
 
             switch (header.GetPacketType())

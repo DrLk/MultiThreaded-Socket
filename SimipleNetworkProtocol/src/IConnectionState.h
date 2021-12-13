@@ -24,7 +24,7 @@ namespace FastTransport
         {
         public:
             virtual ~IConnectionState() { }
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
             virtual IConnectionState* SendPackets(Connection& connection) = 0;
             virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
         };
@@ -32,9 +32,9 @@ namespace FastTransport
         class BasicConnectionState : public IConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override 
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override 
             {
-                std::list<IPacket::Ptr> freePackets;
+                IPacket::List freePackets;
                 freePackets.push_back(std::move(packet));
                 return freePackets;
             }
@@ -57,13 +57,13 @@ namespace FastTransport
         class WaitingSynState : public BasicConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
         };
 
         class WaitingSynAckState : public BasicConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
             virtual IConnectionState* OnTimeOut(Connection& connection) override;
         };
 
@@ -75,7 +75,7 @@ namespace FastTransport
         class DataState : public BasicConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
             virtual IConnectionState* SendPackets(Connection& connection) override;
             virtual IConnectionState* OnTimeOut(Connection& connection) override;
         };
@@ -83,14 +83,14 @@ namespace FastTransport
         class ClosingState : public BasicConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
         };
 
 
         class ClosedState : public BasicConnectionState
         {
         public:
-            virtual std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+            virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
         };
     }
 }

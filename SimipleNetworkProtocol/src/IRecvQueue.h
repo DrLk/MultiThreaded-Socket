@@ -17,7 +17,7 @@ namespace FastTransport
         public:
             virtual ~IRecvQueue() { }
             virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
-            virtual std::list<IPacket::Ptr> GetUserData() = 0;
+            virtual IPacket::List GetUserData() = 0;
             virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
 
         public:
@@ -56,7 +56,7 @@ namespace FastTransport
 
             void ProccessUnorderedPackets()
             {
-                std::list<IPacket::Ptr> data;
+                IPacket::List data;
                 while (true)
                 {
                     auto& nextPacket = _queue[_beginFullRecievedAck++ % QUEUE_SIZE];
@@ -74,9 +74,9 @@ namespace FastTransport
                 }
             }
 
-            virtual std::list<IPacket::Ptr> GetUserData() override
+            virtual IPacket::List GetUserData() override
             {
-                std::list<IPacket::Ptr> data;
+                IPacket::List data;
 
                 {
                     std::lock_guard lock(_data._mutex);

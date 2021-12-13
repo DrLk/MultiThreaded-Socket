@@ -45,14 +45,14 @@ namespace FastTransport::Protocol
         }
     }
 
-    std::list<IPacket::Ptr> UDPQueue::Recv(std::list<IPacket::Ptr>&& freeBuffers)
+    IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
     {
         {
             std::lock_guard lock(_recvFreeQueue._mutex);
             _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
         }
 
-        std::list<IPacket::Ptr> result;
+        IPacket::List result;
         {
             std::lock_guard lock(_recvQueue._mutex);
             if(!_recvQueue.empty())
@@ -79,9 +79,9 @@ namespace FastTransport::Protocol
     }
 
 
-    std::list<IPacket::Ptr> UDPQueue::CreateBuffers(int size)
+    IPacket::List UDPQueue::CreateBuffers(int size)
     {
-        std::list<IPacket::Ptr> buffers;
+        IPacket::List buffers;
         for (int i = 0; i < size; i++)
         {
             buffers.emplace_back(new Packet(1500));
@@ -93,7 +93,7 @@ namespace FastTransport::Protocol
     
     void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
-        std::list<IPacket::Ptr> recvFreeQueue;
+        IPacket::List recvFreeQueue;
         bool sleep = false;
 
         while (true)

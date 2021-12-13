@@ -19,7 +19,7 @@ namespace FastTransport::Protocol
         RecvThreadQueue(const RecvThreadQueue&) = delete;
         RecvThreadQueue& operator=(const RecvThreadQueue&) = delete;
 
-        std::list<IPacket::Ptr> _recvThreadQueue;
+        IPacket::List _recvThreadQueue;
 
     };
 }

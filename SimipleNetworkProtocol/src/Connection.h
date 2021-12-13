@@ -26,8 +26,8 @@ namespace FastTransport
         public:
             virtual ~IConnection() { }
             virtual void Send(IPacket::Ptr&& data) = 0;
-            virtual std::list<IPacket::Ptr> Send(std::list<IPacket::Ptr>&& data) = 0;
-            virtual std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freePackets) = 0;
+            virtual IPacket::List Send(IPacket::List&& data) = 0;
+            virtual IPacket::List Recv(IPacket::List&& freePackets) = 0;
         };
 
         class Connection : public IConnection
@@ -43,12 +43,12 @@ namespace FastTransport
             }
 
             virtual void Send(IPacket::Ptr&& data) override;
-            virtual std::list<IPacket::Ptr> Send(std::list<IPacket::Ptr>&& data) override;
+            virtual IPacket::List Send(IPacket::List&& data) override;
 
-            virtual std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freePackets) override;
+            virtual IPacket::List Recv(IPacket::List&& freePackets) override;
 
 
-            std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet);
+            IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             std::list<OutgoingPacket> GetPacketsToSend();
@@ -74,7 +74,7 @@ namespace FastTransport
             LockedList<IPacket::Ptr> _freeBuffers;
             LockedList<IPacket::Ptr> _freeRecvPackets;
 
-            std::list<IPacket::Ptr> _sendUserData;
+            IPacket::List _sendUserData;
             std::mutex _sendUserDataMutex;
             LockedList<std::vector<char>> _recvUserData;
 

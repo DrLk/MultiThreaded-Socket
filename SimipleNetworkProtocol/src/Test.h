@@ -22,7 +22,7 @@ namespace FastTransport
 
             /*src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
-                std::list<IPacket::Ptr> recvPackets;
+                IPacket::List recvPackets;
                 for (auto& packet : packets)
                 {
                     IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);
@@ -35,7 +35,7 @@ namespace FastTransport
 
             dst.OnSend = [&src](std::list<OutgoingPacket>& packets)
             {
-                std::list<IPacket::Ptr> recvPackets;
+                IPacket::List recvPackets;
                 for (auto& packet : packets)
                 {
                     IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);

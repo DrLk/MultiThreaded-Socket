@@ -8,9 +8,9 @@ namespace FastTransport
     namespace Protocol
     {
 
-        static std::list<IPacket::Ptr> Recv()
+        static IPacket::List Recv()
         {
-            std::list<IPacket::Ptr> result;
+            IPacket::List result;
 
             return result;
         }
@@ -57,9 +57,9 @@ namespace FastTransport
 
         }
 
-        std::list<IPacket::Ptr> FastTransportContext::OnReceive(std::list<IPacket::Ptr>&& packets)
+        IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
 
             for (auto& packet : packets)
             {
@@ -70,9 +70,9 @@ namespace FastTransport
             return freePackets;
         }
 
-        std::list<IPacket::Ptr> FastTransportContext::OnReceive(IPacket::Ptr&& packet)
+        IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
 
             Header header = packet->GetHeader();
             if (!header.IsValid())
@@ -151,7 +151,7 @@ namespace FastTransport
         void FastTransportContext::RecvQueueStep()
         {
             //TODO: get 1k freePackets
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             {
                 std::lock_guard lock(_freeListenPackets._mutex);
                 freePackets.splice(freePackets.end(), _freeListenPackets);

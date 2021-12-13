@@ -7,9 +7,9 @@ namespace FastTransport
 {
     namespace Protocol
     {
-        std::list<IPacket::Ptr> IInflightQueue::AddQueue(std::list<OutgoingPacket>&& packets)
+        IPacket::List IInflightQueue::AddQueue(std::list<OutgoingPacket>&& packets)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             std::unordered_set<SeqNumberType> receivedAcks;
             std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
@@ -54,9 +54,9 @@ namespace FastTransport
             return freePackets;
         }
 
-        std::list<IPacket::Ptr> IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
+        IPacket::List IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
         {
-            std::list<IPacket::Ptr> freePackets;
+            IPacket::List freePackets;
             std::unordered_set<SeqNumberType> receivedAcks;
             std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
