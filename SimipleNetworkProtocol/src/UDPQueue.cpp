@@ -6,8 +6,7 @@
 
 #include "Packet.h"
 
-#define BUFLEN 512	//Max length of buffer
-
+using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol
 {
@@ -100,7 +99,7 @@ namespace FastTransport::Protocol
         while (true)
         {
             if (sleep)
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(1ms);
 
             if (recvFreeQueue.empty())
             {
@@ -132,7 +131,7 @@ namespace FastTransport::Protocol
             }
 
             if (recvFreeQueue.empty())
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(1ms);
 
             for (auto it = recvFreeQueue.begin(); it != recvFreeQueue.end(); )
             {
@@ -142,6 +141,7 @@ namespace FastTransport::Protocol
                 // WSAEWOULDBLOCK
                 if (result <= 0)
                 {
+                    std::this_thread::sleep_for(1ms);
                     break;
                 }
 
