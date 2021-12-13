@@ -51,9 +51,9 @@ namespace FastTransport
             IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
-            std::list<OutgoingPacket> GetPacketsToSend();
+            OutgoingPacket::List GetPacketsToSend();
 
-            void ProcessSentPackets(std::list<OutgoingPacket>&& packets);
+            void ProcessSentPackets(OutgoingPacket::List&& packets);
             void ProcessRecvPackets();
 
             void Close();

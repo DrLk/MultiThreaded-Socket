@@ -61,14 +61,14 @@ namespace FastTransport::Protocol
         return result;
     }
 
-    std::list<OutgoingPacket> UDPQueue::Send(std::list<OutgoingPacket>&& data)
+    OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
     {
         {
             std::lock_guard lock(_sendQueue._mutex);
             _sendQueue.splice(_sendQueue.end(), std::move(data));
         }
 
-        std::list<OutgoingPacket> result;
+        OutgoingPacket::List result;
         {
             std::lock_guard lock(_sendFreeQueue._mutex);
             if (!_sendFreeQueue.empty())

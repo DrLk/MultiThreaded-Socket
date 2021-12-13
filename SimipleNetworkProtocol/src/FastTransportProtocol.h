@@ -22,7 +22,7 @@ namespace FastTransport
             ~FastTransportContext();
 
             IPacket::List OnReceive(IPacket::List&& packet);
-            std::function<void(std::list<OutgoingPacket>& packets)> OnSend;
+            std::function<void(OutgoingPacket::List& packets)> OnSend;
 
             IConnection* Accept();
             IConnection* Connect(const ConnectionAddr&);
@@ -42,7 +42,7 @@ namespace FastTransport
             std::unordered_map<ConnectionKey, Connection*> _connections;
             std::vector<Connection*> _incomingConnections;
 
-            std::list<OutgoingPacket> Send(std::list<OutgoingPacket>& packets);
+            OutgoingPacket::List Send(OutgoingPacket::List& packets);
 
             std::thread _sendContextThread;
             std::thread _recvContextThread;

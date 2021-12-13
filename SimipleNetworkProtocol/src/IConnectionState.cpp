@@ -164,7 +164,7 @@ namespace FastTransport
             }
 
             {
-                std::list<OutgoingPacket> packets = connection._inFlightQueue.CheckTimeouts();
+                OutgoingPacket::List packets = connection._inFlightQueue.CheckTimeouts();
                 if(!packets.empty())
                     connection._sendQueue.ReSendPackets(std::move(packets));
             }

@@ -26,7 +26,7 @@ namespace FastTransport::Protocol
         void Init();
 
         IPacket::List Recv(IPacket::List&& freeBuffers);
-        std::list<OutgoingPacket> Send(std::list<OutgoingPacket>&& data);
+        OutgoingPacket::List Send(OutgoingPacket::List&& data);
 
         IPacket::List CreateBuffers(int size);
 

@@ -43,12 +43,12 @@ namespace FastTransport
             return _key;
         }
 
-        std::list<OutgoingPacket> Connection::GetPacketsToSend()
+        OutgoingPacket::List Connection::GetPacketsToSend()
         {
             return _sendQueue.GetPacketsToSend();
         }
 
-        void Connection::ProcessSentPackets(std::list<OutgoingPacket>&& packets)
+        void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
         {
             auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
 

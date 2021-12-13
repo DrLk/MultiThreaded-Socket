@@ -24,16 +24,16 @@ namespace FastTransport::Protocol
         }
     }
 
-    void SendQueue::ReSendPackets(std::list<OutgoingPacket>&& packets)
+    void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
     {
         std::lock_guard lock(_needToSend._mutex);
         _needToSend.splice(_needToSend.end(), std::move(packets));
     }
 
     //make list of list to get fast 1k packets
-    std::list<OutgoingPacket> SendQueue::GetPacketsToSend()
+    OutgoingPacket::List SendQueue::GetPacketsToSend()
     {
-        std::list<OutgoingPacket> result;
+        OutgoingPacket::List result;
         {
             std::lock_guard lock(_needToSend._mutex);
             result = std::move(_needToSend);

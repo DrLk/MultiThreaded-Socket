@@ -27,10 +27,10 @@ namespace FastTransport::Protocol
         }
 
         void SendPacket(IPacket::Ptr&& packet, bool needAck = false);
-        void ReSendPackets(std::list<OutgoingPacket>&& packets);
+        void ReSendPackets(OutgoingPacket::List&& packets);
 
         //make list of list to get fast 1k packets
-        std::list<OutgoingPacket> GetPacketsToSend();
+        OutgoingPacket::List GetPacketsToSend();
 
     private:
         LockedList<OutgoingPacket> _needToSend;

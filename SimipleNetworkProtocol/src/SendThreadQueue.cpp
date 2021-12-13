@@ -16,7 +16,7 @@ namespace FastTransport::Protocol
 
     void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, unsigned short index)
     {
-        std::list<OutgoingPacket> sendQueue;
+        OutgoingPacket::List sendQueue;
 
         bool sleep = false;
 

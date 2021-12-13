@@ -22,9 +22,9 @@ namespace FastTransport
             std::unordered_set<SeqNumberType> _receivedAcks;
 
         public:
-            IPacket::List AddQueue(std::list<OutgoingPacket>&& packets);
+            IPacket::List AddQueue(OutgoingPacket::List&& packets);
             IPacket::List ProcessAcks(const SelectiveAckBuffer::Acks& acks);
-            std::list<OutgoingPacket> CheckTimeouts();
+            OutgoingPacket::List CheckTimeouts();
         };
     }
 }

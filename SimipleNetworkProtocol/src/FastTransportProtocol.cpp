@@ -112,15 +112,15 @@ namespace FastTransport
 
         void FastTransportContext::SendQueueStep()
         {
-            std::list<OutgoingPacket> packets;
+            OutgoingPacket::List packets;
             for (auto& [key, connection] : _connections)
             {
                 packets.splice(packets.begin(), connection->GetPacketsToSend());
             }
 
-            std::list<OutgoingPacket> inFlightPackets = Send(packets);
+            OutgoingPacket::List inFlightPackets = Send(packets);
             
-            std::unordered_map<ConnectionKey, std::list<OutgoingPacket>> connectionOutgoingPackets;
+            std::unordered_map<ConnectionKey, OutgoingPacket::List> connectionOutgoingPackets;
             for (auto& outgoingPacket : inFlightPackets)
             {
                 auto& packet = outgoingPacket._packet;
@@ -175,7 +175,7 @@ namespace FastTransport
             }
         }
 
-        std::list<OutgoingPacket> FastTransportContext::Send(std::list<OutgoingPacket>& packets)
+        OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
         {
             if (OnSend)
                 OnSend(packets);
