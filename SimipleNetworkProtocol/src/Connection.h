@@ -25,9 +25,9 @@ namespace FastTransport
         {
         public:
             virtual ~IConnection() { }
-            virtual void Send(std::unique_ptr<IPacket>&& data) = 0;
-            virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) = 0;
-            virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) = 0;
+            virtual void Send(IPacket::Ptr&& data) = 0;
+            virtual std::list<IPacket::Ptr> Send(std::list<IPacket::Ptr>&& data) = 0;
+            virtual std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freePackets) = 0;
         };
 
         class Connection : public IConnection
@@ -42,13 +42,13 @@ namespace FastTransport
                 }
             }
 
-            virtual void Send(std::unique_ptr<IPacket>&& data) override;
-            virtual std::list<std::unique_ptr<IPacket>> Send(std::list<std::unique_ptr<IPacket>>&& data) override;
+            virtual void Send(IPacket::Ptr&& data) override;
+            virtual std::list<IPacket::Ptr> Send(std::list<IPacket::Ptr>&& data) override;
 
-            virtual std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freePackets) override;
+            virtual std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freePackets) override;
 
 
-            std::list<std::unique_ptr<IPacket>> OnRecvPackets(std::unique_ptr<IPacket>&& packet);
+            std::list<IPacket::Ptr> OnRecvPackets(IPacket::Ptr&& packet);
 
             const ConnectionKey& GetConnectionKey() const;
             std::list<OutgoingPacket> GetPacketsToSend();
@@ -65,16 +65,16 @@ namespace FastTransport
             IInflightQueue _inFlightQueue;
 
         public:
-            void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = true);
+            void SendPacket(IPacket::Ptr&& packet, bool needAck = true);
 
             IConnectionState* _state;
             ConnectionKey _key;
             ConnectionID _destinationID;
 
-            LockedList<std::unique_ptr<IPacket>> _freeBuffers;
-            LockedList<std::unique_ptr<IPacket>> _freeRecvPackets;
+            LockedList<IPacket::Ptr> _freeBuffers;
+            LockedList<IPacket::Ptr> _freeRecvPackets;
 
-            std::list<std::unique_ptr<IPacket>> _sendUserData;
+            std::list<IPacket::Ptr> _sendUserData;
             std::mutex _sendUserDataMutex;
             LockedList<std::vector<char>> _recvUserData;
 

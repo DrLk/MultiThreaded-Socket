@@ -68,8 +68,8 @@ int main(int argc, char ** argv)
 
     socket.Init();
 
-    std::list<std::unique_ptr<IPacket>> recvBuffers = socket.CreateBuffers(10000);
-    std::list<std::unique_ptr<IPacket>> sendBuffers = socket.CreateBuffers(10000);
+    std::list<IPacket::Ptr> recvBuffers = socket.CreateBuffers(10000);
+    std::list<IPacket::Ptr> sendBuffers = socket.CreateBuffers(10000);
 
     sockaddr_in dstAddr;
     // zero out the structure

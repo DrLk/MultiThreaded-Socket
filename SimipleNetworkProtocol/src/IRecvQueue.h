@@ -16,8 +16,8 @@ namespace FastTransport
         {
         public:
             virtual ~IRecvQueue() { }
-            virtual std::unique_ptr<IPacket> AddPacket(std::unique_ptr<IPacket>&& packet) = 0;
-            virtual std::list<std::unique_ptr<IPacket>> GetUserData() = 0;
+            virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
+            virtual std::list<IPacket::Ptr> GetUserData() = 0;
             virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
 
         public:
@@ -31,7 +31,7 @@ namespace FastTransport
 
             }
 
-            virtual std::unique_ptr<IPacket> AddPacket(std::unique_ptr<IPacket>&& packet) override
+            virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) override
             {
                 SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
 
@@ -56,7 +56,7 @@ namespace FastTransport
 
             void ProccessUnorderedPackets()
             {
-                std::list<std::unique_ptr<IPacket>> data;
+                std::list<IPacket::Ptr> data;
                 while (true)
                 {
                     auto& nextPacket = _queue[_beginFullRecievedAck++ % QUEUE_SIZE];
@@ -74,9 +74,9 @@ namespace FastTransport
                 }
             }
 
-            virtual std::list<std::unique_ptr<IPacket>> GetUserData() override
+            virtual std::list<IPacket::Ptr> GetUserData() override
             {
-                std::list<std::unique_ptr<IPacket>> data;
+                std::list<IPacket::Ptr> data;
 
                 {
                     std::lock_guard lock(_data._mutex);
@@ -104,8 +104,8 @@ namespace FastTransport
             }
 
             const int QUEUE_SIZE = 10;
-            std::vector<std::unique_ptr<IPacket>> _queue;
-            LockedList< std::unique_ptr<IPacket>> _data;
+            std::vector<IPacket::Ptr> _queue;
+            LockedList< IPacket::Ptr> _data;
             LockedList<SeqNumberType> _selectiveAcks;
             SeqNumberType _beginFullRecievedAck;
             SeqNumberType _lastNumberReaded;

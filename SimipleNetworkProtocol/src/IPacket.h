@@ -10,6 +10,8 @@ namespace FastTransport
         {
 
         public:
+            typedef std::unique_ptr<IPacket> Ptr;
+
             typedef std::vector<char> ElementType;
 
             virtual ~IPacket() = default;

@@ -22,10 +22,10 @@ namespace FastTransport
 
             /*src.OnSend = [&dst](std::list<OutgoingPacket>& packets)
             {
-                std::list<std::unique_ptr<IPacket>> recvPackets;
+                std::list<IPacket::Ptr> recvPackets;
                 for (auto& packet : packets)
                 {
-                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
+                    IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
                     recvPackets.push_back(std::move(rcvPacket));
                 }
@@ -35,10 +35,10 @@ namespace FastTransport
 
             dst.OnSend = [&src](std::list<OutgoingPacket>& packets)
             {
-                std::list<std::unique_ptr<IPacket>> recvPackets;
+                std::list<IPacket::Ptr> recvPackets;
                 for (auto& packet : packets)
                 {
-                    std::unique_ptr<IPacket> rcvPacket = std::make_unique<Packet>(1500);
+                    IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);
                     rcvPacket->Copy(*packet._packet);
                     recvPackets.push_back(std::move(rcvPacket));
 
@@ -50,7 +50,7 @@ namespace FastTransport
             IConnection* srcConnection = src.Connect(dstAddr);
             for (int i = 0; i < 20; i++)
             {
-                std::unique_ptr<IPacket> data = std::make_unique<Packet>(1500);
+                IPacket::Ptr data = std::make_unique<Packet>(1500);
                 data->GetPayload();
                 srcConnection->Send(std::move(data));
             }
@@ -67,8 +67,8 @@ namespace FastTransport
 
                     std::this_thread::sleep_for(500ms);
                 }
-                std::list <std::unique_ptr<IPacket>> recvPackets;
-                std::unique_ptr<IPacket> recvPacket = std::make_unique<Packet>(1500);;
+                std::list <IPacket::Ptr> recvPackets;
+                IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);;
                 recvPackets.push_back(std::move(recvPacket));
                 auto data = dstConnection->Recv(std::move(recvPackets));
                 if (!data.empty())
@@ -160,7 +160,7 @@ namespace FastTransport
         {
             RecvQueue queue;
 
-            std::vector<std::unique_ptr<IPacket>> packets;
+            std::vector<IPacket::Ptr> packets;
             constexpr SeqNumberType beginSeqNumber = 0;
             for (int i = 0; i < 10; i++)
             {
@@ -169,7 +169,7 @@ namespace FastTransport
                 packets.emplace_back(packet);
             }
 
-            std::unique_ptr<IPacket> packet = std::make_unique<Packet>(1500);
+            IPacket::Ptr packet = std::make_unique<Packet>(1500);
             for (auto& packet : packets)
             {
                 queue.AddPacket(std::move(packet));

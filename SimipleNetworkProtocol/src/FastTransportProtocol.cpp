@@ -8,9 +8,9 @@ namespace FastTransport
     namespace Protocol
     {
 
-        static std::list<std::unique_ptr<IPacket>> Recv()
+        static std::list<IPacket::Ptr> Recv()
         {
-            std::list<std::unique_ptr<IPacket>> result;
+            std::list<IPacket::Ptr> result;
 
             return result;
         }
@@ -57,9 +57,9 @@ namespace FastTransport
 
         }
 
-        std::list<std::unique_ptr<IPacket>> FastTransportContext::OnReceive(std::list<std::unique_ptr<IPacket>>&& packets)
+        std::list<IPacket::Ptr> FastTransportContext::OnReceive(std::list<IPacket::Ptr>&& packets)
         {
-            std::list<std::unique_ptr<IPacket>> freePackets;
+            std::list<IPacket::Ptr> freePackets;
 
             for (auto& packet : packets)
             {
@@ -70,9 +70,9 @@ namespace FastTransport
             return freePackets;
         }
 
-        std::list<std::unique_ptr<IPacket>> FastTransportContext::OnReceive(std::unique_ptr<IPacket>&& packet)
+        std::list<IPacket::Ptr> FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         {
-            std::list<std::unique_ptr<IPacket>> freePackets;
+            std::list<IPacket::Ptr> freePackets;
 
             Header header = packet->GetHeader();
             if (!header.IsValid())
@@ -151,7 +151,7 @@ namespace FastTransport
         void FastTransportContext::RecvQueueStep()
         {
             //TODO: get 1k freePackets
-            std::list<std::unique_ptr<IPacket>> freePackets;
+            std::list<IPacket::Ptr> freePackets;
             {
                 std::lock_guard lock(_freeListenPackets._mutex);
                 freePackets.splice(freePackets.end(), _freeListenPackets);

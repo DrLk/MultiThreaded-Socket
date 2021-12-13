@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "LockedList.h"
+#include "OutgoingPacket.h"
 #include "HeaderBuffer.h"
 
 namespace FastTransport::Protocol
@@ -25,7 +26,7 @@ namespace FastTransport::Protocol
 
         }
 
-        void SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck = false);
+        void SendPacket(IPacket::Ptr&& packet, bool needAck = false);
         void ReSendPackets(std::list<OutgoingPacket>&& packets);
 
         //make list of list to get fast 1k packets

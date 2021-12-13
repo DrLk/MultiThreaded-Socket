@@ -7,7 +7,7 @@ namespace FastTransport
     namespace Protocol
     {
 
-        std::list<std::unique_ptr<IPacket>> Connection::OnRecvPackets(std::unique_ptr<IPacket>&& packet)
+        std::list<IPacket::Ptr> Connection::OnRecvPackets(IPacket::Ptr&& packet)
         {
             _lastReceivedPacket = Connection::DefaultTimeOut;
             auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
@@ -15,12 +15,12 @@ namespace FastTransport
             return freePackets;
         }
 
-        void Connection::Send(std::unique_ptr<IPacket>&& data)
+        void Connection::Send(IPacket::Ptr&& data)
         {
             _sendUserData.push_back(std::move(data));
         }
 
-        std::list<std::unique_ptr<IPacket>> Connection::Send(std::list<std::unique_ptr<IPacket>>&& data)
+        std::list<IPacket::Ptr> Connection::Send(std::list<IPacket::Ptr>&& data)
         {
             std::lock_guard lock(_sendUserDataMutex);
             _sendUserData.splice(_sendUserData.end(), std::move(data));
@@ -28,7 +28,7 @@ namespace FastTransport
             throw std::runtime_error("Not Implemented");
         }
 
-        std::list<std::unique_ptr<IPacket>> Connection::Recv(std::list<std::unique_ptr<IPacket>>&& freePackets)
+        std::list<IPacket::Ptr> Connection::Recv(std::list<IPacket::Ptr>&& freePackets)
         {
             {
                 std::lock_guard lock(_freeRecvPackets._mutex);
@@ -63,7 +63,7 @@ namespace FastTransport
             _recvQueue.ProccessUnorderedPackets();
         }
 
-        void Connection::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck /*= true*/)
+        void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck /*= true*/)
         {
             _sendQueue.SendPacket(std::move(packet), needAck);
         }

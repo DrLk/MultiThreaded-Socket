@@ -3,7 +3,6 @@
 #include <thread>
 
 #include "UDPQueue.h"
-#include "IPacket.h"
 
 using namespace std::chrono_literals;
 

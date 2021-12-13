@@ -8,7 +8,7 @@
 
 namespace FastTransport::Protocol
 {
-    void SendQueue::SendPacket(std::unique_ptr<IPacket>&& packet, bool needAck/* = false*/)
+    void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck/* = false*/)
     {
         Header header = packet->GetHeader();
         header.SetMagic();

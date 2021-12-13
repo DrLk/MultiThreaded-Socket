@@ -25,10 +25,10 @@ namespace FastTransport::Protocol
         ~UDPQueue();
         void Init();
 
-        std::list<std::unique_ptr<IPacket>> Recv(std::list<std::unique_ptr<IPacket>>&& freeBuffers);
+        std::list<IPacket::Ptr> Recv(std::list<IPacket::Ptr>&& freeBuffers);
         std::list<OutgoingPacket> Send(std::list<OutgoingPacket>&& data);
 
-        std::list<std::unique_ptr<IPacket>> CreateBuffers(int size);
+        std::list<IPacket::Ptr> CreateBuffers(int size);
 
     private:
         unsigned int _port;
@@ -36,10 +36,10 @@ namespace FastTransport::Protocol
         std::vector<std::thread> _readThreads;
 
         LockedList<OutgoingPacket> _sendQueue;
-        LockedList<std::unique_ptr<IPacket>> _recvQueue;
+        LockedList<IPacket::Ptr> _recvQueue;
 
         LockedList<OutgoingPacket> _sendFreeQueue;
-        LockedList<std::unique_ptr<IPacket>> _recvFreeQueue;
+        LockedList<IPacket::Ptr> _recvFreeQueue;
 
         static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
 
