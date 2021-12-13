@@ -34,9 +34,7 @@ namespace FastTransport
         public:
             virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override 
             {
-                IPacket::List freePackets;
-                freePackets.push_back(std::move(packet));
-                return freePackets;
+                throw std::runtime_error("Not implemented");
             }
             virtual IConnectionState* SendPackets(Connection& connection) override { return this; }
             virtual IConnectionState* OnTimeOut(Connection& connection) override { return this; }
@@ -45,7 +43,7 @@ namespace FastTransport
         class ListenState
         {
         public:
-            Connection* Listen(IPacket::Ptr&& packet, ConnectionID myID);
+            std::pair<Connection*, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
         };
 
         class SendingSynState : public BasicConnectionState

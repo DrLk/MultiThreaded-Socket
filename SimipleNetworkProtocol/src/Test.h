@@ -56,22 +56,23 @@ namespace FastTransport
             }
 
             IConnection* dstConnection = nullptr;
+            while (!dstConnection)
+            {
+                dstConnection = dst.Accept();
+
+                if (dstConnection)
+                    break;
+
+                std::this_thread::sleep_for(500ms);
+            }
+
+            std::list <IPacket::Ptr> recvPackets;
+            IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);;
+            recvPackets.push_back(std::move(recvPacket));
             while (true)
             {
-                while (!dstConnection)
-                {
-                    dstConnection = dst.Accept();
-
-                    if (dstConnection)
-                        break;
-
-                    std::this_thread::sleep_for(500ms);
-                }
-                std::list <IPacket::Ptr> recvPackets;
-                IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);;
-                recvPackets.push_back(std::move(recvPacket));
-                auto data = dstConnection->Recv(std::move(recvPackets));
-                if (!data.empty())
+                recvPackets = dstConnection->Recv(std::move(recvPackets));
+                if (!recvPackets.empty())
                 {
                     int a = 0;
                     a++;

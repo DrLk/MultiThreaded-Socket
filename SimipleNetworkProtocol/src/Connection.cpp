@@ -12,6 +12,11 @@ namespace FastTransport
             _lastReceivedPacket = Connection::DefaultTimeOut;
             auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
+            {
+                std::lock_guard lock(_freeRecvPackets._mutex);
+                freePackets.splice(freePackets.end(), std::move(_freeRecvPackets));
+            }
+
             return freePackets;
         }
 

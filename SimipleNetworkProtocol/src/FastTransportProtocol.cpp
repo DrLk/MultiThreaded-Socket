@@ -84,17 +84,19 @@ namespace FastTransport
 
             if (connection != _connections.end())
             {
-                auto packets =connection->second->OnRecvPackets(std::move(packet));
-                freePackets.splice(freePackets.end(), packets);
+                auto freeRecvPackets =connection->second->OnRecvPackets(std::move(packet));
+                freePackets.splice(freePackets.end(), std::move(freeRecvPackets));
             }
             else
             {
-                Connection* connection = _listen.Listen(std::move(packet), GenerateID());
+                auto [ connection, freeRecvPackets ] = _listen.Listen(std::move(packet), GenerateID());
                 if (connection)
                 {
                     _incomingConnections.push_back(connection);
                     _connections.insert({ connection->GetConnectionKey(), connection });
                 }
+
+                freePackets.splice(freePackets.end(), std::move(freeRecvPackets));
             }
 
             return freePackets;

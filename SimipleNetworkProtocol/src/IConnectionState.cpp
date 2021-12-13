@@ -8,17 +8,16 @@ namespace FastTransport
     namespace Protocol
     {
 
-        Connection* ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
+        std::pair<Connection*, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
         {
             if (packet->GetHeader().GetPacketType() == PacketType::SYN)
             {
                 Connection* connection =  new Connection(new WaitingSynState(),packet->GetDstAddr(), myID);
-                //TODO: return free packets
-                connection->OnRecvPackets(std::move(packet));
-                return connection;
+                auto freePackets = connection->OnRecvPackets(std::move(packet));
+                return { connection, std::move(freePackets) };
             }
 
-            return nullptr;
+            return { nullptr, IPacket::List() };
         }
 
         IConnectionState* SendingSynState::SendPackets(Connection& connection)
@@ -44,6 +43,7 @@ namespace FastTransport
             if (!header.IsValid())
             {
                 connection.Close();
+                freePackets.push_back(std::move(packet));
                 return freePackets;
             }
 
@@ -52,12 +52,12 @@ namespace FastTransport
                 connection._destinationID = packet->GetHeader().GetSrcConnectionID();
                 connection._state = new SendingSynAckState();
 
+                freePackets.push_back(std::move(packet));
                 return freePackets;
             }
             else
             {
-                connection.Close();
-                return freePackets;
+                throw std::runtime_error("Wrong packet type");
             }
         }
 
@@ -97,20 +97,18 @@ namespace FastTransport
                     auto synAckHeader = packet->GetHeader();
                     connection._destinationID = synAckHeader.GetSrcConnectionID();
                     connection._state = new DataState();
+                    freePackets.push_back(std::move(packet));
                     break;
                 }
             case PacketType::DATA:
                 {
-                    auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
-                    if (freePacket)
-                        freePackets.push_back(std::move(freePacket));
+                    auto freeRecvPackets = connection._recvQueue.AddPacket(std::move(packet));
+                    freePackets.push_back(std::move(freeRecvPackets));
                     break;
                 }
             default:
                 {
-                    connection.Close();
-                    freePackets.push_back(std::move(packet));
-                    return freePackets;
+                    throw std::runtime_error("Wrong packet type");
                 }
             }
 
@@ -198,24 +196,27 @@ namespace FastTransport
             {
             case PacketType::SYN_ACK:
                 {
+                    freePackets.push_back(std::move(packet));
                     break;
                 }
             case PacketType::SACK:
                 {
-                    freePackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
+                    auto freeFilghtPackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
+                    // send free;
+                    freePackets.push_back(std::move(packet));
+                    freePackets.splice(freePackets.end(), std::move(freeFilghtPackets));
+
                     break;
                 }
             case PacketType::DATA:
                 {
                     auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
-                    if (freePacket)
-                        freePackets.push_back(std::move(freePacket));
+                    freePackets.push_back(std::move(freePacket));
                     break;
                 }
             default:
                 {
-                    connection.Close();
-                    return freePackets;
+                    throw std::runtime_error("Wrong packety type");
                 }
             }
             return freePackets;
