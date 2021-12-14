@@ -151,7 +151,7 @@ namespace FastTransport
                     {
                         end++;
                     }
-                    packetAcks.splice(packetAcks.begin(), acks, acks.begin(), end);
+                    packetAcks.splice(packetAcks.end(), acks, acks.begin(), end);
                 }
                 else
                 {

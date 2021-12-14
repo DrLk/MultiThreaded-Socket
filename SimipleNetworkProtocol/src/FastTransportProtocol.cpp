@@ -119,7 +119,7 @@ namespace FastTransport
             OutgoingPacket::List packets;
             for (auto& [key, connection] : _connections)
             {
-                packets.splice(packets.begin(), connection->GetPacketsToSend());
+                packets.splice(packets.end(), connection->GetPacketsToSend());
             }
 
             OutgoingPacket::List inFlightPackets = Send(packets);

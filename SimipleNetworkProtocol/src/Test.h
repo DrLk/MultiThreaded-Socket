@@ -7,6 +7,7 @@
 #include "IPacket.h"
 #include "FastTransportProtocol.h"
 #include "PeriodicExecutor.h"
+#include "MultiList.h"
 
 namespace FastTransport
 {
@@ -198,6 +199,26 @@ namespace FastTransport
             auto result2 = dst.RecvFrom(data2, addr);
             int i = 0;
             i++;
+        }
+
+        void TestMultiList()
+        {
+            FastTransport::Containers::MultiList<int> list;
+
+            for (int i = 0; i < 1000; i++)
+            {
+                list.push_back(std::move(i));
+            }
+
+            for (const auto& e : list)
+            {
+                std::cout << e << std::endl;
+            }
+
+            for (auto& e : list)
+            {
+                std::cout << e << std::endl;
+            }
         }
     }
 }
