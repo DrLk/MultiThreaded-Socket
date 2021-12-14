@@ -49,7 +49,7 @@ namespace FastTransport::Protocol
     {
         {
             std::lock_guard lock(_recvFreeQueue._mutex);
-            _recvFreeQueue.splice(_recvFreeQueue.end(), std::move(freeBuffers));
+            _recvFreeQueue.splice(std::move(freeBuffers));
         }
 
         IPacket::List result;
@@ -65,7 +65,7 @@ namespace FastTransport::Protocol
     {
         {
             std::lock_guard lock(_sendQueue._mutex);
-            _sendQueue.splice(_sendQueue.end(), std::move(data));
+            _sendQueue.splice(std::move(data));
         }
 
         OutgoingPacket::List result;
@@ -84,7 +84,7 @@ namespace FastTransport::Protocol
         IPacket::List buffers;
         for (int i = 0; i < size; i++)
         {
-            buffers.emplace_back(new Packet(1500));
+            buffers.push_back(IPacket::Ptr(new Packet(1500)));
         }
 
         return buffers;
@@ -93,7 +93,7 @@ namespace FastTransport::Protocol
     
     void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
     {
-        IPacket::List recvFreeQueue;
+        IPacket::List recvQueue;
         bool sleep = false;
 
         while (true)
@@ -101,7 +101,7 @@ namespace FastTransport::Protocol
             if (sleep)
                 std::this_thread::sleep_for(1ms);
 
-            if (recvFreeQueue.empty())
+            if (recvQueue.empty())
             {
                 std::lock_guard lock(udpQueue._recvFreeQueue._mutex);
 
@@ -118,22 +118,19 @@ namespace FastTransport::Protocol
                 auto end = udpQueue._recvFreeQueue.begin();
                 if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread)
                 {
-                    for (size_t i = 0; i < udpQueue._recvQueueSizePerThread; i++)
-                    {
-                        end++;
-                    }
-                    recvFreeQueue.splice(recvFreeQueue.end(), udpQueue._recvFreeQueue, udpQueue._recvFreeQueue.begin(), end);
+                    auto freeRecvQueue = udpQueue._recvFreeQueue.TryGenerate(udpQueue._recvQueueSizePerThread);
+                    recvQueue.splice(std::move(freeRecvQueue));
                 }
                 else
                 {
-                    recvFreeQueue.splice(recvFreeQueue.end(), udpQueue._recvFreeQueue);
+                    recvQueue.splice(std::move(udpQueue._recvFreeQueue));
                 }
             }
 
-            if (recvFreeQueue.empty())
+            if (recvQueue.empty())
                 std::this_thread::sleep_for(1ms);
 
-            for (auto it = recvFreeQueue.begin(); it != recvFreeQueue.end(); )
+            for (auto it = recvQueue.begin(); it != recvQueue.end(); )
             {
                 IPacket::Ptr& packet = *it;
                 sockaddr_storage sockAddr;
@@ -153,14 +150,15 @@ namespace FastTransport::Protocol
                 auto temp = it;
                 it++;
                 {
-                    recvThreadQueue._recvThreadQueue.splice(recvThreadQueue._recvThreadQueue.begin(), recvFreeQueue, temp);
+                    recvThreadQueue._recvThreadQueue.push_back(std::move(*temp));
+                    recvQueue.erase(temp);
                 }
 
             }
 
             {
                 std::lock_guard lock(udpQueue._recvQueue._mutex);
-                udpQueue._recvQueue.splice(udpQueue._recvQueue.end(), recvThreadQueue._recvThreadQueue);
+                udpQueue._recvQueue.splice(std::move(recvThreadQueue._recvThreadQueue));
             }
         }
     }

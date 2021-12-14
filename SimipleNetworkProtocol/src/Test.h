@@ -67,7 +67,7 @@ namespace FastTransport
                 std::this_thread::sleep_for(500ms);
             }
 
-            std::list <IPacket::Ptr> recvPackets;
+            IPacket::List recvPackets;
             IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);;
             recvPackets.push_back(std::move(recvPacket));
             while (true)

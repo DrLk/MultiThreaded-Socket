@@ -8,6 +8,30 @@ namespace FastTransport::Containers
     class MultiList
     {
     public:
+
+        MultiList()
+        {
+        }
+
+        MultiList(MultiList&& that) : _lists(std::move(that._lists))
+        {
+        }
+
+        MultiList TryGenerate(int size)
+        {
+            MultiList list;
+
+            while (!_lists.empty() && size > 0)
+            {
+                auto& front = _lists.front();
+                size -= front.size();
+                list._lists.push_back(std::move(front));
+                _lists.pop_front();
+            }
+
+            return list;
+        }
+
         void push_back(T&& element)
         {
             if (_lists.empty())
@@ -33,7 +57,7 @@ namespace FastTransport::Containers
                 if (newListSize < Size)
                 {
                     list.splice(list.end(), std::move(thatList));
-                    thatList.pop_front();
+                    that._lists.pop_front();
                 }
             }
             _lists.splice(_lists.end(), std::move(that._lists));
@@ -41,14 +65,49 @@ namespace FastTransport::Containers
             const std::list< std::list<T> >::iterator& it = _lists.begin();
         }
 
+        MultiList& operator=(MultiList&& that)
+        {
+            _lists = std::move(that._lists);
+            return *this;
+        }
+
+        bool empty() const
+        {
+            return _lists.empty();
+        }
+
+        T& back()
+        {
+            return _lists.back().back();
+        }
+
+        void pop_back()
+        {
+            _lists.back().pop_back();
+
+            if (_lists.back().empty())
+                _lists.pop_back();
+        }
+
+        size_t size() const
+        {
+            size_t size = 0;
+            for (const auto& it1 : _lists)
+                size += it1.size();
+
+            return size;
+        }
+
         class Iterator
         {
+            friend MultiList;
         public:
 
             explicit Iterator(MultiList<T>& container) : _container(container)
             {
                 _it1 = container._lists.begin();
-                _it2 = _it1->begin();
+                if (_it1 != container._lists.end())
+                    _it2 = _it1->begin();
             }
 
             //Iterator(MultiList<T>& container, const std::list<std::list<T>>::iterator& it1) : _container(container), _it1(it1)
@@ -94,6 +153,7 @@ namespace FastTransport::Containers
             {
                 return *_it2;
             }
+
         private:
             std::list<std::list<T>>::iterator _it1;
             std::list<T>::iterator _it2;
@@ -110,6 +170,13 @@ namespace FastTransport::Containers
         Iterator end()
         {
             return Iterator(*this, _lists.end());
+        }
+
+        void erase(const Iterator& it)
+        {
+            it._it1->erase(it._it2);
+            if (it._it1->empty())
+                _lists.erase(it._it1);
         }
 
     private:

@@ -15,8 +15,8 @@ using namespace FastTransport::Protocol;
 
 void Test()
 {
-    //TestConnection();
-    TestMultiList();
+    TestConnection();
+    //TestMultiList();
     //TestSocket();
     //TestRecvQueue();
     //TestTimer();

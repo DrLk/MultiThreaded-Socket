@@ -1,6 +1,7 @@
 #pragma once
 #include "HeaderBuffer.h"
 #include "ConnectionAddr.h"
+#include "MultiList.h"
 
 namespace FastTransport
 {
@@ -11,7 +12,7 @@ namespace FastTransport
 
         public:
             typedef std::unique_ptr<IPacket> Ptr;
-            typedef std::list<Ptr> List;
+            typedef Containers::MultiList<Ptr> List;
             typedef std::pair<List, List> PairList;
 
             typedef std::vector<char> ElementType;

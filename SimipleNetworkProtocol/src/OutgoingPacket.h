@@ -1,9 +1,9 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 
 #include "IPacket.h"
+#include "MultiList.h"
 
 namespace FastTransport
 {
@@ -14,7 +14,7 @@ namespace FastTransport
             typedef std::chrono::steady_clock clock;
 
         public:
-            typedef std::list<OutgoingPacket> List;
+            typedef FastTransport::Containers::MultiList<OutgoingPacket> List;
 
             OutgoingPacket() = default;
             OutgoingPacket(IPacket::Ptr&& packet, bool needAck) : _packet(std::move(packet)), _needAck(needAck)

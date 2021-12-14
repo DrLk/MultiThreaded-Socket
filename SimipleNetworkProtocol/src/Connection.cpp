@@ -14,7 +14,7 @@ namespace FastTransport
 
             {
                 std::lock_guard lock(_freeRecvPackets._mutex);
-                freePackets.first.splice(freePackets.first.end(), std::move(_freeRecvPackets));
+                freePackets.first.splice(std::move(_freeRecvPackets));
             }
 
             return freePackets;
@@ -28,7 +28,7 @@ namespace FastTransport
         IPacket::List Connection::Send(IPacket::List&& data)
         {
             std::lock_guard lock(_sendUserDataMutex);
-            _sendUserData.splice(_sendUserData.end(), std::move(data));
+            _sendUserData.splice(std::move(data));
 
             throw std::runtime_error("Not Implemented");
         }
@@ -37,7 +37,7 @@ namespace FastTransport
         {
             {
                 std::lock_guard lock(_freeRecvPackets._mutex);
-                _freeRecvPackets.splice(_freeRecvPackets.end(), std::move(freePackets));
+                _freeRecvPackets.splice(std::move(freePackets));
             }
 
             return _recvQueue.GetUserData();
@@ -59,7 +59,7 @@ namespace FastTransport
 
             {
                 std::lock_guard lock(_freeSendPackets._mutex);
-                _freeSendPackets.splice(_freeSendPackets.end(), std::move(freePackets));
+                _freeSendPackets.splice(std::move(freePackets));
             }
         }
         

@@ -1,16 +1,17 @@
 #pragma once
 
 #include <mutex>
-#include <list>
+
+#include "MultiList.h"
 
 template<class T>
-class LockedList : public std::list<T>
+class LockedList : public FastTransport::Containers::MultiList<T>
 {
 public:
 
-    LockedList& operator=(std::list<T>&& that)
+    LockedList& operator=(FastTransport::Containers::MultiList<T>&& that)
     {
-        std::list<T>::operator=(std::move(that));
+        FastTransport::Containers::MultiList::operator=(std::move(that));
         return *this;
     }
 

@@ -20,14 +20,14 @@ namespace FastTransport::Protocol
 
         {
             std::lock_guard lock(_needToSend._mutex);
-            _needToSend.emplace_back(std::move(packet), needAck);
+            _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
         }
     }
 
     void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
     {
         std::lock_guard lock(_needToSend._mutex);
-        _needToSend.splice(_needToSend.end(), std::move(packets));
+        _needToSend.splice(std::move(packets));
     }
 
     //make list of list to get fast 1k packets

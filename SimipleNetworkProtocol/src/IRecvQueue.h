@@ -45,7 +45,7 @@ namespace FastTransport
                     return std::move(packet);
 
                 {
-                    std::lock_guard lock(_selectiveAcks._mutex);
+                    std::lock_guard lock(_selectiveAcksMutex);
                     _selectiveAcks.push_back(packetNumber);
                 }
 
@@ -70,7 +70,7 @@ namespace FastTransport
 
                 {
                     std::lock_guard lock(_data._mutex);
-                    _data.splice(_data.end(), std::move(data));
+                    _data.splice(std::move(data));
                 }
             }
 
@@ -80,7 +80,7 @@ namespace FastTransport
 
                 {
                     std::lock_guard lock(_data._mutex);
-                    data.splice(data.end(), std::move(_data));
+                    data.splice(std::move(_data));
                 }
 
                 return data;
@@ -91,7 +91,7 @@ namespace FastTransport
                 std::list<SeqNumberType> selectiveAcks;
 
                 {
-                    std::lock_guard lock(_selectiveAcks._mutex);
+                    std::lock_guard lock(_selectiveAcksMutex);
                     selectiveAcks = std::move(_selectiveAcks);
                 }
 
@@ -106,7 +106,8 @@ namespace FastTransport
             const int QUEUE_SIZE = 10;
             std::vector<IPacket::Ptr> _queue;
             LockedList< IPacket::Ptr> _data;
-            LockedList<SeqNumberType> _selectiveAcks;
+            std::mutex _selectiveAcksMutex;
+            std::list<SeqNumberType> _selectiveAcks;
             SeqNumberType _beginFullRecievedAck;
             SeqNumberType _lastNumberReaded;
         };

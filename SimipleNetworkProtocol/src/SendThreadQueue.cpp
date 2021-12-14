@@ -40,16 +40,12 @@ namespace FastTransport::Protocol
 
                 if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size())
                 {
-                    auto end = udpQueue._sendQueue.begin();
-                    for (size_t i = 0; i < udpQueue._sendQueueSizePerThread; i++)
-                    {
-                        end++;
-                    }
-                    sendQueue.splice(sendQueue.begin(), udpQueue._sendQueue, udpQueue._sendQueue.begin(), end);
+                    auto freeSendQueue = udpQueue._sendQueue.TryGenerate(udpQueue._sendQueueSizePerThread);
+                    sendQueue.splice(std::move(freeSendQueue));
                 }
                 else
                 {
-                    sendQueue.swap(udpQueue._sendQueue);
+                    sendQueue = std::move(udpQueue._sendQueue);
                 }
             }
 
@@ -72,7 +68,7 @@ namespace FastTransport::Protocol
             if (!sendQueue.empty())
             {
                 std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
-                udpQueue._sendFreeQueue.splice(udpQueue._sendFreeQueue.end(), sendQueue);
+                udpQueue._sendFreeQueue.splice(std::move(sendQueue));
             }
         }
 

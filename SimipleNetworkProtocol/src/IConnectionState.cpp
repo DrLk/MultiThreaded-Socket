@@ -208,7 +208,7 @@ namespace FastTransport
                     auto freeFilghtPackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
                     // send free;
                     freePackets.first.push_back(std::move(packet));
-                    freePackets.second.splice(freePackets.second.end(), std::move(freeFilghtPackets));
+                    freePackets.second.splice(std::move(freeFilghtPackets));
 
                     break;
                 }
