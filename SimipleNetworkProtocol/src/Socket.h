@@ -73,6 +73,22 @@ namespace FastTransport::Protocol
             return receivedBytes;
         }
 
+        void WaitRead() const
+        {
+            FD_SET ReadSet;
+            FD_ZERO(&ReadSet);
+            FD_SET(_socket, &ReadSet);
+            select(0, &ReadSet, nullptr, nullptr, nullptr);
+        }
+
+        void WaitWrite() const
+        {
+            FD_SET WriteSet;
+            FD_ZERO(&WriteSet);
+            FD_SET(_socket, &WriteSet);
+            select(0, nullptr, &WriteSet, nullptr, nullptr);
+        }
+
     private:
 #ifdef WIN32
         SOCKET _socket;

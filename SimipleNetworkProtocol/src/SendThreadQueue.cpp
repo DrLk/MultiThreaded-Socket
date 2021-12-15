@@ -63,6 +63,8 @@ namespace FastTransport::Protocol
                     // WSAEWOULDBLOCK
                     if (result == data.size())
                         break;
+                    else
+                        socket.WaitWrite();
                 }
 
                 sockaddr.SetPort(sockaddr.GetPort() - index);

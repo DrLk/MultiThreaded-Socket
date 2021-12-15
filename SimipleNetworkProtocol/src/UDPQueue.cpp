@@ -97,6 +97,7 @@ namespace FastTransport::Protocol
 
         while (true)
         {
+            socket.WaitRead();
             if (sleep)
                 std::this_thread::sleep_for(1ms);
 
