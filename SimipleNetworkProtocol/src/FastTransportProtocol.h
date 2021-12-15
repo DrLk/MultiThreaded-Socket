@@ -44,12 +44,12 @@ namespace FastTransport
 
             OutgoingPacket::List Send(OutgoingPacket::List& packets);
 
+            UDPQueue _udpQueue;
+
             std::thread _sendContextThread;
             std::thread _recvContextThread;
 
             std::atomic<bool> _shutdownContext;
-
-            UDPQueue _udpQueue;
 
             IPacket::PairList OnReceive(IPacket::Ptr&& packet);
 
