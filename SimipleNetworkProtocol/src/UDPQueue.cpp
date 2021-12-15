@@ -141,15 +141,6 @@ namespace FastTransport::Protocol
                     break;
                 }
 
-                auto num = packet->GetHeader().GetSeqNumber();
-                printf("%i \n/n", (int)num);
-                static SeqNumberType f = -1;
-                if (f == num)
-                {
-                    int a = 0;
-                    a++;
-                }
-
                 packet->GetElement().resize(result);
                 ConnectionAddr connectionAddr(sockAddr);
                 connectionAddr.SetPort(connectionAddr.GetPort() - index);
