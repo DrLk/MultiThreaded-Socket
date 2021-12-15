@@ -72,10 +72,10 @@ namespace FastTransport
             recvPackets.push_back(std::move(recvPacket));
             while (true)
             {
+                static int a = 0;
                 recvPackets = dstConnection->Recv(std::move(recvPackets));
                 if (!recvPackets.empty())
                 {
-                    static int a = 0;
                     a += recvPackets.size();
                 }
 

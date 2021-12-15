@@ -137,7 +137,6 @@ namespace FastTransport::Protocol
                 // WSAEWOULDBLOCK
                 if (result <= 0)
                 {
-                    std::this_thread::sleep_for(1ms);
                     break;
                 }
 
