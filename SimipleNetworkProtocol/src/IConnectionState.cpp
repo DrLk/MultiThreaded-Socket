@@ -102,8 +102,9 @@ namespace FastTransport
                 }
             case PacketType::DATA:
                 {
-                    auto freeRecvPackets = connection._recvQueue.AddPacket(std::move(packet));
-                    freePackets.first.push_back(std::move(freeRecvPackets));
+                    auto freeRecvPacket = connection._recvQueue.AddPacket(std::move(packet));
+                    if (freeRecvPacket)
+                        freePackets.first.push_back(std::move(freeRecvPacket));
                     break;
                 }
             default:
@@ -215,7 +216,8 @@ namespace FastTransport
             case PacketType::DATA:
                 {
                     auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
-                    freePackets.first.push_back(std::move(freePacket));
+                    if (freePacket)
+                        freePackets.first.push_back(std::move(freePacket));
                     break;
                 }
             default:

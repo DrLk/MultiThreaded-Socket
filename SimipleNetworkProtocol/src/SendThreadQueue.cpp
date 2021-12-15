@@ -57,12 +57,15 @@ namespace FastTransport::Protocol
                 auto& sockaddr = packet._packet->GetDstAddr();
                 sockaddr.SetPort(sockaddr.GetPort() + index);
 
-                int result = socket.SendTo(data, sockaddr.GetAddr());
-                sockaddr.SetPort(sockaddr.GetPort() - index);
-                // WSAEWOULDBLOCK
-                if (result != data.size())
-                    throw std::runtime_error("sendto()");
+                while (true)
+                {
+                    int result = socket.SendTo(data, sockaddr.GetAddr());
+                    // WSAEWOULDBLOCK
+                    if (result == data.size())
+                        break;
+                }
 
+                sockaddr.SetPort(sockaddr.GetPort() - index);
             }
 
             if (!sendQueue.empty())

@@ -56,8 +56,14 @@ namespace FastTransport
                     _selectiveAcks.push_back(packetNumber);
                 }
 
-                _queue[(packetNumber) % QUEUE_SIZE] = std::move(packet);
 
+                auto& queuePacket = _queue[(packetNumber) % QUEUE_SIZE];
+                if (queuePacket)
+                {
+                    return std::move(packet);
+                }
+
+                queuePacket = std::move(packet);
                 return nullptr;
             }
 
@@ -110,7 +116,7 @@ namespace FastTransport
                 return _beginFullRecievedAck;
             }
 
-            const int QUEUE_SIZE = 10;
+            const int QUEUE_SIZE = 1000;
             std::vector<IPacket::Ptr> _queue;
             LockedList< IPacket::Ptr> _data;
             std::mutex _selectiveAcksMutex;

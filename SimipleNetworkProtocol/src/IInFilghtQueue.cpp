@@ -18,11 +18,6 @@ namespace FastTransport
                 receivedAcks.swap(_receivedAcks);
             }
 
-            {
-                std::lock_guard lock(_queueMutex);
-                queue.swap(_queue);
-            }
-
             for (auto& packet : packets)
             {
                 if (packet._needAck)
@@ -30,7 +25,10 @@ namespace FastTransport
                     SeqNumberType packetNumber = packet._packet->GetHeader().GetSeqNumber();
                     const auto& ack = receivedAcks.find(packetNumber);
                     if (ack == receivedAcks.end())
+                    {
+                        std::lock_guard lock(_queueMutex);
                         _queue[packetNumber] = std::move(packet);
+                    }
                     else
                     {
                         receivedAcks.erase(ack);
@@ -44,11 +42,6 @@ namespace FastTransport
             {
                 std::lock_guard lock(_receivedAcksMutex);
                 _receivedAcks.merge(std::move(receivedAcks));
-            }
-
-            {
-                std::lock_guard lock(_queueMutex);
-                _queue.merge(std::move(queue));
             }
 
             return freePackets;
@@ -102,6 +95,10 @@ namespace FastTransport
 
             {
                 std::lock_guard lock(_queueMutex);
+
+                if (_queue.empty())
+                    return needToSend;
+
                 queue.swap(_queue);
             }
 

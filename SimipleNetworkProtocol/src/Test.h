@@ -49,7 +49,7 @@ namespace FastTransport
             };*/
 
             IConnection* srcConnection = src.Connect(dstAddr);
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 2000; i++)
             {
                 IPacket::Ptr data = std::make_unique<Packet>(1500);
                 data->GetPayload();
@@ -75,11 +75,11 @@ namespace FastTransport
                 recvPackets = dstConnection->Recv(std::move(recvPackets));
                 if (!recvPackets.empty())
                 {
-                    int a = 0;
-                    a++;
+                    static int a = 0;
+                    a += recvPackets.size();
                 }
 
-                std::this_thread::sleep_for(500ms);
+                //std::this_thread::sleep_for(500ms);
             }
         }
 

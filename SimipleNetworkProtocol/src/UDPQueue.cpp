@@ -71,8 +71,7 @@ namespace FastTransport::Protocol
         OutgoingPacket::List result;
         {
             std::lock_guard lock(_sendFreeQueue._mutex);
-            if (!_sendFreeQueue.empty())
-                result = std::move(_sendFreeQueue);
+            result = std::move(_sendFreeQueue);
         }
 
         return result;
@@ -140,6 +139,15 @@ namespace FastTransport::Protocol
                 {
                     std::this_thread::sleep_for(1ms);
                     break;
+                }
+
+                auto num = packet->GetHeader().GetSeqNumber();
+                printf("%i \n/n", (int)num);
+                static SeqNumberType f = -1;
+                if (f == num)
+                {
+                    int a = 0;
+                    a++;
                 }
 
                 packet->GetElement().resize(result);

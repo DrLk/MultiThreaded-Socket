@@ -16,9 +16,8 @@ namespace FastTransport
         }
 
 
-        FastTransportContext::FastTransportContext(int port) : _shutdownContext(false), 
-            _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this)),
-            _udpQueue(port, 2, 1000, 1000)
+        FastTransportContext::FastTransportContext(int port) : _shutdownContext(false), _udpQueue(port, 2, 1000, 100),
+            _sendContextThread(SendThread, std::ref(*this)), _recvContextThread(RecvThread, std::ref(*this))
         {
             for (int i = 0; i < 1000; i++)
             { 
@@ -171,7 +170,7 @@ namespace FastTransport
             }
 
             {
-                std::lock_guard lock(_freeRecvPackets._mutex);
+                std::lock_guard lock(_freeSendPackets._mutex);
                 _freeSendPackets.splice(std::move(packets.second));
             }
         }
