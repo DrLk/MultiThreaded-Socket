@@ -4,14 +4,16 @@
 
 #include "MultiList.h"
 
+using namespace FastTransport::Containers;
+
 template<class T>
-class LockedList : public FastTransport::Containers::MultiList<T>
+class LockedList : public MultiList<T>
 {
 public:
 
-    LockedList& operator=(FastTransport::Containers::MultiList<T>&& that)
+    LockedList& operator=(MultiList<T>&& that)
     {
-        FastTransport::Containers::MultiList::operator=(std::move(that));
+        MultiList<T>::operator=(std::move(that));
         return *this;
     }
 

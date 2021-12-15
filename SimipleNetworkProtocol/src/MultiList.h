@@ -61,8 +61,6 @@ namespace FastTransport::Containers
                 }
             }
             _lists.splice(_lists.end(), std::move(that._lists));
-
-            const std::list< std::list<T> >::iterator& it = _lists.begin();
         }
 
         MultiList& operator=(MultiList&& that)

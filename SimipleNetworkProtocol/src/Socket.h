@@ -75,7 +75,7 @@ namespace FastTransport::Protocol
 
         void WaitRead() const
         {
-            FD_SET ReadSet;
+            fd_set ReadSet;
             FD_ZERO(&ReadSet);
             FD_SET(_socket, &ReadSet);
             select(0, &ReadSet, nullptr, nullptr, nullptr);
@@ -83,7 +83,7 @@ namespace FastTransport::Protocol
 
         void WaitWrite() const
         {
-            FD_SET WriteSet;
+            fd_set WriteSet;
             FD_ZERO(&WriteSet);
             FD_SET(_socket, &WriteSet);
             select(0, nullptr, &WriteSet, nullptr, nullptr);
