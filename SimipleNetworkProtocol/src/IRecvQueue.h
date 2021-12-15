@@ -42,7 +42,14 @@ namespace FastTransport
                     return std::move(packet); //drop packet. queue is full
 
                 if (packetNumber < _beginFullRecievedAck)
+                {
+                    {
+                        std::lock_guard lock(_selectiveAcksMutex);
+                        _selectiveAcks.push_back(packetNumber);
+                    }
+
                     return std::move(packet);
+                }
 
                 {
                     std::lock_guard lock(_selectiveAcksMutex);
