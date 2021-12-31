@@ -79,7 +79,7 @@ public:
 
     void WaitRead() const
     {
-        fd_set ReadSet;
+        fd_set ReadSet {};
         FD_ZERO(&ReadSet); // NOLINT
         FD_SET(_socket, &ReadSet); // NOLINT
         select(0, &ReadSet, nullptr, nullptr, nullptr);
@@ -87,7 +87,7 @@ public:
 
     void WaitWrite() const
     {
-        fd_set WriteSet;
+        fd_set WriteSet {};
         FD_ZERO(&WriteSet); // NOLINT
         FD_SET(_socket, &WriteSet); // NOLINT
         select(0, nullptr, &WriteSet, nullptr, nullptr);

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(INCLUDE_DIRS ${PROJECT_ROOT})
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.h)
+file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp)
 
 include_directories(${INCLUDE_DIRS})
 

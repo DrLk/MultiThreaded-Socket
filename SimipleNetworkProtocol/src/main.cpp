@@ -33,7 +33,7 @@ void Test()
     // auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
 
     if (result == 0) {
-        errno;
+        std::cout << errno;
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100000));
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
     dstAddr.sin_port = htons(dstPort);
     auto result = inet_pton(AF_INET, dstIP.c_str(), &(dstAddr.sin_addr));
     if (result != 0) {
-        errno;
+        std::cout << errno;
     }
     // auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
     // auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
