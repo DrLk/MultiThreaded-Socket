@@ -118,7 +118,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
         for (auto it = recvQueue.begin(); it != recvQueue.end();) {
             IPacket::Ptr& packet = *it;
             sockaddr_storage sockAddr {};
-            unsigned long result = socket.RecvFrom(packet->GetElement(), sockAddr);
+            int result = socket.RecvFrom(packet->GetElement(), sockAddr);
             // WSAEWOULDBLOCK
             if (result <= 0) {
                 break;

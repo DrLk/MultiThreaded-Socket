@@ -18,33 +18,6 @@ void TestConnection()
     ConnectionAddr srcAddr("127.0.0.1", 10100);
     ConnectionAddr dstAddr("127.0.0.1", 10200);
 
-    /*src.OnSend = [&dst](OutgoingPacket::List& packets)
-    {
-        IPacket::List recvPackets;
-        for (auto& packet : packets)
-        {
-            IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);
-            rcvPacket->Copy(*packet._packet);
-            recvPackets.push_back(std::move(rcvPacket));
-        }
-
-        dst.OnReceive(std::move(recvPackets));
-    };
-
-    dst.OnSend = [&src](OutgoingPacket::List& packets)
-    {
-        IPacket::List recvPackets;
-        for (auto& packet : packets)
-        {
-            IPacket::Ptr rcvPacket = std::make_unique<Packet>(1500);
-            rcvPacket->Copy(*packet._packet);
-            recvPackets.push_back(std::move(rcvPacket));
-
-        }
-
-        src.OnReceive(std::move(recvPackets));
-    };*/
-
     IConnection* srcConnection = src.Connect(dstAddr);
     for (int i = 0; i < 2000; i++) {
         IPacket::Ptr data = std::make_unique<Packet>(1500);

@@ -46,7 +46,7 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             while (true) {
-                size_t result = socket.SendTo(data, sockaddr.GetAddr());
+                int result = socket.SendTo(data, sockaddr.GetAddr());
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {
                     break;

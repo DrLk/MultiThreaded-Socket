@@ -65,12 +65,12 @@ public:
 #endif
     }
 
-    [[nodiscard]] size_t SendTo(std::span<const unsigned char> buffer, const sockaddr_storage& addr) const
+    [[nodiscard]] int SendTo(std::span<const unsigned char> buffer, const sockaddr_storage& addr) const
     {
         return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr), sizeof(sockaddr_in)); // NOLINT
     }
 
-    size_t RecvFrom(std::span<unsigned char> buffer, sockaddr_storage& addr) const
+    int RecvFrom(std::span<unsigned char> buffer, sockaddr_storage& addr) const
     {
         socklen_t len = sizeof(sockaddr_storage);
         int receivedBytes = recvfrom(_socket, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&addr), &len); // NOLINT
