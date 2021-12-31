@@ -1,89 +1,86 @@
-#include "Connection.h"
+#include "Connection.hpp"
 
-#include "IConnectionState.h"
+#include "IConnectionState.hpp"
 
-namespace FastTransport
+namespace FastTransport::Protocol {
+
+IPacket::PairList Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
-    namespace Protocol
+    _lastReceivedPacket = Connection::DefaultTimeOut;
+    auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
+
     {
+        std::lock_guard lock(_freeRecvPackets._mutex);
+        freePackets.first.splice(std::move(_freeRecvPackets));
+    }
 
-        IPacket::PairList Connection::OnRecvPackets(IPacket::Ptr&& packet)
-        {
-            _lastReceivedPacket = Connection::DefaultTimeOut;
-            auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
+    return freePackets;
+}
 
-            {
-                std::lock_guard lock(_freeRecvPackets._mutex);
-                freePackets.first.splice(std::move(_freeRecvPackets));
-            }
+void Connection::Send(IPacket::Ptr&& data)
+{
+    _sendUserData.push_back(std::move(data));
+}
 
-            return freePackets;
-        }
+IPacket::List Connection::Send(IPacket::List&& data)
+{
+    std::lock_guard lock(_sendUserDataMutex);
+    _sendUserData.splice(std::move(data));
 
-        void Connection::Send(IPacket::Ptr&& data)
-        {
-            _sendUserData.push_back(std::move(data));
-        }
+    throw std::runtime_error("Not Implemented");
+}
 
-        IPacket::List Connection::Send(IPacket::List&& data)
-        {
-            std::lock_guard lock(_sendUserDataMutex);
-            _sendUserData.splice(std::move(data));
+IPacket::List Connection::Recv(IPacket::List&& freePackets)
+{
+    {
+        std::lock_guard lock(_freeRecvPackets._mutex);
+        _freeRecvPackets.splice(std::move(freePackets));
+    }
 
-            throw std::runtime_error("Not Implemented");
-        }
+    return _recvQueue.GetUserData();
+}
 
-        IPacket::List Connection::Recv(IPacket::List&& freePackets)
-        {
-            {
-                std::lock_guard lock(_freeRecvPackets._mutex);
-                _freeRecvPackets.splice(std::move(freePackets));
-            }
+const ConnectionKey& Connection::GetConnectionKey() const
+{
+    return _key;
+}
 
-            return _recvQueue.GetUserData();
-        }
+OutgoingPacket::List Connection::GetPacketsToSend()
+{
+    return _sendQueue.GetPacketsToSend();
+}
 
-        const ConnectionKey& Connection::GetConnectionKey() const
-        {
-            return _key;
-        }
+void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
+{
+    auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
 
-        OutgoingPacket::List Connection::GetPacketsToSend()
-        {
-            return _sendQueue.GetPacketsToSend();
-        }
-
-        void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
-        {
-            auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
-
-            {
-                std::lock_guard lock(_freeSendPackets._mutex);
-                _freeSendPackets.splice(std::move(freePackets));
-            }
-        }
-        
-        void Connection::ProcessRecvPackets()
-        {
-            _recvQueue.ProccessUnorderedPackets();
-        }
-
-        void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck /*= true*/)
-        {
-            _sendQueue.SendPacket(std::move(packet), needAck);
-        }
-
-        void Connection::Close()
-        {
-            throw std::runtime_error("Not implemented");
-        }
-
-        void Connection::Run()
-        {
-            if (!_lastReceivedPacket.count())
-                _state->OnTimeOut(*this);
-            else
-                _state->SendPackets(*this);
-        }
+    {
+        std::lock_guard lock(_freeSendPackets._mutex);
+        _freeSendPackets.splice(std::move(freePackets));
     }
 }
+
+void Connection::ProcessRecvPackets()
+{
+    _recvQueue.ProccessUnorderedPackets();
+}
+
+void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
+{
+    _sendQueue.SendPacket(std::move(packet), needAck);
+}
+
+void Connection::Close()
+{
+    throw std::runtime_error("Not implemented");
+}
+
+void Connection::Run()
+{
+    if (_lastReceivedPacket.count() == 0) {
+        _state->OnTimeOut(*this);
+    } else {
+        _state->SendPackets(*this);
+    }
+}
+} // namespace FastTransport::Protocol

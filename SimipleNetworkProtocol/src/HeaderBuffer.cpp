@@ -1,8 +1,1 @@
-#include "HeaderBuffer.h"
-
-namespace FastTransport
-{
-    namespace Protocol
-    {
-    }
-}
+#include "HeaderBuffer.hpp"

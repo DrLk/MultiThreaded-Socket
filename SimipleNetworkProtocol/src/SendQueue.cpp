@@ -1,44 +1,43 @@
-#include "SendQueue.h"
+#include "SendQueue.hpp"
 
-#include "IPacket.h"
-#include "OutgoingPacket.h"
+#include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
 
 #include <limits>
 
-
-namespace FastTransport::Protocol
+namespace FastTransport::Protocol {
+void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
-    void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck/* = false*/)
-    {
-        Header header = packet->GetHeader();
-        header.SetMagic();
+    Header header = packet->GetHeader();
+    header.SetMagic();
 
-        if (needAck)
-            header.SetSeqNumber(++_nextPacketNumber);
-        else
-            header.SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
-
-        {
-            std::lock_guard lock(_needToSend._mutex);
-            _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
-        }
+    if (needAck) {
+        header.SetSeqNumber(++_nextPacketNumber);
+    } else {
+        header.SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
     }
 
-    void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
     {
         std::lock_guard lock(_needToSend._mutex);
-        _needToSend.splice(std::move(packets));
-    }
-
-    //make list of list to get fast 1k packets
-    OutgoingPacket::List SendQueue::GetPacketsToSend()
-    {
-        OutgoingPacket::List result;
-        {
-            std::lock_guard lock(_needToSend._mutex);
-            result = std::move(_needToSend);
-        }
-
-        return result;
+        _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
     }
 }
+
+void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
+{
+    std::lock_guard lock(_needToSend._mutex);
+    _needToSend.splice(std::move(packets));
+}
+
+// make list of list to get fast 1k packets
+OutgoingPacket::List SendQueue::GetPacketsToSend()
+{
+    OutgoingPacket::List result;
+    {
+        std::lock_guard lock(_needToSend._mutex);
+        result = std::move(_needToSend);
+    }
+
+    return result;
+}
+} // namespace FastTransport::Protocol
