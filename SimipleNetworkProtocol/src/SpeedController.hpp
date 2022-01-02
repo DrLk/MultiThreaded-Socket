@@ -18,6 +18,7 @@ public:
         , _end(0)
         , _sendInterval(sendInterval)
         , _startTime(startTime)
+        , _packets()
     {
     }
 

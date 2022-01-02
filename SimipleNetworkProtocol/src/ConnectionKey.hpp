@@ -11,18 +11,21 @@ public:
         , _dstAddr(addr)
     {
     }
-    ConnectionID _id; // NOLINT(misc-non-private-member-variables-in-classes)
-    ConnectionAddr _dstAddr; // NOLINT(misc-non-private-member-variables-in-classes)
 
-    bool operator==(const ConnectionKey that) const // NOLINT(fuchsia-overloaded-operator)
+    [[nodiscard]] unsigned short GetID() const
     {
-        if (_dstAddr == that._dstAddr) {
-            int a = 0;
-            a++;
-        }
-
-        return _id == that._id && _dstAddr == that._dstAddr;
+        return _id;
     }
+
+    [[nodiscard]] const ConnectionAddr& GetDestinaionAddr() const
+    {
+        return _dstAddr;
+    }
+
+
+private:
+    ConnectionID _id;
+    ConnectionAddr _dstAddr;
 };
 } // namespace FastTransport::Protocol
 
@@ -31,8 +34,19 @@ template <>
 struct hash<FastTransport::Protocol::ConnectionKey> { // NOLINT(altera-struct-pack-align)
     std::size_t operator()(const FastTransport::Protocol::ConnectionKey& key) const // NOLINT(fuchsia-overloaded-operator)
     {
-        return key._id;
+        return key.GetID();
+    }
+};
+
+template <>
+struct equal_to<FastTransport::Protocol::ConnectionKey> { // NOLINT(altera-struct-pack-align)
+    bool operator()(const FastTransport::Protocol::ConnectionKey& lhs, const FastTransport::Protocol::ConnectionKey& rhs) const // NOLINT(fuchsia-overloaded-operator)
+    {
+        using argument_type = FastTransport::Protocol::ConnectionKey;
+        using result_type = bool;
+        return lhs.GetID() == rhs.GetID() && lhs.GetDestinaionAddr() == rhs.GetDestinaionAddr();
     }
 };
 
 } // namespace std
+

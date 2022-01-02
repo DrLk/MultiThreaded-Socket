@@ -139,12 +139,12 @@ public:
             return retval;
         }
 
-        bool operator==(Iterator other) // NOLINT(fuchsia-overloaded-operator)
+        bool operator==(const Iterator& other) // NOLINT(fuchsia-overloaded-operator)
         {
             return _it1 == other._it1 && _it2 == other._it2;
         }
 
-        bool operator!=(Iterator other) // NOLINT(fuchsia-overloaded-operator)
+        bool operator!=(const Iterator& other) // NOLINT(fuchsia-overloaded-operator)
         {
             return !(*this == other);
         }

@@ -23,8 +23,8 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
     connection._freeSendPackets.pop_back();
 
     synPacket->GetHeader().SetPacketType(PacketType::SYN);
-    synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
-    synPacket->SetAddr(connection.GetConnectionKey()._dstAddr);
+    synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
+    synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
     connection.SendPacket(std::move(synPacket), false);
 
@@ -60,8 +60,8 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 
     synPacket->GetHeader().SetPacketType(PacketType::SYN_ACK);
     synPacket->GetHeader().SetDstConnectionID(connection._destinationID);
-    synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
-    synPacket->SetAddr(connection.GetConnectionKey()._dstAddr);
+    synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
+    synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
     connection.SendPacket(std::move(synPacket), false);
 
@@ -123,10 +123,10 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         }
 
         packet->GetHeader().SetPacketType(PacketType::SACK);
-        packet->GetHeader().SetSrcConnectionID(connection._key._id);
+        packet->GetHeader().SetSrcConnectionID(connection._key.GetID());
         packet->GetHeader().SetDstConnectionID(connection._destinationID);
         packet->GetHeader().SetAckNumber(connection._recvQueue.GetLastAck());
-        packet->SetAddr(connection.GetConnectionKey()._dstAddr);
+        packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
         std::list<SeqNumberType> packetAcks;
         auto end = acks.begin();
@@ -162,9 +162,9 @@ IConnectionState* DataState::SendPackets(Connection& connection)
 
     for (auto& packet : userData) {
         packet->GetHeader().SetPacketType(PacketType::DATA);
-        packet->GetHeader().SetSrcConnectionID(connection.GetConnectionKey()._id);
+        packet->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->GetHeader().SetDstConnectionID(connection._destinationID);
-        packet->SetAddr(connection.GetConnectionKey()._dstAddr);
+        packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
         // packet->GetPayload().SetPayload(data);
         connection.SendPacket(std::move(packet), true);
