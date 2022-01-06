@@ -1,0 +1,26 @@
+# Action name
+name: Clang Tidy
+
+# Here, this action will be enabled on all pushes.
+# Modify this to fit your needs.
+on:
+    push
+
+# Jobs section
+jobs:
+    # The job that will use the container image you just pushed to ghcr.io
+    super-job:
+        runs-on: ubuntu-20.04
+        container:
+            image: ghcr.io/drlk/clang-tidy-image:v13
+            credentials:
+               username: drlk
+               password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+        steps:
+            - name: clang-tidy
+              shell: bash
+              run: |
+                # Whatever commands you want to run here using the container with your
+                # new Docker image at ghcr.io!>
+                echo "--This is running in my custom Docker image--"
+
