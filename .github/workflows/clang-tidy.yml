@@ -20,6 +20,7 @@ jobs:
             - name: clang-tidy
               shell: bash
               run: |
+                ls -la /
                 # Whatever commands you want to run here using the container with your
                 # new Docker image at ghcr.io!>
                 echo "--This is running in my custom Docker image--"
