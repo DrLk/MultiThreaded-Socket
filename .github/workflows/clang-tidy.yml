@@ -9,7 +9,7 @@ on:
 # Jobs section
 jobs:
     # The job that will use the container image you just pushed to ghcr.io
-    super-job:
+    clang-tidy-job:
         runs-on: ubuntu-20.04
         container:
             image: ghcr.io/drlk/clang-tidy-image:v13
@@ -17,9 +17,11 @@ jobs:
                username: drlk
                password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
         steps:
+            - uses: actions/checkout@v2
             - name: clang-tidy
               shell: bash
               run: |
+                ls -la
                 ls -la /
                 # Whatever commands you want to run here using the container with your
                 # new Docker image at ghcr.io!>
