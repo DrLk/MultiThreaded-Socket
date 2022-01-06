@@ -17,7 +17,7 @@ jobs:
                username: drlk
                password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
         steps:
-            - uses: actions/checkout@v2
+            #- uses: actions/checkout@v2
             - name: clang-tidy
               shell: bash
               run: |
