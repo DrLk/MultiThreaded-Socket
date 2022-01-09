@@ -48,14 +48,14 @@ public:
         auto duration = now - _lastSend;
         _lastSend = now;
 
-        size_t numberPeracketToSend = (duration / std::chrono::milliseconds(1)) * packetPerMilisecond;
+        size_t numberPeracketToSend = (duration / std::chrono::milliseconds(1)) * _packetPerMilisecond;
 
         return numberPeracketToSend;
     }
 
 private:
     clock::time_point _lastSend;
-    size_t packetPerMilisecond { 1 };
+    size_t _packetPerMilisecond { 1 };
     std::vector<Sample> _samples;
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;

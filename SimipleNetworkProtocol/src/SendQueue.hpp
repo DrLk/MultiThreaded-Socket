@@ -31,12 +31,10 @@ public:
     void ReSendPackets(OutgoingPacket::List&& packets);
 
     // make list of list to get fast 1k packets
-    OutgoingPacket::List GetPacketsToSend();
+    OutgoingPacket::List GetPacketsToSend(size_t size);
 
 private:
     LockedList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
-
-    SpeedController _speedController;
 };
 } // namespace FastTransport::Protocol

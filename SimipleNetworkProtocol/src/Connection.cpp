@@ -47,7 +47,8 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
-    return _sendQueue.GetPacketsToSend();
+    size_t size = _inFlightQueue.GetNumberPacketToSend();
+    return _sendQueue.GetPacketsToSend(size);
 }
 
 void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)

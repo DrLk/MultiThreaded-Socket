@@ -29,13 +29,11 @@ void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
     _needToSend.splice(std::move(packets));
 }
 
-// make list of list to get fast 1k packets
-OutgoingPacket::List SendQueue::GetPacketsToSend()
+OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 {
     OutgoingPacket::List result;
     {
         std::lock_guard lock(_needToSend._mutex);
-        size_t size = _speedController.GetNumberPacketToSend();
         result = std::move(_needToSend.TryGenerate(size));
     }
 

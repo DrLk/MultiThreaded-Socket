@@ -110,4 +110,10 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
 
     return needToSend;
 }
+
+size_t IInflightQueue::GetNumberPacketToSend()
+{
+    return _speedController.GetNumberPacketToSend();
+}
+
 } // namespace FastTransport::Protocol
