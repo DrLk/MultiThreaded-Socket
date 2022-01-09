@@ -21,11 +21,16 @@ public:
     {
         MultiList list;
 
-        while (!_lists.empty() && size > 0) {
+        while (!_lists.empty()) {
             auto& front = _lists.front();
-            size -= front.size();
+            auto frontSize = front.size();
             list._lists.push_back(std::move(front));
             _lists.pop_front();
+
+            if (frontSize >= size)
+                break;
+
+            size -= frontSize;
         }
 
         return list;
@@ -34,14 +39,14 @@ public:
     void push_back(T&& element)
     {
         if (_lists.empty()) {
-            _lists.emplace_back();
+            _lists.emplace_back(0);
         }
 
         auto& list = _lists.back();
         if (list.size() < Size) {
             list.push_back(std::move(element));
         } else {
-            _lists.emplace_back();
+            _lists.emplace_back(0);
             _lists.back().push_back(std::move(element));
         }
     }

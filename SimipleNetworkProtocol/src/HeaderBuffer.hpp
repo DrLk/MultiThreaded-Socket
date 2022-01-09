@@ -120,7 +120,7 @@ public:
         {
             // TODO: check size
             _size = 0;
-            std::span<SeqNumberType> acks(_start, MaxAcks);
+            std::span<SeqNumberType> acks(_start, MaxAcks + 1);
             acks[0] = static_cast<SeqNumberType>(numbers.size());
             for (auto number : numbers) {
                 _size++;

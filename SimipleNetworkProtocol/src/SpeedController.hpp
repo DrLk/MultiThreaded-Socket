@@ -33,22 +33,32 @@ private:
 };
 
 class SpeedController {
+    using clock = std::chrono::steady_clock;
+
 public:
     SpeedController()
-        : _stableSendInterval(0)
+        : _lastSend(clock::now())
+        , packetPerMilisecond(1)
     {
     }
 
-    std::chrono::nanoseconds GetSendInterval()
+    size_t GetNumberPacketToSend()
     {
-        return _stableSendInterval;
+        auto now = clock::now();
+        auto duration = now - _lastSend;
+        _lastSend = now;
+
+        size_t numberPeracketToSend = (duration / std::chrono::milliseconds(1)) * packetPerMilisecond;
+
+        return numberPeracketToSend;
     }
 
 private:
-    std::chrono::nanoseconds _stableSendInterval;
+    clock::time_point _lastSend;
+    size_t packetPerMilisecond;
     std::vector<Sample> _samples;
-    static const int MinSpeed = 10;
-    static const int MaxSpeed = 10000;
+    static constexpr size_t MinSpeed = 10;
+    static constexpr size_t MaxSpeed = 10000;
 
     void GetStableSendInterval()
     {

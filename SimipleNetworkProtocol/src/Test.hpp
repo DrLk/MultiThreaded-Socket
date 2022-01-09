@@ -19,7 +19,7 @@ void TestConnection()
     ConnectionAddr dstAddr("127.0.0.1", 10200);
 
     IConnection* srcConnection = src.Connect(dstAddr);
-    for (int i = 0; i < 2000; i++) {
+    for (int i = 0; i < 20000; i++) {
         IPacket::Ptr data = std::make_unique<Packet>(1500);
         srcConnection->Send(std::move(data));
     }
@@ -44,6 +44,7 @@ void TestConnection()
         recvPackets = dstConnection->Recv(std::move(recvPackets));
         if (!recvPackets.empty()) {
             a += recvPackets.size();
+            std::cout << "Recv packets : " << a << std::endl;
         }
 
         // std::this_thread::sleep_for(500ms);

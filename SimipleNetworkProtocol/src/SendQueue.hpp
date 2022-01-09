@@ -8,6 +8,7 @@
 #include "HeaderBuffer.hpp"
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
+#include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
 class IPacket;
@@ -35,5 +36,7 @@ public:
 private:
     LockedList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
+
+    SpeedController _speedController;
 };
 } // namespace FastTransport::Protocol

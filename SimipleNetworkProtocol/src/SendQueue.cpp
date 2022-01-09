@@ -35,7 +35,8 @@ OutgoingPacket::List SendQueue::GetPacketsToSend()
     OutgoingPacket::List result;
     {
         std::lock_guard lock(_needToSend._mutex);
-        result = std::move(_needToSend);
+        size_t size = _speedController.GetNumberPacketToSend();
+        result = std::move(_needToSend.TryGenerate(size));
     }
 
     return result;
