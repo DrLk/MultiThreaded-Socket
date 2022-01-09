@@ -22,7 +22,6 @@ public:
         return _dstAddr;
     }
 
-
 private:
     ConnectionID _id;
     ConnectionAddr _dstAddr;
@@ -49,4 +48,3 @@ struct equal_to<FastTransport::Protocol::ConnectionKey> { // NOLINT(altera-struc
 };
 
 } // namespace std
-

@@ -18,7 +18,7 @@ public:
         , _end(0)
         , _sendInterval(sendInterval)
         , _startTime(startTime)
-        , _packets()
+
     {
     }
 
@@ -38,7 +38,7 @@ class SpeedController {
 public:
     SpeedController()
         : _lastSend(clock::now())
-        , packetPerMilisecond(1)
+
     {
     }
 
@@ -55,7 +55,7 @@ public:
 
 private:
     clock::time_point _lastSend;
-    size_t packetPerMilisecond;
+    size_t packetPerMilisecond { 1 };
     std::vector<Sample> _samples;
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;

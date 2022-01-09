@@ -27,8 +27,9 @@ public:
             list._lists.push_back(std::move(front));
             _lists.pop_front();
 
-            if (frontSize >= size)
+            if (frontSize >= size) {
                 break;
+            }
 
             size -= frontSize;
         }
@@ -144,12 +145,12 @@ public:
             return retval;
         }
 
-        bool operator==(const Iterator& other) // NOLINT(fuchsia-overloaded-operator)
+        bool operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
         {
             return _it1 == other._it1 && _it2 == other._it2;
         }
 
-        bool operator!=(const Iterator& other) // NOLINT(fuchsia-overloaded-operator)
+        bool operator!=(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
         {
             return !(*this == other);
         }

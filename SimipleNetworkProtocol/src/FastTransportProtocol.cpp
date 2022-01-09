@@ -165,8 +165,9 @@ void FastTransportContext::CheckRecvQueue()
 
 OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
 {
-    if (packets.empty())
-        return OutgoingPacket::List();
+    if (packets.empty()) {
+        return {};
+    }
 
     return _udpQueue.Send(std::move(packets));
 }
