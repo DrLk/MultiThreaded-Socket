@@ -28,8 +28,7 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
 
     connection.SendPacket(std::move(synPacket), false);
 
-    connection._state = new WaitingSynAckState();
-    return connection._state;
+    return new WaitingSynAckState();
 }
 
 IPacket::PairList WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
@@ -65,8 +64,7 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 
     connection.SendPacket(std::move(synPacket), false);
 
-    connection._state = new DataState();
-    return connection._state;
+    return new DataState();
 }
 
 IPacket::PairList WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
@@ -89,7 +87,7 @@ IPacket::PairList WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Conne
         break;
     }
     case PacketType::DATA: {
-        auto freeRecvPacket = connection._recvQueue.AddPacket(std::move(packet));
+        auto freeRecvPacket = connection.GetRecvQueue().AddPacket(std::move(packet));
         if (freeRecvPacket) {
             freePackets.first.push_back(std::move(freeRecvPacket));
         }
@@ -103,15 +101,14 @@ IPacket::PairList WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Conne
     return freePackets;
 }
 
-IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
+IConnectionState* WaitingSynAckState::OnTimeOut(Connection& /*connection*/)
 {
-    connection._state = new SendingSynState();
-    return connection._state;
+    return new SendingSynState();
 }
 
 IConnectionState* DataState::SendPackets(Connection& connection)
 {
-    std::list<SeqNumberType> acks = connection._recvQueue.GetSelectiveAcks();
+    std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     // TODO: maybe error after std::move second loop
     while (!acks.empty()) {
 
@@ -125,7 +122,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         packet->GetHeader().SetPacketType(PacketType::SACK);
         packet->GetHeader().SetSrcConnectionID(connection._key.GetID());
         packet->GetHeader().SetDstConnectionID(connection._destinationID);
-        packet->GetHeader().SetAckNumber(connection._recvQueue.GetLastAck());
+        packet->GetHeader().SetAckNumber(connection.GetRecvQueue().GetLastAck());
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
         std::list<SeqNumberType> packetAcks;
@@ -148,9 +145,9 @@ IConnectionState* DataState::SendPackets(Connection& connection)
     }
 
     {
-        OutgoingPacket::List packets = connection._inFlightQueue.CheckTimeouts();
+        OutgoingPacket::List packets = connection.GetInFlightQueue().CheckTimeouts();
         if (!packets.empty()) {
-            connection._sendQueue.ReSendPackets(std::move(packets));
+            connection.GetSendQueue().ReSendPackets(std::move(packets));
         }
     }
 
@@ -184,7 +181,7 @@ IPacket::PairList DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& co
         break;
     }
     case PacketType::SACK: {
-        auto freeFilghtPackets = connection._inFlightQueue.ProcessAcks(packet->GetAcks());
+        auto freeFilghtPackets = connection.GetInFlightQueue().ProcessAcks(packet->GetAcks());
         // send free;
         freePackets.first.push_back(std::move(packet));
         freePackets.second.splice(std::move(freeFilghtPackets));
@@ -192,7 +189,7 @@ IPacket::PairList DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& co
         break;
     }
     case PacketType::DATA: {
-        auto freePacket = connection._recvQueue.AddPacket(std::move(packet));
+        auto freePacket = connection.GetRecvQueue().AddPacket(std::move(packet));
         if (freePacket) {
             freePackets.first.push_back(std::move(freePacket));
         }

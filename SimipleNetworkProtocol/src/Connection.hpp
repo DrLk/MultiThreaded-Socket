@@ -58,12 +58,22 @@ public:
 
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
 
-    // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-    IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-    RecvQueue _recvQueue; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-    SendQueue _sendQueue; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    IInflightQueue& GetInFlightQueue()
+    {
+        return _inFlightQueue;
+    }
 
-    IInflightQueue _inFlightQueue; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    RecvQueue& GetRecvQueue()
+    {
+        return _recvQueue;
+    }
+
+    SendQueue& GetSendQueue()
+    {
+        return _sendQueue;
+    }
+
+    IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     IPacket::List _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     std::mutex _sendUserDataMutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -79,5 +89,9 @@ private:
     std::chrono::microseconds _lastReceivedPacket;
 
     static constexpr std::chrono::microseconds DefaultTimeOut = 100ms;
+
+    IInflightQueue _inFlightQueue;
+    RecvQueue _recvQueue;
+    SendQueue _sendQueue;
 };
 } // namespace FastTransport::Protocol

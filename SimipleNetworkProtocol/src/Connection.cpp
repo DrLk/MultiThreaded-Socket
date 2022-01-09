@@ -81,7 +81,7 @@ void Connection::Run()
     if (_lastReceivedPacket.count() == 0) {
         _state->OnTimeOut(*this);
     } else {
-        _state->SendPackets(*this);
+        _state = _state->SendPackets(*this);
     }
 }
 } // namespace FastTransport::Protocol
