@@ -82,6 +82,7 @@ void Connection::Run()
         _state->OnTimeOut(*this);
     } else {
         _state = _state->SendPackets(*this);
+        _state->ProcessInflightPackets(*this);
     }
 }
 } // namespace FastTransport::Protocol

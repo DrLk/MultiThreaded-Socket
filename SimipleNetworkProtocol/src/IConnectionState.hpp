@@ -20,6 +20,7 @@ public:
     virtual IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
     virtual IConnectionState* SendPackets(Connection& connection) = 0;
     virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
+    virtual void ProcessInflightPackets(Connection& connection) = 0;
 };
 
 class BasicConnectionState : public IConnectionState {
@@ -30,6 +31,7 @@ public:
     }
     IConnectionState* SendPackets(Connection& /*connection*/) override { return this; }
     IConnectionState* OnTimeOut(Connection& /*connection*/) override { return this; }
+    virtual void ProcessInflightPackets(Connection& connection) override;
 };
 
 class ListenState {

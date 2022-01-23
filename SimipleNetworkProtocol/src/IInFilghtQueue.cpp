@@ -39,15 +39,31 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
     return freePackets;
 }
 
-IPacket::List IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
+void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
 {
-    IPacket::List freePackets;
-
     if (!acks.IsValid()) {
         throw std::runtime_error("Not Implemented");
     }
 
     std::unordered_set<SeqNumberType> receivedAcks(acks.GetAcks().begin(), acks.GetAcks().end());
+
+    {
+        std::lock_guard lock(_receivedAcksMutex);
+        _receivedAcks.merge(std::move(receivedAcks));
+    }
+}
+
+
+IPacket::List IInflightQueue::ProcessAcks()
+{
+    IPacket::List freePackets;
+
+    std::unordered_set<SeqNumberType> receivedAcks;
+
+    {
+        std::lock_guard lock(_receivedAcksMutex);
+        receivedAcks = std::exchange(_receivedAcks, std::unordered_set<SeqNumberType>());
+    }
 
     for (auto& sample : _samples) {
         freePackets.splice(sample.ProcessAcks(receivedAcks));
@@ -68,6 +84,10 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
     for (auto& sample : _samples) {
         needToSend.splice(sample.CheckTimeouts());
     }
+
+    _samples.remove_if([](const auto& sample) {
+        return sample.IsDead();
+    });
 
     return needToSend;
 }

@@ -19,7 +19,8 @@ class IInflightQueue {
 
 public:
     IPacket::List AddQueue(OutgoingPacket::List&& packets);
-    IPacket::List ProcessAcks(const SelectiveAckBuffer::Acks& acks);
+    void AddAcks(const SelectiveAckBuffer::Acks& acks);
+    IPacket::List ProcessAcks();
     OutgoingPacket::List CheckTimeouts();
     size_t GetNumberPacketToSend();
 };

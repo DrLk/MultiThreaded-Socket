@@ -16,6 +16,8 @@ public:
     IPacket::List ProcessAcks(std::unordered_set<SeqNumberType>& acks);
     OutgoingPacket::List CheckTimeouts();
 
+    bool IsDead() const;
+
 private:
     std::unordered_map<SeqNumberType, OutgoingPacket> _packets;
     std::uint16_t _ackPacketNumber;

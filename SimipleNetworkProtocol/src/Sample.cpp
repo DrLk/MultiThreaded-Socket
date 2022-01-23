@@ -59,4 +59,9 @@ OutgoingPacket::List Sample::CheckTimeouts()
 
     return needToSend;
 }
+
+bool Sample::IsDead() const
+{
+    return _packets.empty();
+}
 } // namespace FastTransport::Protocol
