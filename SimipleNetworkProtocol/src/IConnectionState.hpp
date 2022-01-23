@@ -31,7 +31,7 @@ public:
     }
     IConnectionState* SendPackets(Connection& /*connection*/) override { return this; }
     IConnectionState* OnTimeOut(Connection& /*connection*/) override { return this; }
-    virtual void ProcessInflightPackets(Connection& connection) override;
+    void ProcessInflightPackets(Connection& connection) override;
 };
 
 class ListenState {

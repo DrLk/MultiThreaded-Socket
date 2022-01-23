@@ -53,7 +53,6 @@ void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
     }
 }
 
-
 IPacket::List IInflightQueue::ProcessAcks()
 {
     IPacket::List freePackets;
