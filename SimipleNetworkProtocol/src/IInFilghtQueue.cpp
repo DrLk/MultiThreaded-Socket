@@ -19,8 +19,7 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
             SeqNumberType packetNumber = packet._packet->GetHeader().GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
             if (ack == receivedAcks.end()) {
-                std::lock_guard lock(_queueMutex);
-                _queue[packetNumber] = std::move(packet);
+                queue[packetNumber] = std::move(packet);
             } else {
                 receivedAcks.erase(ack);
                 freePackets.push_back(std::move(packet._packet));
@@ -29,6 +28,8 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
             freePackets.push_back(std::move(packet._packet));
         }
     }
+
+    _samples.emplace_back(std::move(queue));
 
     {
         std::lock_guard lock(_receivedAcksMutex);
@@ -41,36 +42,20 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
 IPacket::List IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
 {
     IPacket::List freePackets;
-    std::unordered_set<SeqNumberType> receivedAcks;
-    std::unordered_map<SeqNumberType, OutgoingPacket> queue;
-
-    {
-        std::lock_guard lock(_queueMutex);
-        queue.swap(_queue);
-    }
 
     if (!acks.IsValid()) {
         throw std::runtime_error("Not Implemented");
     }
 
-    for (SeqNumberType number : acks.GetAcks()) {
-        const auto& it = queue.find(number);
-        if (it != queue.end()) {
-            freePackets.push_back(std::move(it->second._packet));
-            queue.erase(it);
-        } else {
-            receivedAcks.insert(number);
-        }
+    std::unordered_set<SeqNumberType> receivedAcks(acks.GetAcks().begin(), acks.GetAcks().end());
+
+    for (auto& sample : _samples) {
+        freePackets.splice(sample.ProcessAcks(receivedAcks));
     }
 
     {
         std::lock_guard lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
-    }
-
-    {
-        std::lock_guard lock(_queueMutex);
-        _queue.merge(std::move(queue));
     }
 
     return freePackets;
@@ -79,33 +64,9 @@ IPacket::List IInflightQueue::ProcessAcks(const SelectiveAckBuffer::Acks& acks)
 OutgoingPacket::List IInflightQueue::CheckTimeouts()
 {
     OutgoingPacket::List needToSend;
-    std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
-    {
-        std::lock_guard lock(_queueMutex);
-
-        if (_queue.empty()) {
-            return needToSend;
-        }
-
-        queue.swap(_queue);
-    }
-
-    clock::time_point now = clock::now();
-    for (auto it = queue.begin(); it != queue.end();) {
-        OutgoingPacket&& packet = std::move(it->second);
-        if ((now - packet._sendTime) > clock::duration(1000ms)) {
-            needToSend.push_back(std::move(packet));
-
-            it = queue.erase(it);
-        } else {
-            it++;
-        }
-    }
-
-    {
-        std::lock_guard lock(_queueMutex);
-        _queue.merge(std::move(queue));
+    for (auto& sample : _samples) {
+        needToSend.splice(sample.CheckTimeouts());
     }
 
     return needToSend;

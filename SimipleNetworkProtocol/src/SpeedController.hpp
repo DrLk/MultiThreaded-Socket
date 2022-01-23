@@ -8,30 +8,9 @@
 
 #include "HeaderBuffer.hpp"
 #include "IPacket.hpp"
+#include "Sample.hpp"
 
 namespace FastTransport::Protocol {
-class Sample {
-public:
-    Sample(const std::chrono::microseconds& sendInterval, const std::chrono::microseconds& startTime)
-        : _lostPackets(0)
-        , _start(0)
-        , _end(0)
-        , _sendInterval(sendInterval)
-        , _startTime(startTime)
-
-    {
-    }
-
-private:
-    std::unordered_map<SeqNumberType, IPacket::Ptr> _packets;
-
-    int _lostPackets;
-    SeqNumberType _start;
-    SeqNumberType _end;
-    std::chrono::microseconds _sendInterval;
-    std::chrono::microseconds _startTime;
-};
-
 class SpeedController {
     using clock = std::chrono::steady_clock;
 
@@ -56,7 +35,6 @@ public:
 private:
     clock::time_point _lastSend;
     size_t _packetPerMilisecond { 1 };
-    std::vector<Sample> _samples;
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;
 
