@@ -44,7 +44,7 @@ public:
 
     IPacket::List Recv(IPacket::List&& freePackets) override;
 
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet);
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
     const ConnectionKey& GetConnectionKey() const;
     OutgoingPacket::List GetPacketsToSend();

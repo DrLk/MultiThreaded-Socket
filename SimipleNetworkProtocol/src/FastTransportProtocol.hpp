@@ -21,7 +21,7 @@ public:
     FastTransportContext& operator=(FastTransportContext&& that) = delete;
     ~FastTransportContext();
 
-    IPacket::PairList OnReceive(IPacket::List&& packet);
+    IPacket::List OnReceive(IPacket::List&& packet);
 
     IConnection* Accept();
     IConnection* Connect(const ConnectionAddr&);
@@ -50,7 +50,7 @@ private:
 
     std::atomic<bool> _shutdownContext;
 
-    IPacket::PairList OnReceive(IPacket::Ptr&& packet);
+    IPacket::List OnReceive(IPacket::Ptr&& packet);
 
     static void SendThread(FastTransportContext& context);
     static void RecvThread(FastTransportContext& context);

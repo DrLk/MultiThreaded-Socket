@@ -4,14 +4,14 @@
 
 namespace FastTransport::Protocol {
 
-IPacket::PairList Connection::OnRecvPackets(IPacket::Ptr&& packet)
+IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
     _lastReceivedPacket = Connection::DefaultTimeOut;
     auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
     {
         std::lock_guard lock(_freeRecvPackets._mutex);
-        freePackets.first.splice(std::move(_freeRecvPackets));
+        freePackets.splice(std::move(_freeRecvPackets));
     }
 
     return freePackets;

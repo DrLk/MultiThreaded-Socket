@@ -10,7 +10,6 @@ class IPacket {
 public:
     using Ptr = std::unique_ptr<IPacket>;
     using List = Containers::MultiList<Ptr>;
-    using PairList = std::pair<List, List>;
 
     using ElementType = std::vector<unsigned char>;
 

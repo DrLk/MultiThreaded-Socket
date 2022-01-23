@@ -10,7 +10,7 @@ std::pair<Connection*, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet,
     if (packet->GetHeader().GetPacketType() == PacketType::SYN) {
         auto* connection = new Connection(new WaitingSynState(), packet->GetDstAddr(), myID); // NOLINT
         auto freePackets = connection->OnRecvPackets(std::move(packet));
-        return { connection, std::move(freePackets.first) };
+        return { connection, std::move(freePackets) };
     }
 
     return { nullptr, IPacket::List() };
@@ -41,13 +41,13 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
     return new WaitingSynAckState();
 }
 
-IPacket::PairList WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
-    IPacket::PairList freePackets;
+    IPacket::List freePackets;
     auto header = packet->GetHeader();
     if (!header.IsValid()) {
         connection.Close();
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
         return freePackets;
     }
 
@@ -55,7 +55,7 @@ IPacket::PairList WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connecti
         connection._destinationID = packet->GetHeader().GetSrcConnectionID();
         connection._state = new SendingSynAckState();
 
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
         return freePackets;
     }
     throw std::runtime_error("Wrong packet type");
@@ -77,14 +77,14 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
     return new DataState();
 }
 
-IPacket::PairList WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
-    IPacket::PairList freePackets;
+    IPacket::List freePackets;
     auto header = packet->GetHeader();
 
     if (!header.IsValid()) {
         connection.Close();
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
         return freePackets;
     }
 
@@ -93,13 +93,13 @@ IPacket::PairList WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Conne
         auto synAckHeader = packet->GetHeader();
         connection._destinationID = synAckHeader.GetSrcConnectionID();
         connection._state = new DataState();
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
         break;
     }
     case PacketType::DATA: {
         auto freeRecvPacket = connection.GetRecvQueue().AddPacket(std::move(packet));
         if (freeRecvPacket) {
-            freePackets.first.push_back(std::move(freeRecvPacket));
+            freePackets.push_back(std::move(freeRecvPacket));
         }
         break;
     }
@@ -180,27 +180,27 @@ IConnectionState* DataState::SendPackets(Connection& connection)
     return this;
 }
 
-IPacket::PairList DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
-    IPacket::PairList freePackets;
+    IPacket::List freePackets;
     auto header = packet->GetHeader();
 
     switch (header.GetPacketType()) {
     case PacketType::SYN_ACK: {
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
         break;
     }
     case PacketType::SACK: {
         connection.GetInFlightQueue().AddAcks(packet->GetAcks());
         // send free;
-        freePackets.first.push_back(std::move(packet));
+        freePackets.push_back(std::move(packet));
 
         break;
     }
     case PacketType::DATA: {
         auto freePacket = connection.GetRecvQueue().AddPacket(std::move(packet));
         if (freePacket) {
-            freePackets.first.push_back(std::move(freePacket));
+            freePackets.push_back(std::move(freePacket));
         }
         break;
     }

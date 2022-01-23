@@ -17,7 +17,7 @@ enum ConnectionState {
 
 class IConnectionState {
 public:
-    virtual IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
+    virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
     virtual IConnectionState* SendPackets(Connection& connection) = 0;
     virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
     virtual void ProcessInflightPackets(Connection& connection) = 0;
@@ -25,7 +25,7 @@ public:
 
 class BasicConnectionState : public IConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override
+    IPacket::List OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override
     {
         throw std::runtime_error("Not implemented");
     }
@@ -46,12 +46,12 @@ public:
 
 class WaitingSynState : public BasicConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
 class WaitingSynAckState : public BasicConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* OnTimeOut(Connection& connection) override;
 };
 
@@ -61,18 +61,18 @@ class SendingSynAckState : public BasicConnectionState {
 
 class DataState : public BasicConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* SendPackets(Connection& connection) override;
     IConnectionState* OnTimeOut(Connection& connection) override;
 };
 
 class ClosingState : public BasicConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
 class ClosedState : public BasicConnectionState {
 public:
-    IPacket::PairList OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 } // namespace FastTransport::Protocol

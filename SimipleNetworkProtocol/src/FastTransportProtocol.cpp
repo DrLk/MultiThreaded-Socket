@@ -53,22 +53,21 @@ IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
     return connection;
 }
 
-IPacket::PairList FastTransportContext::OnReceive(IPacket::List&& packets)
+IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
 {
-    IPacket::PairList freePackets;
+    IPacket::List freePackets;
 
     for (auto& packet : packets) {
         auto packets = OnReceive(std::move(packet));
-        freePackets.first.splice(std::move(packets.first));
-        freePackets.second.splice(std::move(packets.second));
+        freePackets.splice(std::move(packets));
     }
 
     return freePackets;
 }
 
-IPacket::PairList FastTransportContext::OnReceive(IPacket::Ptr&& packet)
+IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 {
-    IPacket::PairList freePackets;
+    IPacket::List freePackets;
 
     Header header = packet->GetHeader();
     if (!header.IsValid()) {
@@ -79,8 +78,7 @@ IPacket::PairList FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 
     if (connection != _connections.end()) {
         auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
-        freePackets.first.splice(std::move(freeRecvPackets.first));
-        freePackets.second.splice(std::move(freeRecvPackets.second));
+        freePackets.splice(std::move(freeRecvPackets));
     } else {
         auto [connection, freeRecvPackets] = _listen.Listen(std::move(packet), GenerateID());
         if (connection != nullptr) {
@@ -88,7 +86,7 @@ IPacket::PairList FastTransportContext::OnReceive(IPacket::Ptr&& packet)
             _connections.insert({ connection->GetConnectionKey(), connection });
         }
 
-        freePackets.first.splice(std::move(freeRecvPackets));
+        freePackets.splice(std::move(freeRecvPackets));
     }
 
     return freePackets;
@@ -147,12 +145,7 @@ void FastTransportContext::RecvQueueStep()
 
     {
         std::lock_guard lock(_freeRecvPackets._mutex);
-        _freeRecvPackets.splice(std::move(packets.first));
-    }
-
-    {
-        std::lock_guard lock(_freeSendPackets._mutex);
-        _freeSendPackets.splice(std::move(packets.second));
+        _freeRecvPackets.splice(std::move(packets));
     }
 }
 
