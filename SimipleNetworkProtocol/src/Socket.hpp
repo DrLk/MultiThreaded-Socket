@@ -13,6 +13,10 @@
 #include <span>
 #include <stdexcept>
 
+#ifdef __APPLE__
+#include <fcntl.h>
+#endif
+
 namespace FastTransport::Protocol {
 class Socket {
 public:
@@ -46,6 +50,15 @@ public:
             throw std::runtime_error("socket");
         }
 
+        u_long mode = 1; // 1 to enable non-blocking socket
+#ifdef WIN32
+        ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
+#elif __APPLE__
+        fcntl(_socket, F_SETFL, O_NONBLOCK); // NOLINT
+#else
+        ioctl(_socket, FIONBIO, &mode); // NOLINT
+#endif
+
         // zero out the structure
         std::memset(&si_me, 0, sizeof(si_me));
 
@@ -57,12 +70,6 @@ public:
         if (bind(_socket, reinterpret_cast<const struct sockaddr*>(&si_me), sizeof(si_me)) == -1) { // NOLINT
             throw std::runtime_error("bind");
         }
-        u_long mode = 1; // 1 to enable non-blocking socket
-#ifdef WIN32
-        ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
-#else
-        ioctl(_socket, FIONBIO, &mode); // NOLINT
-#endif
     }
 
     [[nodiscard]] int SendTo(std::span<const unsigned char> buffer, const sockaddr_storage& addr) const
@@ -82,7 +89,7 @@ public:
         fd_set ReadSet {};
         FD_ZERO(&ReadSet); // NOLINT
         FD_SET(_socket, &ReadSet); // NOLINT
-        select(0, &ReadSet, nullptr, nullptr, nullptr);
+        select(_socket + 1, &ReadSet, nullptr, nullptr, nullptr);
     }
 
     void WaitWrite() const
@@ -90,7 +97,7 @@ public:
         fd_set WriteSet {};
         FD_ZERO(&WriteSet); // NOLINT
         FD_SET(_socket, &WriteSet); // NOLINT
-        select(0, nullptr, &WriteSet, nullptr, nullptr);
+        select(_socket + 1, nullptr, &WriteSet, nullptr, nullptr);
     }
 
 private:
