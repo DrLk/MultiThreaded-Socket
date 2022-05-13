@@ -73,6 +73,8 @@ public:
         return _sendQueue;
     }
 
+    IPacket::List GetFreeRecvPackets();
+
     IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     IPacket::List _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)

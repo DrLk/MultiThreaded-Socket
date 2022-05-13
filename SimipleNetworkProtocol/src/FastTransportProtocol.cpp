@@ -141,11 +141,13 @@ void FastTransportContext::RecvQueueStep()
 
     auto receivedPackets = _udpQueue.Recv(std::move(freePackets));
 
-    auto packets = OnReceive(std::move(receivedPackets));
+    auto freeRecvPackets = OnReceive(std::move(receivedPackets));
+
+    freeRecvPackets.splice(GetConnectionsFreeRecvPackets());
 
     {
         std::lock_guard lock(_freeRecvPackets._mutex);
-        _freeRecvPackets.splice(std::move(packets));
+        _freeRecvPackets.splice(std::move(freeRecvPackets));
     }
 }
 
@@ -158,10 +160,6 @@ void FastTransportContext::CheckRecvQueue()
 
 OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
 {
-    if (packets.empty()) {
-        return {};
-    }
-
     return _udpQueue.Send(std::move(packets));
 }
 
@@ -188,6 +186,16 @@ void FastTransportContext::RecvThread(FastTransportContext& context)
     while (!context._shutdownContext) {
         pe.Run();
     }
+}
+
+IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
+{
+    IPacket::List freeRecvPackets;
+    for (auto& [key, connection] : _connections) {
+        freeRecvPackets.splice(connection->GetFreeRecvPackets());
+    }
+
+    return freeRecvPackets;
 }
 
 } // namespace FastTransport::Protocol

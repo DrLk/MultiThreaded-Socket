@@ -36,9 +36,12 @@ void TestConnection()
     }
 
     IPacket::List recvPackets;
-    IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
-    ;
-    recvPackets.push_back(std::move(recvPacket));
+
+    for (int i = 0; i < 1; i++) {
+        IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
+        recvPackets.push_back(std::move(recvPacket));
+    }
+
     while (true) {
         static size_t a = 0;
         recvPackets = dstConnection->Recv(std::move(recvPackets));

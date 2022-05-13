@@ -59,6 +59,7 @@ IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
 
 OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
 {
+    if (!data.empty())
     {
         std::lock_guard lock(_sendQueue._mutex);
         _sendQueue.splice(std::move(data));

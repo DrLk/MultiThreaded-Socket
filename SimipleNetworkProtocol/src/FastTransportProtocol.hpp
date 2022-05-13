@@ -59,5 +59,7 @@ private:
     void SendQueueStep();
     void RecvQueueStep();
     void CheckRecvQueue();
+
+    IPacket::List GetConnectionsFreeRecvPackets();
 };
 } // namespace FastTransport::Protocol

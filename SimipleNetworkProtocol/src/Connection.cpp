@@ -71,6 +71,17 @@ void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
     _sendQueue.SendPacket(std::move(packet), needAck);
 }
 
+IPacket::List Connection::GetFreeRecvPackets()
+{
+    IPacket::List freePackets;
+    {
+        std::lock_guard lock(_freeRecvPackets._mutex);
+        freePackets.splice(std::move(_freeRecvPackets));
+    }
+
+    return freePackets;
+}
+
 void Connection::Close()
 {
     throw std::runtime_error("Not implemented");

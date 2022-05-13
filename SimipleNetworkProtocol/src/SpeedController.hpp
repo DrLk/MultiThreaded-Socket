@@ -34,7 +34,7 @@ public:
 
 private:
     clock::time_point _lastSend;
-    size_t _packetPerMilisecond { 1 };
+    size_t _packetPerMilisecond { 10 };
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;
 
