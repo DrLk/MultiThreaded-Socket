@@ -21,8 +21,7 @@ namespace FastTransport::Protocol {
 class Socket {
 public:
     explicit Socket(unsigned short port)
-        : _socket(-1)
-        , _port(port)
+        : _port(port)
     {
     }
 
@@ -104,7 +103,7 @@ private:
 #ifdef WIN32
     SOCKET _socket;
 #else
-    int _socket;
+    int _socket { -1 };
 #endif
     unsigned short _port;
 };

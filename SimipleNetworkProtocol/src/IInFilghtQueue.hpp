@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "OutgoingPacket.hpp"
+#include "Sample.hpp"
 #include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {

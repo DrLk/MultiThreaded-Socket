@@ -11,9 +11,16 @@ Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets)
     , _start(0)
     , _end(0)
     , _sendInterval(0)
-    , _startTime(0)
+    , _allPacketsCount(_packets.size())
 
 {
+    const auto& [min, max] = std::minmax_element(_packets.begin(), _packets.end(),
+        [](const std::pair<const SeqNumberType, OutgoingPacket>& left, const std::pair<const SeqNumberType, OutgoingPacket>& right) {
+            return left.second._sendTime < right.second._sendTime;
+        });
+
+    _startTime = min->second._sendTime;
+    _endTime = max->second._sendTime;
 }
 
 IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
@@ -63,5 +70,9 @@ OutgoingPacket::List Sample::CheckTimeouts()
 bool Sample::IsDead() const
 {
     return _packets.empty();
+}
+SampleStats Sample::GetSampleStats() const
+{
+    return { _allPacketsCount, _lostPacketNumber, _startTime, _endTime };
 }
 } // namespace FastTransport::Protocol

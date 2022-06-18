@@ -30,7 +30,6 @@ public:
     Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID)
         : _state(state)
         , _key(addr, myID)
-        , _destinationID(0)
         , _lastReceivedPacket(DefaultTimeOut)
     {
         for (int i = 0; i < 1000; i++) {
@@ -81,7 +80,7 @@ public:
     std::mutex _sendUserDataMutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     ConnectionKey _key; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-    ConnectionID _destinationID; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    ConnectionID _destinationID { 0 }; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     LockedList<IPacket::Ptr> _freeSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     LockedList<IPacket::Ptr> _freeRecvPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)

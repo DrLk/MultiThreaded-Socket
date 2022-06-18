@@ -29,7 +29,9 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
         }
     }
 
-    _samples.emplace_back(std::move(queue));
+    if (!queue.empty()) {
+        _samples.emplace_back(std::move(queue));
+    }
 
     {
         std::lock_guard lock(_receivedAcksMutex);
@@ -39,6 +41,7 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
     return freePackets;
 }
 
+static int countAcks = 0;
 void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
 {
     if (!acks.IsValid()) {
@@ -47,8 +50,11 @@ void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
 
     std::unordered_set<SeqNumberType> receivedAcks(acks.GetAcks().begin(), acks.GetAcks().end());
 
+    //_speedController.AddrecievedAcks(receivedAcks.size());
+
     {
         std::lock_guard lock(_receivedAcksMutex);
+        countAcks += receivedAcks.size();
         _receivedAcks.merge(std::move(receivedAcks));
     }
 }
@@ -84,7 +90,11 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
         needToSend.splice(sample.CheckTimeouts());
     }
 
-    _samples.remove_if([](const auto& sample) {
+    _samples.remove_if([this](const auto& sample) {
+        if (sample.IsDead()) {
+            _speedController.UpdateStats(sample.GetSampleStats());
+        }
+
         return sample.IsDead();
     });
 

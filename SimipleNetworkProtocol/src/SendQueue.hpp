@@ -3,10 +3,11 @@
 #include "ISendQueue.hpp"
 
 #include <atomic>
+#include <set>
 #include <vector>
 
 #include "HeaderBuffer.hpp"
-#include "LockedList.hpp"
+#include "MultiList.hpp"
 #include "OutgoingPacket.hpp"
 #include "SpeedController.hpp"
 
@@ -34,7 +35,12 @@ public:
     OutgoingPacket::List GetPacketsToSend(size_t size);
 
 private:
-    LockedList<OutgoingPacket> _needToSend;
+    static constexpr auto outgoingComparator = [](const OutgoingPacket& left, const OutgoingPacket& right) {
+        return left._packet->GetHeader().GetSeqNumber() < right._packet->GetHeader().GetSeqNumber();
+    };
+    std::set<OutgoingPacket, decltype(outgoingComparator)> _resendPackets;
+
+    Containers::MultiList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
 };
 } // namespace FastTransport::Protocol

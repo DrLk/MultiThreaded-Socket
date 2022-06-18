@@ -42,16 +42,17 @@ public:
 
     bool operator==(const ConnectionAddr& that) const // NOLINT(fuchsia-overloaded-operator)
     {
-       if (_storage.ss_family != that._storage.ss_family)
-           return false;
+        if (_storage.ss_family != that._storage.ss_family) {
+            return false;
+        }
 
-        if (_storage.ss_family == AF_INET)
-        {
+        if (_storage.ss_family == AF_INET) {
             const sockaddr_in* addr = (reinterpret_cast<const sockaddr_in*>(&_storage)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             const sockaddr_in* thatAddr = (reinterpret_cast<const sockaddr_in*>(&that._storage)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
-            if (addr->sin_port != thatAddr->sin_port)
+            if (addr->sin_port != thatAddr->sin_port) {
                 return false;
+            }
 
             return std::memcmp(&addr->sin_addr, &thatAddr->sin_addr, sizeof(in_addr)) == 0;
         }

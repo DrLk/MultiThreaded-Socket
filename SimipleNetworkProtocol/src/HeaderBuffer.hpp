@@ -97,8 +97,6 @@ public:
         static constexpr SeqNumberType MaxAcks = 300;
 
         Acks(unsigned char* start, size_t size)
-            : _start(nullptr)
-            , _size(0)
         {
             size_t ackPacketStart = Header::Size + sizeof(MaxAcks);
             if (size >= ackPacketStart) {
@@ -134,8 +132,8 @@ public:
         }
 
     private:
-        SeqNumberType* _start;
-        size_t _size;
+        SeqNumberType* _start { nullptr };
+        size_t _size { 0 };
     };
 
     explicit SelectiveAckBuffer(const Acks& acks)
@@ -154,8 +152,7 @@ public:
     public:
         static const SeqNumberType MaxPayload = 1300;
         Payload(PayloadType* start, size_t size)
-            : _start(nullptr)
-            , _size(0)
+
         {
             size_t ackPacketStart = Header::Size + sizeof(MaxPayload);
             if (size >= ackPacketStart) {
@@ -181,8 +178,8 @@ public:
         }
 
     private:
-        PayloadType* _start;
-        size_t _size;
+        PayloadType* _start { nullptr };
+        size_t _size { 0 };
     };
 
     PayloadBuffer(PayloadType* start, int count)

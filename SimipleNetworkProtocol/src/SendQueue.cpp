@@ -18,23 +18,29 @@ void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
     }
 
     {
-        std::lock_guard lock(_needToSend._mutex);
         _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
     }
 }
 
 void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
 {
-    std::lock_guard lock(_needToSend._mutex);
-    _needToSend.splice(std::move(packets));
+    for (auto&& packet : packets) {
+        _resendPackets.insert(std::move(packet));
+    }
 }
 
 OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 {
     OutgoingPacket::List result;
+
     {
-        std::lock_guard lock(_needToSend._mutex);
-        result = std::move(_needToSend.TryGenerate(size));
+        for (auto it = _resendPackets.begin(); it != _resendPackets.end() && size > 0; size--) {
+            result.push_back(std::move(_resendPackets.extract(it++).value()));
+        }
+    }
+
+    if (size != 0u) {
+        result.splice(std::move(_needToSend.TryGenerate(size)));
     }
 
     return result;

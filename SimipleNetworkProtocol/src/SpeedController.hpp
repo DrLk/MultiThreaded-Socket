@@ -3,40 +3,31 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
-#include <unordered_map>
-#include <vector>
 
-#include "HeaderBuffer.hpp"
-#include "IPacket.hpp"
-#include "Sample.hpp"
+#include "SampleStats.hpp"
 
 namespace FastTransport::Protocol {
+
 class SpeedController {
     using clock = std::chrono::steady_clock;
 
 public:
-    SpeedController()
-        : _lastSend(clock::now())
+    SpeedController();
 
-    {
-    }
-
-    size_t GetNumberPacketToSend()
-    {
-        auto now = clock::now();
-        auto duration = now - _lastSend;
-        _lastSend = now;
-
-        size_t numberPeracketToSend = (duration / std::chrono::milliseconds(1)) * _packetPerMilisecond;
-
-        return numberPeracketToSend;
-    }
+    size_t GetNumberPacketToSend();
+    void UpdateStats(const SampleStats& stats);
 
 private:
-    clock::time_point _lastSend;
-    size_t _packetPerMilisecond { 10 };
+    clock::time_point _lastSend {};
+    size_t _packetPerSecond {};
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;
+    static constexpr std::chrono::seconds QueueTimeInterval = std::chrono::seconds(10);
+
+    std::vector<SampleStats> _stats {};
+
+    bool _up;
+    long long _speedIncrement;
 
     void GetStableSendInterval()
     {

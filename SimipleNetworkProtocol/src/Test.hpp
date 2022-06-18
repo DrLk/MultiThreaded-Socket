@@ -8,6 +8,7 @@
 #include "IPacket.hpp"
 #include "MultiList.hpp"
 #include "PeriodicExecutor.hpp"
+#include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
 void TestConnection()
@@ -37,17 +38,27 @@ void TestConnection()
 
     IPacket::List recvPackets;
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 20000; i++) {
         IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
         recvPackets.push_back(std::move(recvPacket));
     }
 
+    auto start = std::chrono::steady_clock::now();
     while (true) {
-        static size_t a = 0;
+        static size_t totalCount = 0;
+        static size_t countPerSecond;
         recvPackets = dstConnection->Recv(std::move(recvPackets));
         if (!recvPackets.empty()) {
-            a += recvPackets.size();
-            std::cout << "Recv packets : " << a << std::endl;
+            totalCount += recvPackets.size();
+            countPerSecond += recvPackets.size();
+            std::cout << "Recv packets : " << totalCount << std::endl;
+        }
+
+        auto duration = std::chrono::steady_clock::now() - start;
+        if (duration > 1s) {
+            std::cout << "Speed: " << countPerSecond << "pkt/sec" << std::endl;
+            countPerSecond = 0;
+            start = std::chrono::steady_clock::now();
         }
 
         // std::this_thread::sleep_for(500ms);
@@ -72,6 +83,141 @@ void TestTimer()
     }
 
     std::cout << "counter: " << counter << std::endl;
+}
+
+void TestSpeedController1()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 105;
+}
+
+void TestSpeedController2()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 105;
+}
+
+void TestSpeedController2_1()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 105;
+}
+
+void TestSpeedController2_2()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 105;
+}
+
+void TestSpeedController2_3()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 110;
+}
+
+void TestSpeedController3()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 120, 20, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 110;
+}
+
+void TestSpeedController4()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 110, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 120, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 120;
+}
+
+void TestSpeedController()
+{
+    TestSpeedController1();
+    TestSpeedController2();
+    TestSpeedController3();
+}
+
+void TestSpeedController4_1()
+{
+    SpeedController controller;
+    std::vector<SampleStats> stats = {
+        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+        { 100, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
+    };
+
+    for (const auto& stat : stats) {
+        controller.UpdateStats(stat);
+    }
+
+    int speed = 110;
 }
 
 /*

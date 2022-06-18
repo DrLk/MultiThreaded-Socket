@@ -17,8 +17,11 @@ FastTransportContext::FastTransportContext(int port)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
-    for (int i = 0; i < 1000; i++) {
-        _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+    {
+        std::lock_guard lock(_freeRecvPackets._mutex);
+        for (int i = 0; i < 1000; i++) {
+            _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+        }
     }
     _udpQueue.Init();
 }
