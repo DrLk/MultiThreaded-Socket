@@ -56,7 +56,7 @@ void TestConnection()
 
         auto duration = std::chrono::steady_clock::now() - start;
         if (duration > 1s) {
-            std::cout << "Speed: " << countPerSecond << "pkt/sec" << std::endl;
+            std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
             countPerSecond = 0;
             start = std::chrono::steady_clock::now();
         }

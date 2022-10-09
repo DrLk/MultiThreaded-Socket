@@ -1,9 +1,10 @@
 #include "SpeedController.hpp"
 
 #include <algorithm>
-#include <iostream>;
 #include <limits>
 #include <ranges>
+
+#include "ISpeedControllerState.hpp"
 
 namespace FastTransport::Protocol {
 SpeedController::SpeedController()
@@ -11,6 +12,7 @@ SpeedController::SpeedController()
     , _up(true)
     , _speedIncrement(1)
 {
+    _states = { { SpeedState::FAST, new FastAccelerationState() } };
 }
 
 size_t SpeedController::GetNumberPacketToSend()
@@ -35,55 +37,10 @@ size_t SpeedController::GetNumberPacketToSend()
         minLostSpeed = minLostSpeedIterator.base()->speed;
     }
 
-    long long newSpeed = _packetPerSecond;
-
-    if (minLostSpeed == std::numeric_limits<int>::max()) {
-        if (_up) {
-            _speedIncrement *= 2;
-            newSpeed += _speedIncrement;
-        } else {
-            _up = true;
-            _speedIncrement /= 2;
-            _speedIncrement = std::max<int>(_speedIncrement, 1);
-            newSpeed += _speedIncrement;
-        }
-    } else {
-        if (minLostSpeed > newSpeed) {
-            if (_up) {
-                _speedIncrement *= 2;
-                newSpeed += _speedIncrement;
-            } else {
-                _up = true;
-                _speedIncrement /= 2;
-                _speedIncrement = std::max<int>(_speedIncrement, 1);
-                newSpeed += _speedIncrement;
-            }
-        } else {
-            if (_up) {
-                _up = false;
-                _speedIncrement /= 2;
-                _speedIncrement = std::max<int>(_speedIncrement, 1);
-                newSpeed -= _speedIncrement;
-            } else {
-                _speedIncrement *= 2;
-                newSpeed -= _speedIncrement;
-            }
-        }
-    }
-
-    _packetPerSecond = std::max<int>(newSpeed, MinSpeed);
-    if (_packetPerSecond > maxRealSpeed * 3) {
-        _speedIncrement /= 2;
-        _speedIncrement = std::max<int>(_speedIncrement, 1);
-        _packetPerSecond = maxRealSpeed * 10;
-    }
-    /*
-    std::cout << "inc:" << _speedIncrement << std::endl;
-    std::cout << "max:" << maxRealSpeed << std::endl;
-    std::cout << "lost:" << minLostSpeed << std::endl;
-    std::cout << "Speed:" << _packetPerSecond << std::endl;
-    */
-    return _packetPerSecond;
+    auto* state = _states[_currentState];
+    static SpeedControllerState speedState;
+    state->Run(_stats, speedState);
+    return speedState.realSpeed;
 }
 
 void SpeedController::UpdateStats(const SampleStats& stats)
@@ -93,5 +50,9 @@ void SpeedController::UpdateStats(const SampleStats& stats)
     } else {
         _stats.back().Merge(stats);
     }
+
+    _stats.remove_if([](const SampleStats stats) {
+        return (clock::now() - stats.start) > QueueTimeInterval;
+    });
 }
 } // namespace FastTransport::Protocol
