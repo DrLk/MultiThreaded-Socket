@@ -92,7 +92,7 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
 
     _samples.remove_if([this](const auto& sample) {
         if (sample.IsDead()) {
-            _speedController.UpdateStats(sample.GetSampleStats());
+            _speedController.UpdateStats(sample.GetStats());
         }
 
         return sample.IsDead();

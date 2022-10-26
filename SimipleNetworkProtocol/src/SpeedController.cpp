@@ -17,7 +17,7 @@ SpeedController::SpeedController()
 
 size_t SpeedController::GetNumberPacketToSend()
 {
-    auto realSpeedStats = _stats | std::views::filter([](const SampleStats& sample) {
+    auto realSpeedStats = _stats.GetSamplesStats() | std::views::filter([](const SampleStats& sample) {
         return sample.lost < 5;
     });
 
@@ -27,7 +27,7 @@ size_t SpeedController::GetNumberPacketToSend()
         maxRealSpeed = maxRealSpeedIterator.base()->speed;
     }
 
-    auto lostSpeedStats = _stats | std::views::filter([](const SampleStats& sample) {
+    auto lostSpeedStats = _stats.GetSamplesStats() | std::views::filter([](const SampleStats& sample) {
         return sample.lost >= 5;
     });
 
@@ -39,20 +39,13 @@ size_t SpeedController::GetNumberPacketToSend()
 
     auto* state = _states[_currentState];
     static SpeedControllerState speedState;
-    state->Run(_stats, speedState);
+    state->Run(_stats.GetSamplesStats(), speedState);
     return speedState.realSpeed;
 }
 
-void SpeedController::UpdateStats(const SampleStats& stats)
+void SpeedController::UpdateStats(const RangedList& stats)
 {
-    if (_stats.empty() || _stats.back().allPackets > SampleStats::MinPacketsCount) {
-        _stats.push_back(stats);
-    } else {
-        _stats.back().Merge(stats);
-    }
-
-    _stats.remove_if([](const SampleStats stats) {
-        return (clock::now() - stats.start) > QueueTimeInterval;
-    });
+    _stats.UpdateStats(stats.GetSamplesStats());
 }
+
 } // namespace FastTransport::Protocol

@@ -8,6 +8,7 @@
 #include "IPacket.hpp"
 #include "MultiList.hpp"
 #include "PeriodicExecutor.hpp"
+#include "RangedList.hpp"
 #include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
@@ -83,141 +84,6 @@ void TestTimer()
     }
 
     std::cout << "counter: " << counter << std::endl;
-}
-
-void TestSpeedController1()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 105;
-}
-
-void TestSpeedController2()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 105;
-}
-
-void TestSpeedController2_1()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 105;
-}
-
-void TestSpeedController2_2()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 105;
-}
-
-void TestSpeedController2_3()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 105, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 110;
-}
-
-void TestSpeedController3()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 120, 20, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 110;
-}
-
-void TestSpeedController4()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 110, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 120, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 120;
-}
-
-void TestSpeedController()
-{
-    TestSpeedController1();
-    TestSpeedController2();
-    TestSpeedController3();
-}
-
-void TestSpeedController4_1()
-{
-    SpeedController controller;
-    std::vector<SampleStats> stats = {
-        { 100, 0, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 110, 10, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-        { 100, 5, SampleStats::clock::time_point(1ms), SampleStats::clock::time_point(2ms) },
-    };
-
-    for (const auto& stat : stats) {
-        controller.UpdateStats(stat);
-    }
-
-    int speed = 110;
 }
 
 /*
@@ -331,4 +197,13 @@ void TestMultiList()
         std::cout << e << std::endl;
     }
 }
+
+void TestRangedList()
+{
+    RangedList list;
+    auto now = SampleStats::clock::now();
+    list.AddPacket(false, now);
+    list.AddPacket(false, now + std::chrono::seconds(15));
+}
+
 } // namespace FastTransport::Protocol

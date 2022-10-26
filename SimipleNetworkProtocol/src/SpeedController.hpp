@@ -2,10 +2,9 @@
 
 #include <chrono>
 #include <functional>
-#include <list>
 #include <map>
 
-#include "SampleStats.hpp"
+#include "RangedList.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -22,7 +21,7 @@ public:
     SpeedController();
 
     size_t GetNumberPacketToSend();
-    void UpdateStats(const SampleStats& stats);
+    void UpdateStats(const RangedList& stats);
 
 private:
     clock::time_point _lastSend {};
@@ -31,7 +30,7 @@ private:
     static constexpr size_t MaxSpeed = 10000;
     static constexpr std::chrono::seconds QueueTimeInterval = std::chrono::seconds(10);
 
-    std::list<SampleStats> _stats {};
+    RangedList _stats;
 
     std::map<SpeedState, ISpeedControllerState*> _states = {};
     SpeedState _currentState = SpeedState::FAST;

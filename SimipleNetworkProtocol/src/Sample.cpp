@@ -26,15 +26,17 @@ Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets)
 IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
 {
     IPacket::List freePackets;
-    // for (SeqNumberType number : acks) {
     for (auto ack = acks.begin(); ack != acks.end();) {
         const auto& it = _packets.find(*ack);
         if (it != _packets.end()) {
+
+            _stats.AddPacket(false, it->second._sendTime);
+            _ackPacketNumber++;
+
             freePackets.push_back(std::move(it->second._packet));
             _packets.erase(it);
             ack = acks.erase(ack);
 
-            _ackPacketNumber++;
         } else {
             ack++;
         }
@@ -55,10 +57,13 @@ OutgoingPacket::List Sample::CheckTimeouts()
     for (auto it = _packets.begin(); it != _packets.end();) {
         OutgoingPacket&& packet = std::move(it->second);
         if ((now - packet._sendTime) > clock::duration(1000ms)) {
+
+            _stats.AddPacket(true, packet._sendTime);
+            _lostPacketNumber++;
+
             needToSend.push_back(std::move(packet));
             it = _packets.erase(it);
 
-            _lostPacketNumber++;
         } else {
             it++;
         }
@@ -71,8 +76,9 @@ bool Sample::IsDead() const
 {
     return _packets.empty();
 }
-SampleStats Sample::GetSampleStats() const
+
+RangedList Sample::GetStats() const
 {
-    return { _allPacketsCount, _lostPacketNumber, _startTime, _endTime };
+    return _stats;
 }
 } // namespace FastTransport::Protocol
