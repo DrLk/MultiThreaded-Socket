@@ -1,9 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 #include <ranges>
 #include <vector>
-#include <optional>
 
 #include "SampleStats.hpp"
 
