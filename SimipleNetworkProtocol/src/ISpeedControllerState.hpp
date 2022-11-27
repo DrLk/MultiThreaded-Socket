@@ -111,6 +111,7 @@ public:
 
         if (totalPackets != 0) {
             state.realSpeed = totalPackets / maxRealSpeedIterator->second.size();
+            state.realSpeed *= SpeedIncreaseRatio;
         } else {
             state.realSpeed = ISpeedControllerState::MinSpeed;
         }
@@ -119,6 +120,8 @@ public:
     }
 
 private:
+    static constexpr float SpeedIncreaseRatio = 1.2;
+
     class ApproximateInt {
     public:
         explicit ApproximateInt(int number)

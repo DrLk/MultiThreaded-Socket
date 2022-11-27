@@ -19,7 +19,7 @@ public:
 
 private:
     static constexpr int StatsSize = 100;
-    static constexpr std::chrono::milliseconds Interval = std::chrono::milliseconds(100);
+    static constexpr std::chrono::milliseconds Interval = std::chrono::milliseconds(50);
     static constexpr size_t Size = 100;
 
     std::vector<SampleStats> _stats;

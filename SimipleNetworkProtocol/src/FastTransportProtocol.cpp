@@ -171,7 +171,7 @@ void FastTransportContext::SendThread(FastTransportContext& context)
     PeriodicExecutor pe([&context]() {
         context.ConnectionsRun();
     },
-        20ms);
+        50ms);
 
     while (!context._shutdownContext) {
         pe.Run();
@@ -184,7 +184,7 @@ void FastTransportContext::RecvThread(FastTransportContext& context)
         context.RecvQueueStep();
         context.CheckRecvQueue();
     },
-        20ms);
+        50ms);
 
     while (!context._shutdownContext) {
         pe.Run();
