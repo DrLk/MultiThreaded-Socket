@@ -109,7 +109,11 @@ public:
                 return accumulate;
             });
 
-        state.realSpeed = totalPackets / maxRealSpeedIterator->second.size();
+        if (totalPackets != 0) {
+            state.realSpeed = totalPackets / maxRealSpeedIterator->second.size();
+        } else {
+            state.realSpeed = ISpeedControllerState::MinSpeed;
+        }
 
         return this;
     }

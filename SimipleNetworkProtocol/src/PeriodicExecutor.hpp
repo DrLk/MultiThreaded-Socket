@@ -6,14 +6,14 @@
 namespace FastTransport::Protocol {
 
 class PeriodicExecutor {
+    using clock = std::chrono::steady_clock;
+
 public:
     PeriodicExecutor(std::function<void()>, const std::chrono::microseconds& interval);
 
     void Run();
 
 private:
-    using clock = std::chrono::steady_clock;
-
     std::function<void()> _function;
 
     std::chrono::microseconds _interval;

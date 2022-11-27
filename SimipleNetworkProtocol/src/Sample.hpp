@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include "OutgoingPacket.hpp"
-#include "RangedList.hpp"
+#include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
 class Sample {
@@ -18,12 +18,12 @@ public:
     OutgoingPacket::List CheckTimeouts();
 
     bool IsDead() const;
-    RangedList GetStats() const;
+    TimeRangedStats GetStats() const;
 
 private:
     std::unordered_map<SeqNumberType, OutgoingPacket> _packets;
 
-    RangedList _stats;
+    TimeRangedStats _timeRangedStats;
     std::uint16_t _ackPacketNumber;
     std::uint16_t _allPacketsCount;
     std::uint16_t _lostPacketNumber;

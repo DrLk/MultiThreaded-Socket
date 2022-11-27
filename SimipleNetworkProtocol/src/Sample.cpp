@@ -30,7 +30,7 @@ IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
         const auto& it = _packets.find(*ack);
         if (it != _packets.end()) {
 
-            _stats.AddPacket(false, it->second._sendTime);
+            _timeRangedStats.AddPacket(false, it->second._sendTime);
             _ackPacketNumber++;
 
             freePackets.push_back(std::move(it->second._packet));
@@ -58,7 +58,7 @@ OutgoingPacket::List Sample::CheckTimeouts()
         OutgoingPacket&& packet = std::move(it->second);
         if ((now - packet._sendTime) > clock::duration(1000ms)) {
 
-            _stats.AddPacket(true, packet._sendTime);
+            _timeRangedStats.AddPacket(true, packet._sendTime);
             _lostPacketNumber++;
 
             needToSend.push_back(std::move(packet));
@@ -77,8 +77,8 @@ bool Sample::IsDead() const
     return _packets.empty();
 }
 
-RangedList Sample::GetStats() const
+TimeRangedStats Sample::GetStats() const
 {
-    return _stats;
+    return _timeRangedStats;
 }
 } // namespace FastTransport::Protocol

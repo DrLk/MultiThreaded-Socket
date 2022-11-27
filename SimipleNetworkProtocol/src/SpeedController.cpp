@@ -26,7 +26,7 @@ size_t SpeedController::GetNumberPacketToSend()
     return speedState.realSpeed;
 }
 
-void SpeedController::UpdateStats(const RangedList& stats)
+void SpeedController::UpdateStats(const TimeRangedStats& stats)
 {
     _stats.UpdateStats(stats.GetSamplesStats());
 }

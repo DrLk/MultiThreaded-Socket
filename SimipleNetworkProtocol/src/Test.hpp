@@ -9,8 +9,8 @@
 #include "ISpeedControllerState.hpp"
 #include "MultiList.hpp"
 #include "PeriodicExecutor.hpp"
-#include "RangedList.hpp"
 #include "SpeedController.hpp"
+#include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
 void TestConnection()
@@ -199,12 +199,13 @@ void TestMultiList()
     }
 }
 
-void TestRangedList()
+void TestTimeRangedStats()
 {
-    RangedList list;
+    TimeRangedStats list;
     auto now = SampleStats::clock::now();
     list.AddPacket(false, now);
     list.AddPacket(false, now + std::chrono::seconds(15));
+    list.AddPacket(false, now + std::chrono::seconds(35));
 }
 
 void TestBBQState()
