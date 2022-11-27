@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
+#include <numeric>
 #include <optional>
 #include <ranges>
 #include <vector>
@@ -11,7 +13,7 @@ namespace FastTransport::Protocol {
 
 class SampleStats;
 struct SpeedControllerState {
-    int realSpeed;
+    int realSpeed = 0;
 };
 
 class ISpeedControllerState {
@@ -52,13 +54,116 @@ protected:
 
         return minLostSpeed;
     }
+
+    static std::optional<int> GetAllPackets(const std::vector<SampleStats>& stats)
+    {
+        std::optional<int> result;
+
+        if (stats.empty()) {
+            return result;
+        }
+
+        result = std::accumulate(stats.begin(), stats.end(), 0, [](int i, const SampleStats& sample) {
+            return i + sample.allPackets;
+        });
+
+        return result;
+    }
+
+    static std::optional<int> GetLostPackets(const std::vector<SampleStats>& stats)
+    {
+        std::optional<int> result;
+
+        if (stats.empty()) {
+            return result;
+        }
+
+        result = std::accumulate(stats.begin(), stats.end(), 0, [](int i, SampleStats sample) {
+            return i + sample.lostPackets;
+        });
+
+        return result;
+    }
+};
+
+class BBQState : public ISpeedControllerState {
+public:
+    BBQState() = default;
+
+    ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
+    {
+        auto statsBySpeed = GroupByAllPackets(stats);
+
+        auto maxRealSpeedIterator = std::ranges::max_element(statsBySpeed, [](const auto& left, const auto& right) {
+            return GetMetric(left.second) < GetMetric(right.second);
+        });
+
+        if (maxRealSpeedIterator == statsBySpeed.end()) {
+            state.realSpeed = ISpeedControllerState::MinSpeed;
+            return this;
+        }
+
+        int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
+            [](int accumulate, const SampleStats& stat) {
+                accumulate += stat.allPackets;
+                return accumulate;
+            });
+
+        state.realSpeed = totalPackets / maxRealSpeedIterator->second.size();
+
+        return this;
+    }
+
+private:
+    class ApproximateInt {
+    public:
+        explicit ApproximateInt(int number)
+            : _number(number)
+        {
+        }
+
+        bool operator<(const ApproximateInt& other) const
+        {
+            return _number * Rounding < other._number;
+        }
+
+    private:
+        int _number;
+        static constexpr float Rounding = 1.1;
+    };
+
+    static std::map<ApproximateInt, std::vector<SampleStats>> GroupByAllPackets(const std::vector<SampleStats>& stats)
+    {
+        std::map<ApproximateInt, std::vector<SampleStats>> result;
+
+        for (const auto& stat : stats) {
+            auto it = result.find(ApproximateInt(stat.allPackets));
+
+            if (it == result.end()) {
+                result[ApproximateInt(stat.allPackets)].push_back(stat);
+            } else {
+                it->second.push_back(stat);
+            }
+        }
+
+        return result;
+    }
+
+    static int GetMetric(const std::vector<SampleStats>& samples)
+    {
+
+        static constexpr float LostRatio = 1.1;
+
+        std::optional<int> allPackets = ISpeedControllerState::GetAllPackets(samples);
+        std::optional<int> lostPackets = ISpeedControllerState::GetLostPackets(samples);
+
+        return allPackets.value() - lostPackets.value() * LostRatio;
+    }
 };
 
 class FastAccelerationState : public ISpeedControllerState {
 public:
-    FastAccelerationState()
-
-        = default;
+    FastAccelerationState() = default;
 
     ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
     {

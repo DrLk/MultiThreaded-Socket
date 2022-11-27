@@ -44,7 +44,7 @@ struct SampleStats {
 private:
     void CalcStats()
     {
-        lost = (lostPackets * 100) / allPackets;
+        lost = (lostPackets * 100.0) / allPackets;
 
         auto duration = std::chrono::time_point_cast<std::chrono::microseconds>(end) - std::chrono::time_point_cast<std::chrono::microseconds>(start);
         speed = allPackets;

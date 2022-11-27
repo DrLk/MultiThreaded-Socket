@@ -6,6 +6,7 @@
 
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
+#include "ISpeedControllerState.hpp"
 #include "MultiList.hpp"
 #include "PeriodicExecutor.hpp"
 #include "RangedList.hpp"
@@ -204,6 +205,24 @@ void TestRangedList()
     auto now = SampleStats::clock::now();
     list.AddPacket(false, now);
     list.AddPacket(false, now + std::chrono::seconds(15));
+}
+
+void TestBBQState()
+{
+    BBQState state;
+
+    SpeedControllerState speedState;
+    std::vector<SampleStats> stats;
+    auto startInterval = std::chrono::steady_clock::now();
+
+    state.Run(stats, speedState);
+
+    for (int i = 0; i < 100; i++) {
+        stats.emplace_back(std::rand() % 100, 0, startInterval, startInterval + 50ms);
+        startInterval += 50ms;
+    }
+
+    state.Run(stats, speedState);
 }
 
 } // namespace FastTransport::Protocol

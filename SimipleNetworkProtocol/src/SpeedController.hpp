@@ -14,7 +14,8 @@ class SpeedController {
     using clock = std::chrono::steady_clock;
 
     enum class SpeedState : short {
-        FAST
+        FAST,
+        BBQ
     };
 
 public:
@@ -33,7 +34,7 @@ private:
     RangedList _stats;
 
     std::map<SpeedState, ISpeedControllerState*> _states = {};
-    SpeedState _currentState = SpeedState::FAST;
+    SpeedState _currentState = SpeedState::BBQ;
 
     bool _up;
     long long _speedIncrement;

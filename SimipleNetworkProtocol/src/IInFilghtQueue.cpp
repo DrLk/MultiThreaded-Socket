@@ -101,7 +101,7 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
     return needToSend;
 }
 
-size_t IInflightQueue::GetNumberPacketToSend()
+std::size_t IInflightQueue::GetNumberPacketToSend()
 {
     return _speedController.GetNumberPacketToSend();
 }

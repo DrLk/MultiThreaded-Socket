@@ -17,7 +17,7 @@ public:
 
     ~MultiList() = default;
 
-    MultiList TryGenerate(size_t size)
+    MultiList TryGenerate(std::size_t size)
     {
         MultiList list;
 
@@ -91,9 +91,9 @@ public:
         }
     }
 
-    [[nodiscard]] size_t size() const
+    [[nodiscard]] std::size_t size() const
     {
-        size_t size = 0;
+        std::size_t size = 0;
         for (const auto& it1 : _lists) {
             size += it1.size();
         }

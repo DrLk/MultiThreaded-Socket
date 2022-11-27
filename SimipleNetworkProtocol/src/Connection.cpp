@@ -47,7 +47,7 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
-    size_t size = _inFlightQueue.GetNumberPacketToSend();
+    std::size_t size = _inFlightQueue.GetNumberPacketToSend();
     return _sendQueue.GetPacketsToSend(size);
 }
 
