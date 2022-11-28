@@ -43,13 +43,13 @@ void UDPQueue::Init()
 IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
 {
     {
-        std::lock_guard lock(_recvFreeQueue._mutex);
+        const std::lock_guard lock(_recvFreeQueue._mutex);
         _recvFreeQueue.splice(std::move(freeBuffers));
     }
 
     IPacket::List result;
     {
-        std::lock_guard lock(_recvQueue._mutex);
+        const std::lock_guard lock(_recvQueue._mutex);
         if (!_recvQueue.empty()) {
             result = std::move(_recvQueue);
         }
@@ -60,13 +60,13 @@ IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
 OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
 {
     if (!data.empty()) {
-        std::lock_guard lock(_sendQueue._mutex);
+        const std::lock_guard lock(_sendQueue._mutex);
         _sendQueue.splice(std::move(data));
     }
 
     OutgoingPacket::List result;
     {
-        std::lock_guard lock(_sendFreeQueue._mutex);
+        const std::lock_guard lock(_sendFreeQueue._mutex);
         result = std::move(_sendFreeQueue);
     }
 
@@ -95,7 +95,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
         }
 
         if (recvQueue.empty()) {
-            std::lock_guard lock(udpQueue._recvFreeQueue._mutex);
+            const std::lock_guard lock(udpQueue._recvFreeQueue._mutex);
 
             if (udpQueue._recvFreeQueue.empty()) {
                 sleep = true;
@@ -118,7 +118,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
         for (auto it = recvQueue.begin(); it != recvQueue.end();) {
             IPacket::Ptr& packet = *it;
             sockaddr_storage sockAddr {};
-            int result = socket.RecvFrom(packet->GetElement(), sockAddr);
+            const int result = socket.RecvFrom(packet->GetElement(), sockAddr);
             // WSAEWOULDBLOCK
             if (result <= 0) {
                 break;
@@ -138,7 +138,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
         }
 
         {
-            std::lock_guard lock(udpQueue._recvQueue._mutex);
+            const std::lock_guard lock(udpQueue._recvQueue._mutex);
             udpQueue._recvQueue.splice(std::move(recvThreadQueue._recvThreadQueue));
         }
     }

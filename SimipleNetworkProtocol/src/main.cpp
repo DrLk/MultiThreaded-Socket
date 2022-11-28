@@ -51,20 +51,20 @@ int main(int argc, char** argv)
         Test();
     }
 
-    std::span<char*> args = { argv, static_cast<size_t>(argc) };
-    int port = std::stoi(args[2]);
-    int threadCount = std::stoi(args[3]);
-    int sendBufferSize = std::stoi(args[4]);
-    int recvBufferSize = std::stoi(args[5]);
+    const std::span<char*> args = { argv, static_cast<size_t>(argc) };
+    const int port = std::stoi(args[2]);
+    const int threadCount = std::stoi(args[3]);
+    const int sendBufferSize = std::stoi(args[4]);
+    const int recvBufferSize = std::stoi(args[5]);
 
-    unsigned short dstPort = static_cast<unsigned short>(std::stoi(args[6]));
-    std::string dstIP = args[7];
+    const unsigned short dstPort = static_cast<unsigned short>(std::stoi(args[6]));
+    const std::string dstIP = args[7];
     UDPQueue socket(port, threadCount, sendBufferSize, recvBufferSize);
 
     socket.Init();
 
-    IPacket::List recvBuffers = socket.CreateBuffers(10000);
-    IPacket::List sendBuffers = socket.CreateBuffers(10000);
+    const IPacket::List recvBuffers = socket.CreateBuffers(10000);
+    const IPacket::List sendBuffers = socket.CreateBuffers(10000);
 
     sockaddr_in dstAddr {};
     // zero out the structure

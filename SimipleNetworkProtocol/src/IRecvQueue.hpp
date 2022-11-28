@@ -11,6 +11,13 @@
 namespace FastTransport::Protocol {
 class IRecvQueue {
 public:
+    IRecvQueue() = default;
+    IRecvQueue(const IRecvQueue&) = default;
+    IRecvQueue(IRecvQueue&&) = default;
+    IRecvQueue& operator=(const IRecvQueue&) = default;
+    IRecvQueue& operator=(IRecvQueue&&) = default;
+
+    virtual ~IRecvQueue() = default;
     virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
     virtual IPacket::List GetUserData() = 0;
     virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
@@ -19,25 +26,25 @@ public:
 class RecvQueue : public IRecvQueue {
 public:
     RecvQueue()
-        : _queue(QUEUE_SIZE)
+        : _queue(Queue_Ssize)
     {
     }
 
     IPacket::Ptr AddPacket(IPacket::Ptr&& packet) override
     {
-        SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
+        const SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
 
         if (packetNumber == (std::numeric_limits<SeqNumberType>::max)()) {
             throw std::runtime_error("Wrong packet number");
         }
 
-        if (packetNumber - _beginFullRecievedAck >= QUEUE_SIZE) {
+        if (packetNumber - _beginFullRecievedAck >= Queue_Ssize) {
             return std::move(packet); // drop packet. queue is full
         }
 
         if (packetNumber < _beginFullRecievedAck) {
             {
-                std::lock_guard lock(_selectiveAcksMutex);
+                const std::lock_guard lock(_selectiveAcksMutex);
                 _selectiveAcks.push_back(packetNumber);
             }
 
@@ -45,11 +52,11 @@ public:
         }
 
         {
-            std::lock_guard lock(_selectiveAcksMutex);
+            const std::lock_guard lock(_selectiveAcksMutex);
             _selectiveAcks.push_back(packetNumber);
         }
 
-        auto& queuePacket = _queue[(packetNumber) % QUEUE_SIZE];
+        auto& queuePacket = _queue[(packetNumber) % Queue_Ssize];
         if (queuePacket) {
             return std::move(packet);
         }
@@ -62,7 +69,7 @@ public:
     {
         IPacket::List data;
         while (true) {
-            auto& nextPacket = _queue[_beginFullRecievedAck++ % QUEUE_SIZE];
+            auto& nextPacket = _queue[_beginFullRecievedAck++ % Queue_Ssize];
             if (!nextPacket) {
                 break;
             }
@@ -73,7 +80,7 @@ public:
         _beginFullRecievedAck--;
 
         {
-            std::lock_guard lock(_data._mutex);
+            const std::lock_guard lock(_data._mutex);
             _data.splice(std::move(data));
         }
     }
@@ -83,7 +90,7 @@ public:
         IPacket::List data;
 
         {
-            std::lock_guard lock(_data._mutex);
+            const std::lock_guard lock(_data._mutex);
             data.splice(std::move(_data));
         }
 
@@ -95,7 +102,7 @@ public:
         std::list<SeqNumberType> selectiveAcks;
 
         {
-            std::lock_guard lock(_selectiveAcksMutex);
+            const std::lock_guard lock(_selectiveAcksMutex);
             selectiveAcks = std::move(_selectiveAcks);
         }
 
@@ -108,7 +115,7 @@ public:
     }
 
 private:
-    const int QUEUE_SIZE = 1000;
+    static constexpr int Queue_Ssize = 1000;
     std::vector<IPacket::Ptr> _queue;
     LockedList<IPacket::Ptr> _data;
     std::mutex _selectiveAcksMutex;

@@ -15,11 +15,11 @@
 namespace FastTransport::Protocol {
 void TestConnection()
 {
-    ConnectionAddr addr("127.0.0.1", 8);
+    const ConnectionAddr addr("127.0.0.1", 8);
     FastTransportContext src(10100);
     FastTransportContext dst(10200);
-    ConnectionAddr srcAddr("127.0.0.1", 10100);
-    ConnectionAddr dstAddr("127.0.0.1", 10200);
+    const ConnectionAddr srcAddr("127.0.0.1", 10100);
+    const ConnectionAddr dstAddr("127.0.0.1", 10200);
 
     IConnection* srcConnection = src.Connect(dstAddr);
     for (int i = 0; i < 20000; i++) {
@@ -150,7 +150,7 @@ void TestRecvQueue()
         packets.push_back(std::move(packet));
     }
 
-    IPacket::Ptr packet = std::make_unique<Packet>(1500);
+    const IPacket::Ptr packet = std::make_unique<Packet>(1500);
     for (auto& packet : packets) {
         queue.AddPacket(std::move(packet));
     }
@@ -169,7 +169,7 @@ void TestSocket()
     dst.Init();
 
     std::vector<unsigned char> data(1500);
-    ConnectionAddr dstAddr("127.0.0.1", 10200);
+    const ConnectionAddr dstAddr("127.0.0.1", 10200);
     auto result = src.SendTo(data, dstAddr.GetAddr());
 
     sockaddr_storage addr {};
@@ -212,7 +212,7 @@ void TestBBQState()
 {
     BBQState state;
 
-    SpeedControllerState speedState;
+    SpeedControllerState speedState {};
     std::vector<SampleStats> stats;
     auto startInterval = std::chrono::steady_clock::now();
 

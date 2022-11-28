@@ -8,6 +8,8 @@ Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets)
     : _packets(std::move(packets))
     , _ackPacketNumber(0)
     , _lostPacketNumber(0)
+    , _startTime(0s)
+    , _endTime(0s)
     , _start(0)
     , _end(0)
     , _sendInterval(0)
@@ -53,7 +55,7 @@ OutgoingPacket::List Sample::CheckTimeouts()
         return needToSend;
     }
 
-    clock::time_point now = clock::now();
+    const clock::time_point now = clock::now();
     for (auto it = _packets.begin(); it != _packets.end();) {
         OutgoingPacket&& packet = std::move(it->second);
         if ((now - packet._sendTime) > clock::duration(1000ms)) {

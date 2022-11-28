@@ -17,7 +17,7 @@ const std::vector<SampleStats>& TimeRangedStats::GetSamplesStats() const
 
 void TimeRangedStats::AddPacket(bool lostPacket, SampleStats::clock::time_point time)
 {
-    SampleStats stats(1, lostPacket ? 1 : 0, time, time);
+    const SampleStats stats(1, lostPacket ? 1 : 0, time, time);
 
     UpdateStats(stats);
 }
@@ -39,20 +39,20 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
         return;
     }
 
-    auto neededStats = std::find_if(_stats.begin(), _stats.end(), [&stats](const SampleStats& it) {
-        return it.start <= stats.start && it.end >= stats.end;
+    auto neededStats = std::find_if(_stats.begin(), _stats.end(), [&stats](const SampleStats& stat) {
+        return stat.start <= stats.start && stat.end >= stats.end;
     });
 
     if (neededStats != _stats.end()) {
         neededStats->Merge(stats);
     } else {
         auto diff = stats.start - _stats[_startIndex % Size].start;
-        int newEndIndex = _startIndex + diff / Interval;
+        const size_t newEndIndex = _startIndex + diff / Interval;
 
-        auto newStartIndex = std::max<int>(_startIndex, newEndIndex - Size);
+        auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size);
         if (newStartIndex != _startIndex) {
             auto startInterval = _stats[(_startIndex + Size - 1) % Size].end;
-            for (int i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
+            for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
                 _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval);
                 startInterval += Interval;
             }

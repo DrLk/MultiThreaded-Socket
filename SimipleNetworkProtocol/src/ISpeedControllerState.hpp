@@ -13,25 +13,31 @@ namespace FastTransport::Protocol {
 
 class SampleStats;
 struct SpeedControllerState {
-    int realSpeed = 0;
+    int realSpeed;
 };
 
 class ISpeedControllerState {
 public:
     virtual ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) = 0;
+    ISpeedControllerState() = default;
+    ISpeedControllerState(const ISpeedControllerState&) = default;
+    ISpeedControllerState(ISpeedControllerState&&) = default;
+    ISpeedControllerState& operator=(const ISpeedControllerState&) = default;
+    ISpeedControllerState& operator=(ISpeedControllerState&&) = default;
+    virtual ~ISpeedControllerState() = default;
 
 protected:
     static constexpr size_t MinSpeed = 10;
     static constexpr size_t MaxSpeed = 10000;
 
-    static std::optional<long long> GetMaxRealSpeed(const std::vector<SampleStats>& stats)
+    static std::optional<int> GetMaxRealSpeed(const std::vector<SampleStats>& stats)
     {
         auto realSpeedStats = stats | std::views::filter([](const SampleStats& sample) {
             return sample.lost < 5;
         });
 
         auto maxRealSpeedIterator = std::ranges::max_element(realSpeedStats, {}, &SampleStats::speed);
-        std::optional<long long> maxRealSpeed;
+        std::optional<int> maxRealSpeed;
         if (maxRealSpeedIterator != realSpeedStats.end()) {
             maxRealSpeed = maxRealSpeedIterator.base()->speed;
         }
@@ -39,7 +45,7 @@ protected:
         return maxRealSpeed;
     }
 
-    static std::optional<long long> GetMinLostSpeed(const std::vector<SampleStats>& stats)
+    static std::optional<int> GetMinLostSpeed(const std::vector<SampleStats>& stats)
     {
         auto lostSpeedStats = stats | std::views::filter([](const SampleStats& sample) {
             return sample.lost >= 5;
@@ -47,7 +53,7 @@ protected:
 
         auto minLostSpeedIterator = std::ranges::min_element(lostSpeedStats, {}, &SampleStats::speed);
 
-        std::optional<long long> minLostSpeed;
+        std::optional<int> minLostSpeed;
         if (minLostSpeedIterator != lostSpeedStats.end()) {
             minLostSpeed = minLostSpeedIterator.base()->speed;
         }
@@ -63,8 +69,8 @@ protected:
             return result;
         }
 
-        result = std::accumulate(stats.begin(), stats.end(), 0, [](int i, const SampleStats& sample) {
-            return i + sample.allPackets;
+        result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, const SampleStats& sample) {
+            return accumulator + sample.allPackets;
         });
 
         return result;
@@ -78,8 +84,8 @@ protected:
             return result;
         }
 
-        result = std::accumulate(stats.begin(), stats.end(), 0, [](int i, SampleStats sample) {
-            return i + sample.lostPackets;
+        result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, SampleStats sample) {
+            return accumulator + sample.lostPackets;
         });
 
         return result;
@@ -103,10 +109,10 @@ public:
             return this;
         }
 
-        int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
-            [](int accumulate, const SampleStats& stat) {
-                accumulate += stat.allPackets;
-                return accumulate;
+        const int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
+            [](int accumulator, const SampleStats& stat) {
+                accumulator += stat.allPackets;
+                return accumulator;
             });
 
         if (totalPackets != 0) {
@@ -176,8 +182,8 @@ public:
     {
         int newSpeed = state.realSpeed;
 
-        std::optional<long long> minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats);
-        std::optional<long long> maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats);
+        std::optional<int> const minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats);
+        std::optional<int> const maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats);
 
         if (!minLostSpeed.has_value()) {
             if (_up) {

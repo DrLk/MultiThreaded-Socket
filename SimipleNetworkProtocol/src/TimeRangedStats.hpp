@@ -23,7 +23,7 @@ private:
     static constexpr size_t Size = 100;
 
     std::vector<SampleStats> _stats;
-    int _startIndex = 0;
+    size_t _startIndex = 0;
     clock::time_point _beginTime;
 
     void UpdateStats(const SampleStats& stats);

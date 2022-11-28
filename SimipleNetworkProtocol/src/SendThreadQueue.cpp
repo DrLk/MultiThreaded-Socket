@@ -24,7 +24,7 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
         }
 
         if (sendQueue.empty()) { // NOLINT
-            std::lock_guard lock(udpQueue._sendQueue._mutex);
+            const std::lock_guard lock(udpQueue._sendQueue._mutex);
             if (udpQueue._sendQueue.empty()) {
                 sleep = true;
                 continue;
@@ -46,7 +46,7 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             while (true) {
-                int result = socket.SendTo(data, sockaddr.GetAddr());
+                const int result = socket.SendTo(data, sockaddr.GetAddr());
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {
                     break;
@@ -58,7 +58,7 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
         }
 
         if (!sendQueue.empty()) {
-            std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
+            const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
             udpQueue._sendFreeQueue.splice(std::move(sendQueue)); // NOLINT
         }
     }

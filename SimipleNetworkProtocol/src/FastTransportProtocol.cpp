@@ -18,7 +18,7 @@ FastTransportContext::FastTransportContext(int port)
     , _recvContextThread(RecvThread, std::ref(*this))
 {
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         for (int i = 0; i < 1000; i++) {
             _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
         }
@@ -72,7 +72,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 {
     IPacket::List freePackets;
 
-    Header header = packet->GetHeader();
+    const Header header = packet->GetHeader();
     if (!header.IsValid()) {
         throw std::runtime_error("Not implemented");
     }
@@ -116,7 +116,7 @@ void FastTransportContext::SendQueueStep()
     std::unordered_map<ConnectionKey, OutgoingPacket::List> connectionOutgoingPackets;
     for (auto& outgoingPacket : inFlightPackets) {
         auto& packet = outgoingPacket._packet;
-        ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetSrcConnectionID());
+        const ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetSrcConnectionID());
 
         connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
     }
@@ -138,7 +138,7 @@ void FastTransportContext::RecvQueueStep()
     // TODO: get 1k freePackets
     IPacket::List freePackets;
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         freePackets.splice(std::move(_freeRecvPackets));
     }
 
@@ -149,7 +149,7 @@ void FastTransportContext::RecvQueueStep()
     freeRecvPackets.splice(GetConnectionsFreeRecvPackets());
 
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         _freeRecvPackets.splice(std::move(freeRecvPackets));
     }
 }

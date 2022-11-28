@@ -10,7 +10,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         freePackets.splice(std::move(_freeRecvPackets));
     }
 
@@ -24,7 +24,7 @@ void Connection::Send(IPacket::Ptr&& data)
 
 IPacket::List Connection::Send(IPacket::List&& data)
 {
-    std::lock_guard lock(_sendUserDataMutex);
+    const std::lock_guard lock(_sendUserDataMutex);
     _sendUserData.splice(std::move(data));
 
     throw std::runtime_error("Not Implemented");
@@ -33,7 +33,7 @@ IPacket::List Connection::Send(IPacket::List&& data)
 IPacket::List Connection::Recv(IPacket::List&& freePackets)
 {
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         _freeRecvPackets.splice(std::move(freePackets));
     }
 
@@ -47,7 +47,7 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
-    std::size_t size = _inFlightQueue.GetNumberPacketToSend();
+    const std::size_t size = _inFlightQueue.GetNumberPacketToSend();
     return _sendQueue.GetPacketsToSend(size);
 }
 
@@ -56,7 +56,7 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
     auto freePackets = _inFlightQueue.AddQueue(std::move(packets));
 
     {
-        std::lock_guard lock(_freeSendPackets._mutex);
+        const std::lock_guard lock(_freeSendPackets._mutex);
         _freeSendPackets.splice(std::move(freePackets));
     }
 }
@@ -75,7 +75,7 @@ IPacket::List Connection::GetFreeRecvPackets()
 {
     IPacket::List freePackets;
     {
-        std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::lock_guard lock(_freeRecvPackets._mutex);
         freePackets.splice(std::move(_freeRecvPackets));
     }
 

@@ -26,7 +26,7 @@ struct SampleStats {
     clock::time_point start;
     clock::time_point end;
 
-    long long speed {};
+    int speed {};
     float lost {};
 
     void Merge(const SampleStats& stats)
@@ -48,7 +48,7 @@ private:
 
         auto duration = std::chrono::time_point_cast<std::chrono::microseconds>(end) - std::chrono::time_point_cast<std::chrono::microseconds>(start);
         speed = allPackets;
-        speed = speed * 1000000 / duration.count();
+        speed = speed * (1000000 / duration.count());
         if (speed < 0) {
             int a = 0;
             a++;

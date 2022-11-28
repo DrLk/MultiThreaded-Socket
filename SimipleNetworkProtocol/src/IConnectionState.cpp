@@ -21,14 +21,14 @@ void BasicConnectionState::ProcessInflightPackets(Connection& connection)
     IPacket::List freePackets = connection.GetInFlightQueue().ProcessAcks();
 
     {
-        std::lock_guard lock(connection._freeSendPackets._mutex);
+        const std::lock_guard lock(connection._freeSendPackets._mutex);
         connection._freeSendPackets.splice(std::move(freePackets));
     }
 }
 
 IConnectionState* SendingSynState::SendPackets(Connection& connection)
 {
-    std::lock_guard lock(connection._freeSendPackets._mutex);
+    const std::lock_guard lock(connection._freeSendPackets._mutex);
     IPacket::Ptr synPacket = std::move(connection._freeSendPackets.back());
     connection._freeSendPackets.pop_back();
 
@@ -63,7 +63,7 @@ IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& 
 
 IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 {
-    std::lock_guard lock(connection._freeSendPackets._mutex);
+    const std::lock_guard lock(connection._freeSendPackets._mutex);
     IPacket::Ptr synPacket = std::move(connection._freeSendPackets.back());
     connection._freeSendPackets.pop_back();
 
@@ -124,7 +124,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
 
         IPacket::Ptr packet;
         {
-            std::lock_guard lock(connection._freeSendPackets._mutex);
+            const std::lock_guard lock(connection._freeSendPackets._mutex);
             packet = std::move(connection._freeSendPackets.back());
             connection._freeSendPackets.pop_back();
         }
@@ -163,7 +163,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
 
     IPacket::List userData;
     {
-        std::lock_guard lock(connection._sendUserDataMutex);
+        const std::lock_guard lock(connection._sendUserDataMutex);
         userData = std::move(connection._sendUserData);
     }
 

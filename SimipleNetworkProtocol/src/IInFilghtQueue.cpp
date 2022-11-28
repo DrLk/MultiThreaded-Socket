@@ -10,13 +10,13 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
     std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
     {
-        std::lock_guard lock(_receivedAcksMutex);
+        const std::lock_guard lock(_receivedAcksMutex);
         receivedAcks.swap(_receivedAcks);
     }
 
     for (auto& packet : packets) {
         if (packet._needAck) {
-            SeqNumberType packetNumber = packet._packet->GetHeader().GetSeqNumber();
+            const SeqNumberType packetNumber = packet._packet->GetHeader().GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
             if (ack == receivedAcks.end()) {
                 queue[packetNumber] = std::move(packet);
@@ -34,14 +34,13 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
     }
 
     {
-        std::lock_guard lock(_receivedAcksMutex);
+        const std::lock_guard lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 
     return freePackets;
 }
 
-static int countAcks = 0;
 void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
 {
     if (!acks.IsValid()) {
@@ -53,8 +52,7 @@ void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
     //_speedController.AddrecievedAcks(receivedAcks.size());
 
     {
-        std::lock_guard lock(_receivedAcksMutex);
-        countAcks += receivedAcks.size();
+        const std::lock_guard lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 }
@@ -66,7 +64,7 @@ IPacket::List IInflightQueue::ProcessAcks()
     std::unordered_set<SeqNumberType> receivedAcks;
 
     {
-        std::lock_guard lock(_receivedAcksMutex);
+        const std::lock_guard lock(_receivedAcksMutex);
         receivedAcks = std::exchange(_receivedAcks, std::unordered_set<SeqNumberType>());
     }
 
@@ -75,7 +73,7 @@ IPacket::List IInflightQueue::ProcessAcks()
     }
 
     {
-        std::lock_guard lock(_receivedAcksMutex);
+        const std::lock_guard lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 

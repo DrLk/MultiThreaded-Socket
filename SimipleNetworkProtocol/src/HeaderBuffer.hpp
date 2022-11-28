@@ -98,7 +98,7 @@ public:
 
         Acks(unsigned char* start, size_t size)
         {
-            size_t ackPacketStart = Header::Size + sizeof(MaxAcks);
+            const size_t ackPacketStart = Header::Size + sizeof(MaxAcks);
             if (size >= ackPacketStart) {
                 _size = *reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
@@ -118,7 +118,7 @@ public:
         {
             // TODO: check size
             _size = 0;
-            std::span<SeqNumberType> acks(_start, MaxAcks + 1);
+            const std::span<SeqNumberType> acks(_start, MaxAcks + 1);
             acks[0] = static_cast<SeqNumberType>(numbers.size());
             for (auto number : numbers) {
                 _size++;
@@ -154,7 +154,7 @@ public:
         Payload(PayloadType* start, size_t size)
 
         {
-            size_t ackPacketStart = Header::Size + sizeof(MaxPayload);
+            const size_t ackPacketStart = Header::Size + sizeof(MaxPayload);
             if (size >= ackPacketStart) {
                 _size = *reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
