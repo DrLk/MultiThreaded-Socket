@@ -135,7 +135,7 @@ private:
         {
         }
 
-        bool operator<(const ApproximateInt& other) const
+        bool operator<(const ApproximateInt& other) const // NOLINT(fuchsia-overloaded-operator)
         {
             return _number * Rounding < other._number;
         }
