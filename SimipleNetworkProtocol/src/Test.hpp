@@ -122,7 +122,7 @@ void TestSleep()
 void TestPeriodicExecutor()
 {
     constexpr int RUNS_NUMBER = 500;
-    PeriodicExecutor pe([]() {
+    PeriodicExecutor executor([]() {
         static std::atomic<long long> counter = 0;
         if (counter++ % RUNS_NUMBER == 0) {
             std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl
@@ -134,7 +134,7 @@ void TestPeriodicExecutor()
         std::chrono::milliseconds(1000 / RUNS_NUMBER));
 
     while (true) {
-        pe.Run();
+        executor.Run();
     }
 }
 
@@ -177,8 +177,6 @@ void TestSocket()
     dst.WaitRead();
     auto result2 = dst.RecvFrom(data2, addr);
     std::cout << result << " " << result2;
-    int i = 0;
-    i++;
 }
 
 void TestMultiList()
@@ -190,12 +188,12 @@ void TestMultiList()
         list.push_back(std::move(number));
     }
 
-    for (const auto& e : list) {
-        std::cout << e << std::endl;
+    for (const auto& element : list) {
+        std::cout << element << std::endl;
     }
 
-    for (auto& e : list) {
-        std::cout << e << std::endl;
+    for (auto& element : list) {
+        std::cout << element << std::endl;
     }
 }
 
