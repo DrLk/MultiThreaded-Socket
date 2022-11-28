@@ -25,7 +25,7 @@ public:
     IPacket::List Recv(IPacket::List&& freeBuffers);
     OutgoingPacket::List Send(OutgoingPacket::List&& data);
 
-    IPacket::List CreateBuffers(int size);
+    static IPacket::List CreateBuffers(int size);
 
 private:
     unsigned int _port;

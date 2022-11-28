@@ -60,16 +60,6 @@ public:
         _dstAddr = addr;
     }
 
-    void SetAcks(const SelectiveAckBuffer::Acks& /*acks*/)
-    {
-        throw std::runtime_error("Not Implemented");
-    }
-
-    void SetHeader(const Header& /*header*/)
-    {
-        throw std::runtime_error("Not Implemented");
-    }
-
     [[nodiscard]] std::chrono::nanoseconds GetTime() const
     {
         return _time;

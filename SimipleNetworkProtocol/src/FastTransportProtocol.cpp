@@ -83,7 +83,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
         freePackets.splice(std::move(freeRecvPackets));
     } else {
-        auto [connection, freeRecvPackets] = _listen.Listen(std::move(packet), GenerateID());
+        auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
         if (connection != nullptr) {
             _incomingConnections.push_back(connection);
             _connections.insert({ connection->GetConnectionKey(), connection });
@@ -200,5 +200,13 @@ IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
 
     return freeRecvPackets;
 }
+
+ConnectionID FastTransportContext::GenerateID()
+{
+    static ConnectionID _nextID = 0;
+    // TODO: Check after overflow
+    return ++_nextID;
+}
+
 
 } // namespace FastTransport::Protocol

@@ -138,7 +138,7 @@ public:
             return *this;
         }
 
-        Iterator operator++(int) // NOLINT(fuchsia-overloaded-operator)
+        const Iterator operator++(int) // NOLINT(fuchsia-overloaded-operator)
         {
             Iterator retval = *this;
             ++(*this);

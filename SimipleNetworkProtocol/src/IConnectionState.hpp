@@ -43,7 +43,7 @@ public:
 
 class ListenState {
 public:
-    std::pair<Connection*, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
+    static std::pair<Connection*, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
 };
 
 class SendingSynState : public BasicConnectionState {

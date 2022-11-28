@@ -63,8 +63,8 @@ int main(int argc, char** argv)
 
     socket.Init();
 
-    const IPacket::List recvBuffers = socket.CreateBuffers(10000);
-    const IPacket::List sendBuffers = socket.CreateBuffers(10000);
+    const IPacket::List recvBuffers = UDPQueue::CreateBuffers(10000);
+    const IPacket::List sendBuffers = UDPQueue::CreateBuffers(10000);
 
     sockaddr_in dstAddr {};
     // zero out the structure
