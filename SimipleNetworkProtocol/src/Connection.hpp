@@ -20,6 +20,13 @@ class IConnectionState;
 
 class IConnection {
 public:
+    IConnection() = default;
+    IConnection(const IConnection&) = default;
+    IConnection(IConnection&&) = default;
+    IConnection& operator=(const IConnection&) = default;
+    IConnection& operator=(IConnection&&) = default;
+    virtual ~IConnection() = default;
+
     virtual void Send(IPacket::Ptr&& data) = 0;
     virtual IPacket::List Send(IPacket::List&& data) = 0;
     virtual IPacket::List Recv(IPacket::List&& freePackets) = 0;

@@ -18,13 +18,14 @@ struct SpeedControllerState {
 
 class ISpeedControllerState {
 public:
-    virtual ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) = 0;
     ISpeedControllerState() = default;
     ISpeedControllerState(const ISpeedControllerState&) = default;
     ISpeedControllerState(ISpeedControllerState&&) = default;
     ISpeedControllerState& operator=(const ISpeedControllerState&) = default;
     ISpeedControllerState& operator=(ISpeedControllerState&&) = default;
     virtual ~ISpeedControllerState() = default;
+
+    virtual ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) = 0;
 
 protected:
     static constexpr size_t MinSpeed = 10;
@@ -33,13 +34,17 @@ protected:
     static std::optional<int> GetMaxRealSpeed(const std::vector<SampleStats>& stats)
     {
         auto realSpeedStats = stats | std::views::filter([](const SampleStats& sample) {
-            return sample.lost < 5;
+            return sample.GetLost() < 5;
         });
 
-        auto maxRealSpeedIterator = std::ranges::max_element(realSpeedStats, {}, &SampleStats::speed);
+        auto maxRealSpeedIterator = std::ranges::max_element(realSpeedStats,
+            [](const SampleStats& left, const SampleStats& right) {
+                return left.GetAllPackets() < right.GetAllPackets();
+            });
+
         std::optional<int> maxRealSpeed;
         if (maxRealSpeedIterator != realSpeedStats.end()) {
-            maxRealSpeed = maxRealSpeedIterator.base()->speed;
+            maxRealSpeed = maxRealSpeedIterator.base()->GetAllPackets();
         }
 
         return maxRealSpeed;
@@ -48,14 +53,17 @@ protected:
     static std::optional<int> GetMinLostSpeed(const std::vector<SampleStats>& stats)
     {
         auto lostSpeedStats = stats | std::views::filter([](const SampleStats& sample) {
-            return sample.lost >= 5;
+            return sample.GetLost() >= 5;
         });
 
-        auto minLostSpeedIterator = std::ranges::min_element(lostSpeedStats, {}, &SampleStats::speed);
+        auto minLostSpeedIterator = std::ranges::min_element(lostSpeedStats,
+            [](const SampleStats& left, const SampleStats& right) {
+                return left.GetAllPackets() < right.GetAllPackets();
+            });
 
         std::optional<int> minLostSpeed;
         if (minLostSpeedIterator != lostSpeedStats.end()) {
-            minLostSpeed = minLostSpeedIterator.base()->speed;
+            minLostSpeed = minLostSpeedIterator.base()->GetAllPackets();
         }
 
         return minLostSpeed;
@@ -70,7 +78,7 @@ protected:
         }
 
         result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, const SampleStats& sample) {
-            return accumulator + sample.allPackets;
+            return accumulator + sample.GetAllPackets();
         });
 
         return result;
@@ -85,7 +93,7 @@ protected:
         }
 
         result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, SampleStats sample) {
-            return accumulator + sample.lostPackets;
+            return accumulator + sample.GetLostPackets();
         });
 
         return result;
@@ -111,13 +119,13 @@ public:
 
         const int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
             [](int accumulator, const SampleStats& stat) {
-                accumulator += stat.allPackets;
+                accumulator += stat.GetAllPackets();
                 return accumulator;
             });
 
         if (totalPackets != 0) {
-            state.realSpeed = totalPackets / maxRealSpeedIterator->second.size();
-            state.realSpeed *= SpeedIncreaseRatio;
+            state.realSpeed = totalPackets / static_cast<int>(maxRealSpeedIterator->second.size());
+            state.realSpeed = static_cast<int>(state.realSpeed * SpeedIncreaseRatio);
         } else {
             state.realSpeed = ISpeedControllerState::MinSpeed;
         }
@@ -126,7 +134,7 @@ public:
     }
 
 private:
-    static constexpr float SpeedIncreaseRatio = 1.2;
+    static constexpr double SpeedIncreaseRatio = 1.2;
 
     class ApproximateInt {
     public:
@@ -142,33 +150,41 @@ private:
 
     private:
         int _number;
-        static constexpr float Rounding = 1.1;
+        static constexpr double Rounding = 1.1;
     };
 
-    static std::map<ApproximateInt, std::vector<SampleStats>> GroupByAllPackets(const std::vector<SampleStats>& stats)
+    static std::map<ApproximateInt, std::vector<SampleStats>> GroupByAllPackets(const std::vector<SampleStats>& sampleStats)
     {
         std::map<ApproximateInt, std::vector<SampleStats>> result;
 
-        for (const auto& stat : stats) {
-            auto it = result.find(ApproximateInt(stat.allPackets));
+        for (const auto& sampleStat : sampleStats) {
+            auto stat = result.find(ApproximateInt(sampleStat.GetAllPackets()));
 
-            if (it == result.end()) {
-                result[ApproximateInt(stat.allPackets)].push_back(stat);
+            if (stat == result.end()) {
+                result[ApproximateInt(sampleStat.GetAllPackets())].push_back(sampleStat);
             } else {
-                it->second.push_back(stat);
+                stat->second.push_back(sampleStat);
             }
         }
 
         return result;
     }
 
-    static int GetMetric(const std::vector<SampleStats>& samples)
+    static double GetMetric(const std::vector<SampleStats>& samples)
     {
 
-        static constexpr float LostRatio = 1.1;
+        static constexpr double LostRatio = 1.1;
 
         std::optional<int> allPackets = ISpeedControllerState::GetAllPackets(samples);
         std::optional<int> lostPackets = ISpeedControllerState::GetLostPackets(samples);
+
+        if (!allPackets.has_value()) {
+            return 0;
+        }
+
+        if (!lostPackets.has_value()) {
+            return 0;
+        }
 
         return allPackets.value() - lostPackets.value() * LostRatio;
     }

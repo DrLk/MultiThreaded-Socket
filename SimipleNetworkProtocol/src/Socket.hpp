@@ -45,7 +45,8 @@ public:
         };
 
         // create a UDP socket
-        if ((_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        _socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (_socket == -1) {
             throw std::runtime_error("socket");
         }
 

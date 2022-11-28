@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <random>
 #include <thread>
 
 #include "FastTransportProtocol.hpp"
@@ -216,8 +217,12 @@ void TestBBQState()
 
     state.Run(stats, speedState);
 
+    std::random_device device;
+    std::mt19937 mt19937(device());
+    std::uniform_int_distribution<int> distribution(0, 100);
+
     for (int i = 0; i < 100; i++) {
-        stats.emplace_back(std::rand() % 100, 0, startInterval, startInterval + 50ms);
+        stats.emplace_back(distribution(mt19937), 0, startInterval, startInterval + 50ms);
         startInterval += 50ms;
     }
 

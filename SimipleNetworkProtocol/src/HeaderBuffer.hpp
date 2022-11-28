@@ -69,14 +69,14 @@ public:
     {
         *reinterpret_cast<PacketType*>(data() + sizeof(MagicNumber)) = type; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
-    void SetSrcConnectionID(ConnectionID id)
+    void SetSrcConnectionID(ConnectionID connectionId)
     {
-        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)) = id; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)) = connectionId; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
-    void SetDstConnectionID(ConnectionID id)
+    void SetDstConnectionID(ConnectionID connectionId)
     {
-        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)) = id; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)) = connectionId; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     void SetSeqNumber(SeqNumberType seq)

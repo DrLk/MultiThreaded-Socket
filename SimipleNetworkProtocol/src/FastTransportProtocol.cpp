@@ -168,26 +168,26 @@ OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
 
 void FastTransportContext::SendThread(FastTransportContext& context)
 {
-    PeriodicExecutor pe([&context]() {
+    PeriodicExecutor executor([&context]() {
         context.ConnectionsRun();
     },
         50ms);
 
     while (!context._shutdownContext) {
-        pe.Run();
+        executor.Run();
     }
 }
 
 void FastTransportContext::RecvThread(FastTransportContext& context)
 {
-    PeriodicExecutor pe([&context]() {
+    PeriodicExecutor executor([&context]() {
         context.RecvQueueStep();
         context.CheckRecvQueue();
     },
         50ms);
 
     while (!context._shutdownContext) {
-        pe.Run();
+        executor.Run();
     }
 }
 

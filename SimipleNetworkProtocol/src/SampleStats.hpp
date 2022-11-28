@@ -5,7 +5,7 @@
 
 namespace FastTransport::Protocol {
 
-struct SampleStats {
+struct alignas(32) SampleStats {
     using clock = std::chrono::steady_clock;
 
     static constexpr int MinPacketsCount = 100;
@@ -21,14 +21,6 @@ struct SampleStats {
         }
     }
 
-    int allPackets;
-    int lostPackets;
-    clock::time_point start;
-    clock::time_point end;
-
-    int speed {};
-    float lost {};
-
     void Merge(const SampleStats& stats)
     {
         allPackets += stats.allPackets;
@@ -41,18 +33,43 @@ struct SampleStats {
         }
     }
 
+    [[nodiscard]] int GetAllPackets() const
+    {
+        return allPackets;
+    }
+
+    [[nodiscard]] int GetLostPackets() const
+    {
+        return lostPackets;
+    }
+
+    [[nodiscard]] clock::time_point GetStart() const
+    {
+        return start;
+    }
+
+    [[nodiscard]] clock::time_point GetEnd() const
+    {
+        return end;
+    }
+
+    [[nodiscard]] double GetLost() const
+    {
+        return lost;
+    }
+
 private:
+    int allPackets;
+    int lostPackets;
+    
+    clock::time_point start;
+    clock::time_point end;
+
+    double lost {};
+
     void CalcStats()
     {
         lost = (lostPackets * 100.0) / allPackets;
-
-        auto duration = std::chrono::time_point_cast<std::chrono::microseconds>(end) - std::chrono::time_point_cast<std::chrono::microseconds>(start);
-        speed = allPackets;
-        speed = speed * (1000000 / duration.count());
-        if (speed < 0) {
-            int a = 0;
-            a++;
-        }
     }
 };
 } // namespace FastTransport::Protocol

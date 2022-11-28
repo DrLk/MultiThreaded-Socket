@@ -24,14 +24,5 @@ private:
     std::unordered_map<SeqNumberType, OutgoingPacket> _packets;
 
     TimeRangedStats _timeRangedStats;
-    std::uint16_t _ackPacketNumber;
-    std::uint16_t _allPacketsCount;
-    std::uint16_t _lostPacketNumber;
-    clock::time_point _startTime;
-    clock::time_point _endTime;
-
-    SeqNumberType _start;
-    SeqNumberType _end;
-    std::chrono::microseconds _sendInterval;
 };
 } // namespace FastTransport::Protocol

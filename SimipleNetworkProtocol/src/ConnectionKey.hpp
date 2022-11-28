@@ -6,8 +6,8 @@
 namespace FastTransport::Protocol {
 class ConnectionKey {
 public:
-    ConnectionKey(ConnectionAddr addr, ConnectionID id)
-        : _id(id)
+    ConnectionKey(ConnectionAddr addr, ConnectionID connectionID)
+        : _id(connectionID)
         , _dstAddr(addr)
     {
     }

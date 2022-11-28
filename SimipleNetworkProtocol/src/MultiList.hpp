@@ -105,17 +105,17 @@ public:
         friend MultiList;
 
     public:
-        explicit Iterator(MultiList<T>& container)
+        explicit Iterator(MultiList<T>* container)
             : _container(container)
-            , _it1(container._lists.begin())
+            , _it1(container->_lists.begin())
         {
-            if (_it1 != container._lists.end()) {
+            if (_it1 != container->_lists.end()) {
                 _it2 = _it1->begin();
             }
         }
 
         // Iterator(MultiList<T>& container, const std::list<std::list<T>>::iterator& it1) : _container(container), _it1(it1)
-        Iterator(MultiList<T>& container, typename std::list<std::list<T>>::iterator it1)
+        Iterator(MultiList<T>* container, typename std::list<std::list<T>>::iterator it1)
             : _container(container)
             , _it1(it1)
             , _it2()
@@ -127,8 +127,8 @@ public:
             _it2++;
             if (_it2 == _it1->end()) {
                 _it1++;
-                if (_it1 == _container._lists.end()) {
-                    typename std::list<T>::iterator defaultIterator;
+                if (_it1 == _container->_lists.end()) {
+                    typename std::list<T>::iterator defaultIterator {};
                     _it2 = defaultIterator;
                 } else {
                     _it2 = _it1->begin();
@@ -164,31 +164,31 @@ public:
         typename std::list<std::list<T>>::iterator _it1;
         typename std::list<T>::iterator _it2;
 
-        MultiList<T>& _container;
+        MultiList<T>* _container;
     };
 
     Iterator begin()
     {
         // cosnt MultiList::Iterator& a = MultiList::Iterator(*this);
-        return Iterator(*this);
+        return Iterator(this);
     }
 
     Iterator end()
     {
-        return Iterator(*this, _lists.end());
+        return Iterator(this, _lists.end());
     }
 
-    void erase(const Iterator& it)
+    void erase(const Iterator& that)
     {
-        it._it1->erase(it._it2);
-        if (it._it1->empty()) {
-            _lists.erase(it._it1);
+        that._it1->erase(that._it2);
+        if (that._it1->empty()) {
+            _lists.erase(that._it1);
         }
     }
 
 private:
     std::list<std::list<T>> _lists;
 
-    const int Size = 10;
+    static constexpr int Size = 10;
 };
 } // namespace FastTransport::Containers

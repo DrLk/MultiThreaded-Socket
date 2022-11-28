@@ -39,7 +39,7 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
         }
     }
 
-    if (size != 0u) {
+    if (size != 0U) {
         result.splice(std::move(_needToSend.TryGenerate(size)));
     }
 

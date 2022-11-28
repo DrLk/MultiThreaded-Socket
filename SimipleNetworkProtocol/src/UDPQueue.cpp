@@ -9,11 +9,6 @@
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
-void die(char* s)
-{
-    throw std::runtime_error(s);
-}
-
 UDPQueue::UDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread)
     : _port(port)
     , _threadCount(threadCount)
@@ -129,7 +124,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
             connectionAddr.SetPort(connectionAddr.GetPort() - index);
             packet->SetAddr(connectionAddr);
 
-            auto temp = it;
+            IPacket::List::Iterator temp = it;
             it++;
             {
                 recvThreadQueue._recvThreadQueue.push_back(std::move(*temp));

@@ -31,27 +31,27 @@ void TimeRangedStats::UpdateStats(const std::vector<SampleStats>& stats)
 
 void TimeRangedStats::UpdateStats(const SampleStats& stats)
 {
-    if (stats.allPackets == 0) {
+    if (stats.GetAllPackets() == 0) {
         return;
     }
 
-    if (_stats[_startIndex % Size].start > stats.start) {
+    if (_stats[_startIndex % Size].GetStart() > stats.GetStart()) {
         return;
     }
 
     auto neededStats = std::find_if(_stats.begin(), _stats.end(), [&stats](const SampleStats& stat) {
-        return stat.start <= stats.start && stat.end >= stats.end;
+        return stat.GetStart() <= stats.GetStart() && stat.GetEnd() >= stats.GetEnd();
     });
 
     if (neededStats != _stats.end()) {
         neededStats->Merge(stats);
     } else {
-        auto diff = stats.start - _stats[_startIndex % Size].start;
+        auto diff = stats.GetStart() - _stats[_startIndex % Size].GetStart();
         const size_t newEndIndex = _startIndex + diff / Interval;
 
         auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size);
         if (newStartIndex != _startIndex) {
-            auto startInterval = _stats[(_startIndex + Size - 1) % Size].end;
+            auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
             for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
                 _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval);
                 startInterval += Interval;

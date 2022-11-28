@@ -17,6 +17,13 @@ enum ConnectionState {
 
 class IConnectionState {
 public:
+    IConnectionState() = default;
+    IConnectionState(const IConnectionState&) = default;
+    IConnectionState(IConnectionState&&) = default;
+    IConnectionState& operator=(const IConnectionState&) = default;
+    IConnectionState& operator=(IConnectionState&&) = default;
+    virtual ~IConnectionState() = default;
+
     virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
     virtual IConnectionState* SendPackets(Connection& connection) = 0;
     virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
