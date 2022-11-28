@@ -8,11 +8,11 @@
 #include "ConnectionAddr.hpp"
 
 namespace FastTransport::Protocol {
-using ConnectionID = unsigned short;
+using ConnectionID = uint16_t;
 using SeqNumberType = unsigned int;
 using MagicNumber = int;
 
-enum class PacketType : short {
+enum class PacketType : int16_t {
     NONE = 0,
     SYN = 1,
     ACK = 2,
@@ -102,7 +102,7 @@ public:
             if (size >= ackPacketStart) {
                 _size = *reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
-            if (static_cast<unsigned long long>(size) >= (Header::Size + sizeof(MaxAcks) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxAcks) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 _start = reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             } else {
                 _size = 0;
@@ -158,7 +158,7 @@ public:
             if (size >= ackPacketStart) {
                 _size = *reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
-            if (static_cast<unsigned long long>(size) >= (Header::Size + sizeof(MaxPayload) + _size)) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxPayload) + _size)) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 _start = reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             } else {
                 _size = 0;

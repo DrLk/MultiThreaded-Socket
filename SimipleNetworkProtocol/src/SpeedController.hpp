@@ -13,7 +13,7 @@ class ISpeedControllerState;
 class SpeedController {
     using clock = std::chrono::steady_clock;
 
-    enum class SpeedState : short {
+    enum class SpeedState : int16_t {
         FAST,
         BBQ
     };
@@ -37,6 +37,6 @@ private:
     SpeedState _currentState = SpeedState::BBQ;
 
     bool _up;
-    long long _speedIncrement;
+    int64_t _speedIncrement;
 };
 } // namespace FastTransport::Protocol

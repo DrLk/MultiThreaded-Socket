@@ -38,7 +38,7 @@ private:
     LockedList<OutgoingPacket> _sendFreeQueue;
     LockedList<IPacket::Ptr> _recvFreeQueue;
 
-    static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index);
+    static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index);
 
     std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
     std::vector<std::shared_ptr<SendThreadQueue>> _sendThreadQueues;

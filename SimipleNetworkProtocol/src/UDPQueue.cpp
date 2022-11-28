@@ -78,7 +78,7 @@ IPacket::List UDPQueue::CreateBuffers(int size)
     return buffers;
 }
 
-void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, unsigned short index)
+void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index)
 {
     IPacket::List recvQueue;
     bool sleep = false;

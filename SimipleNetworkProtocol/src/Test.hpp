@@ -70,7 +70,7 @@ void TestConnection()
 
 void TestTimer()
 {
-    unsigned long long counter = 0;
+    uint64_t counter = 0;
     using clock = std::chrono::steady_clock;
     auto start = clock::now();
     // Some computation here
@@ -96,7 +96,7 @@ void TestTimer()
  */
 void TestSleep()
 {
-    std::atomic<unsigned long long> counter = 0;
+    std::atomic<uint64_t> counter = 0;
 
     std::vector<std::thread> threads(10);
     for (auto i = 0; i < 10; i++) {
@@ -124,7 +124,7 @@ void TestPeriodicExecutor()
 {
     constexpr int RUNS_NUMBER = 500;
     PeriodicExecutor executor([]() {
-        static std::atomic<long long> counter = 0;
+        static std::atomic<int64_t> counter = 0;
         if (counter++ % RUNS_NUMBER == 0) {
             std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl
                       << "counter: " << counter << std::endl;
@@ -182,7 +182,7 @@ void TestSocket()
 
 void TestMultiList()
 {
-    FastTransport::Containers::MultiList<long long> list;
+    FastTransport::Containers::MultiList<int64_t> list;
 
     for (int i = 0; i < 1000; i++) {
         int number = i;

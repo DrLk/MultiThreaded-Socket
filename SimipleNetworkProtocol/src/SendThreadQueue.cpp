@@ -12,7 +12,7 @@ SendThreadQueue::SendThreadQueue()
 {
 }
 
-void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, unsigned short index)
+void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
 {
     OutgoingPacket::List sendQueue;
 

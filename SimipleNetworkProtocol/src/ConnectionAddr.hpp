@@ -22,7 +22,7 @@ public:
     explicit ConnectionAddr(const sockaddr_storage& addr)
         : _storage(addr) {};
 
-    ConnectionAddr(const std::string& addr, unsigned short port)
+    ConnectionAddr(const std::string& addr, uint16_t port)
     {
         std::memset(&_storage, 0, sizeof(_storage));
         if (inet_pton(AF_INET, addr.c_str(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -60,12 +60,12 @@ public:
         throw std::runtime_error("Not implemented");
     }
 
-    void SetPort(unsigned short port)
+    void SetPort(uint16_t port)
     {
         (reinterpret_cast<sockaddr_in*>(&_storage))->sin_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
 
-    [[nodiscard]] unsigned short GetPort() const
+    [[nodiscard]] uint16_t GetPort() const
     {
         return ntohs((reinterpret_cast<const sockaddr_in*>(&_storage))->sin_port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }

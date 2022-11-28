@@ -12,7 +12,7 @@ public:
     {
     }
 
-    [[nodiscard]] unsigned short GetID() const
+    [[nodiscard]] uint16_t GetID() const
     {
         return _id;
     }

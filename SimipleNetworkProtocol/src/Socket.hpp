@@ -20,7 +20,7 @@
 namespace FastTransport::Protocol {
 class Socket {
 public:
-    explicit Socket(unsigned short port)
+    explicit Socket(uint16_t port)
         : _port(port)
     {
     }
@@ -106,7 +106,7 @@ private:
 #else
     int _socket { -1 };
 #endif
-    unsigned short _port;
+    uint16_t _port;
 };
 
 } // namespace FastTransport::Protocol
