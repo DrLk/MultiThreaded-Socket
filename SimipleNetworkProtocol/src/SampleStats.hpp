@@ -61,7 +61,7 @@ struct alignas(32) SampleStats {
 private:
     int allPackets;
     int lostPackets;
-    
+
     clock::time_point start;
     clock::time_point end;
 

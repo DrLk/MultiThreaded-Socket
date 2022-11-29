@@ -37,10 +37,10 @@ private:
 
     UDPQueue _udpQueue;
 
+    std::atomic<bool> _shutdownContext;
+
     std::thread _sendContextThread;
     std::thread _recvContextThread;
-
-    std::atomic<bool> _shutdownContext;
 
     IPacket::List OnReceive(IPacket::Ptr&& packet);
 
@@ -55,5 +55,5 @@ private:
     IPacket::List GetConnectionsFreeRecvPackets();
 
     static ConnectionID GenerateID();
-    };
+};
 } // namespace FastTransport::Protocol

@@ -12,9 +12,6 @@
 #include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
-class IPacket;
-class OutgoingPacket;
-
 class SendQueue : public ISendQueue {
     using DataType = std::vector<char>;
 

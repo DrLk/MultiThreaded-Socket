@@ -208,5 +208,4 @@ ConnectionID FastTransportContext::GenerateID()
     return ++_nextID;
 }
 
-
 } // namespace FastTransport::Protocol

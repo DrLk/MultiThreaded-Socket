@@ -92,7 +92,7 @@ protected:
             return result;
         }
 
-        result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, SampleStats sample) {
+        result = std::accumulate(stats.begin(), stats.end(), 0, [](int accumulator, const SampleStats& sample) {
             return accumulator + sample.GetLostPackets();
         });
 
