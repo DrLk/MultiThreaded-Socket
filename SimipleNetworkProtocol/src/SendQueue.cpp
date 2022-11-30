@@ -6,6 +6,13 @@
 #include <limits>
 
 namespace FastTransport::Protocol {
+
+SendQueue::SendQueue()
+    : _nextPacketNumber(-1)
+    , _resendPackets(OutgoingComparator)
+{
+}
+
 void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
     Header header = packet->GetHeader();
@@ -45,4 +52,9 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 
     return result;
 }
+
+bool SendQueue::OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right)
+{
+    return left._packet->GetHeader().GetSeqNumber() < right._packet->GetHeader().GetSeqNumber();
+};
 } // namespace FastTransport::Protocol

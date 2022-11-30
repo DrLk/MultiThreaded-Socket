@@ -16,14 +16,7 @@ class SendQueue : public ISendQueue {
     using DataType = std::vector<char>;
 
 public:
-    SendQueue()
-        : _nextPacketNumber(-1)
-    {
-    }
-
-    void SendPacket(const DataType& data)
-    {
-    }
+    SendQueue();
 
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
     void ReSendPackets(OutgoingPacket::List&& packets);
@@ -32,10 +25,8 @@ public:
     OutgoingPacket::List GetPacketsToSend(size_t size);
 
 private:
-    static constexpr auto outgoingComparator = [](const OutgoingPacket& left, const OutgoingPacket& right) {
-        return left._packet->GetHeader().GetSeqNumber() < right._packet->GetHeader().GetSeqNumber();
-    };
-    std::set<OutgoingPacket, decltype(outgoingComparator)> _resendPackets;
+    static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
+    std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
 
     Containers::MultiList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
