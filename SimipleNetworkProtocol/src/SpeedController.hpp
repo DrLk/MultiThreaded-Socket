@@ -23,7 +23,7 @@ public:
 
     size_t GetNumberPacketToSend();
     void UpdateStats(const TimeRangedStats& stats);
-    clock::duration GetTimeout() const;
+    [[nodiscard]] clock::duration GetTimeout() const;
 
 private:
     clock::time_point _lastSend {};

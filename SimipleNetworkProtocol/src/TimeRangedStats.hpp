@@ -17,6 +17,8 @@ public:
     void AddPacket(bool lostPacket, SampleStats::clock::time_point sendTime, SampleStats::clock::duration rtt);
     void UpdateStats(const std::vector<SampleStats>& stats);
 
+    [[nodiscard]] clock::duration GetAverageRtt() const;
+
 private:
     static constexpr int StatsSize = 100;
     static constexpr std::chrono::milliseconds Interval = std::chrono::milliseconds(50);

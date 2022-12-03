@@ -46,12 +46,12 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             while (true) {
+                socket.WaitWrite();
                 const int result = socket.SendTo(data, sockaddr.GetAddr());
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {
                     break;
                 }
-                socket.WaitWrite();
             }
 
             sockaddr.SetPort(sockaddr.GetPort() - index);

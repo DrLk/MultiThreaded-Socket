@@ -202,7 +202,7 @@ void TestTimeRangedStats()
 {
     TimeRangedStats list;
     auto now = SampleStats::clock::now();
-    SampleStats::clock::duration rtt = 10ms;
+    const SampleStats::clock::duration rtt = 10ms;
     list.AddPacket(false, now, rtt);
     list.AddPacket(false, now + std::chrono::seconds(15), rtt);
     list.AddPacket(false, now + std::chrono::seconds(35), rtt);
@@ -223,7 +223,7 @@ void TestBBQState()
     std::uniform_int_distribution<int> distribution(0, 100);
 
     for (int i = 0; i < 100; i++) {
-        SampleStats::clock::duration rtt = 100ms;
+        SampleStats::clock::duration const rtt = 100ms;
         stats.emplace_back(distribution(mt19937), 0, startInterval, startInterval + 50ms, rtt);
         startInterval += 50ms;
     }

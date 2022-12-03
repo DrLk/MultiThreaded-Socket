@@ -59,6 +59,10 @@ public:
         ioctl(_socket, FIONBIO, &mode); // NOLINT
 #endif
 
+        int n = 10 * 1024 * 1024;
+        int result = setsockopt(_socket, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&n), sizeof(n));
+        result = setsockopt(_socket, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&n), sizeof(n));
+
         // zero out the structure
         std::memset(&si_me, 0, sizeof(si_me));
 

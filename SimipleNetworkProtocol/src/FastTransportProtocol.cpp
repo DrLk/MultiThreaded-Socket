@@ -13,7 +13,7 @@ static IPacket::List Recv()
 
 FastTransportContext::FastTransportContext(int port)
     : _shutdownContext(false)
-    , _udpQueue(port, 2, 1000, 100)
+    , _udpQueue(port, 2, 100, 100)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {

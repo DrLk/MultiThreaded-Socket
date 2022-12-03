@@ -26,7 +26,7 @@ public:
 class RecvQueue : public IRecvQueue {
 public:
     RecvQueue()
-        : _queue(Queue_Ssize)
+        : _queue(QueueSize)
     {
     }
 
@@ -38,7 +38,7 @@ public:
             throw std::runtime_error("Wrong packet number");
         }
 
-        if (packetNumber - _beginFullRecievedAck >= Queue_Ssize) {
+        if (packetNumber - _beginFullRecievedAck >= QueueSize) {
             return std::move(packet); // drop packet. queue is full
         }
 
@@ -56,7 +56,7 @@ public:
             _selectiveAcks.push_back(packetNumber);
         }
 
-        auto& queuePacket = _queue[(packetNumber) % Queue_Ssize];
+        auto& queuePacket = _queue[(packetNumber) % QueueSize];
         if (queuePacket) {
             return std::move(packet);
         }
@@ -69,7 +69,7 @@ public:
     {
         IPacket::List data;
         while (true) {
-            auto& nextPacket = _queue[_beginFullRecievedAck++ % Queue_Ssize];
+            auto& nextPacket = _queue[_beginFullRecievedAck++ % QueueSize];
             if (!nextPacket) {
                 break;
             }
@@ -115,7 +115,7 @@ public:
     }
 
 private:
-    static constexpr int Queue_Ssize = 1000;
+    static constexpr int QueueSize = 1000;
     std::vector<IPacket::Ptr> _queue;
     LockedList<IPacket::Ptr> _data;
     std::mutex _selectiveAcksMutex;

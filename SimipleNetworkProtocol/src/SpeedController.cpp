@@ -35,7 +35,8 @@ void SpeedController::UpdateStats(const TimeRangedStats& stats)
 
 SpeedController::clock::duration SpeedController::GetTimeout() const
 {
-    return clock::duration(3000ms);
+    auto timeout = _stats.GetAverageRtt();
+    return timeout + 100ms;
 }
 
 } // namespace FastTransport::Protocol

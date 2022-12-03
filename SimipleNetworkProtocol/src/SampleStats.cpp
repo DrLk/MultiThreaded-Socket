@@ -16,12 +16,18 @@ SampleStats::SampleStats(int allPackets, int lostPackets, clock::time_point star
     }
 }
 
-void SampleStats::Merge(const SampleStats& stats)
+void SampleStats::Merge(const SampleStats& that)
 {
-    _allPackets += stats._allPackets;
-    _lostPackets += stats._lostPackets;
-    _start = std::min<clock::time_point>(_start, stats._start);
-    _end = std::max<clock::time_point>(_end, stats._end);
+    _allPackets += that._allPackets;
+    _lostPackets += that._lostPackets;
+    _start = std::min<clock::time_point>(_start, that._start);
+    _end = std::max<clock::time_point>(_end, that._end);
+
+    const int thatAcknowledgedPackets = that._allPackets - that._lostPackets;
+    if (thatAcknowledgedPackets != 0) {
+        const int acknowledgedPackets = _allPackets - _lostPackets;
+        _rtt = (_rtt * acknowledgedPackets + that._rtt * thatAcknowledgedPackets) / (thatAcknowledgedPackets * acknowledgedPackets);
+    }
 
     if (_allPackets > MinPacketsCount) {
         CalcStats();
@@ -62,4 +68,4 @@ void SampleStats::CalcStats()
 {
     _lost = (_lostPackets * 100.0) / _allPackets;
 }
-}
+} // namespace FastTransport::Protocol

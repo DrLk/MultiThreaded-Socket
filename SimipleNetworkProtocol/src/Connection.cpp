@@ -19,6 +19,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 
 void Connection::Send(IPacket::Ptr&& data)
 {
+    const std::lock_guard lock(_sendUserDataMutex);
     _sendUserData.push_back(std::move(data));
 }
 

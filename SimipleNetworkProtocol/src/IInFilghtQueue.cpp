@@ -1,5 +1,7 @@
 #include "IInFilghtQueue.hpp"
 
+#include <utility>
+
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
@@ -84,7 +86,7 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
 {
     OutgoingPacket::List needToSend;
 
-    clock::duration timeout = _speedController.GetTimeout();
+    clock::duration const timeout = _speedController.GetTimeout();
     for (auto& sample : _samples) {
         needToSend.splice(sample.CheckTimeouts(timeout));
     }

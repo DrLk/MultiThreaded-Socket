@@ -17,7 +17,7 @@ IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
         const auto packet = _packets.find(*ack);
         if (packet != _packets.end()) {
 
-            SampleStats::clock::duration rtt = now - packet->second._sendTime;
+            const SampleStats::clock::duration rtt = now - packet->second._sendTime;
             _timeRangedStats.AddPacket(false, packet->second._sendTime, rtt);
 
             freePackets.push_back(std::move(packet->second._packet));
