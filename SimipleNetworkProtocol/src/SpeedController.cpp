@@ -7,6 +7,8 @@
 #include "ISpeedControllerState.hpp"
 
 namespace FastTransport::Protocol {
+using namespace std::chrono_literals;
+
 SpeedController::SpeedController()
     : _packetPerSecond(MinSpeed)
     , _up(true)
@@ -29,6 +31,11 @@ size_t SpeedController::GetNumberPacketToSend()
 void SpeedController::UpdateStats(const TimeRangedStats& stats)
 {
     _stats.UpdateStats(stats.GetSamplesStats());
+}
+
+SpeedController::clock::duration SpeedController::GetTimeout() const
+{
+    return clock::duration(3000ms);
 }
 
 } // namespace FastTransport::Protocol

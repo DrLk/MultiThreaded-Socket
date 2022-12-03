@@ -10,66 +10,28 @@ struct alignas(32) SampleStats {
 
     static constexpr int MinPacketsCount = 100;
 
-    SampleStats(int allPackets, int lostPackets, clock::time_point start, clock::time_point end)
-        : allPackets(allPackets)
-        , lostPackets(lostPackets)
-        , start(start)
-        , end(end)
-    {
-        if (allPackets > MinPacketsCount) {
-            CalcStats();
-        }
-    }
+    SampleStats(int allPackets, int lostPackets, clock::time_point start, clock::time_point end, clock::duration rtt);
 
-    void Merge(const SampleStats& stats)
-    {
-        allPackets += stats.allPackets;
-        lostPackets += stats.lostPackets;
-        start = std::min<clock::time_point>(start, stats.start);
-        end = std::max<clock::time_point>(end, stats.end);
+    void Merge(const SampleStats& stats);
 
-        if (allPackets > MinPacketsCount) {
-            CalcStats();
-        }
-    }
+    [[nodiscard]] int GetAllPackets() const;
+    [[nodiscard]] int GetLostPackets() const;
+    [[nodiscard]] clock::time_point GetStart() const;
 
-    [[nodiscard]] int GetAllPackets() const
-    {
-        return allPackets;
-    }
-
-    [[nodiscard]] int GetLostPackets() const
-    {
-        return lostPackets;
-    }
-
-    [[nodiscard]] clock::time_point GetStart() const
-    {
-        return start;
-    }
-
-    [[nodiscard]] clock::time_point GetEnd() const
-    {
-        return end;
-    }
-
-    [[nodiscard]] double GetLost() const
-    {
-        return lost;
-    }
+    [[nodiscard]] clock::time_point GetEnd() const;
+    [[nodiscard]] double GetLost() const;
+    [[nodiscard]] clock::duration GetRtt() const;
 
 private:
-    int allPackets;
-    int lostPackets;
+    int _allPackets;
+    int _lostPackets;
 
-    clock::time_point start;
-    clock::time_point end;
+    clock::time_point _start;
+    clock::time_point _end;
+    clock::duration _rtt;
 
-    double lost {};
+    double _lost;
 
-    void CalcStats()
-    {
-        lost = (lostPackets * 100.0) / allPackets;
-    }
+    void CalcStats();
 };
 } // namespace FastTransport::Protocol

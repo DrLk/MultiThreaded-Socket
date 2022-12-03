@@ -1,11 +1,13 @@
 #include "TimeRangedStats.hpp"
 
+using namespace std::chrono_literals;
+
 namespace FastTransport::Protocol {
 TimeRangedStats::TimeRangedStats()
 {
     auto now = SampleStats::clock::time_point(std::chrono::duration_cast<std::chrono::seconds>(SampleStats::clock::now().time_since_epoch()));
     for (int i = 0; i < StatsSize; i++) {
-        _stats.emplace_back(0, 0, now, now + Interval);
+        _stats.emplace_back(0, 0, now, now + Interval, 0ms);
         now += Interval;
     }
 }
@@ -15,9 +17,9 @@ const std::vector<SampleStats>& TimeRangedStats::GetSamplesStats() const
     return _stats;
 }
 
-void TimeRangedStats::AddPacket(bool lostPacket, SampleStats::clock::time_point time)
+void TimeRangedStats::AddPacket(bool lostPacket, SampleStats::clock::time_point sendTime, SampleStats::clock::duration rtt)
 {
-    const SampleStats stats(1, lostPacket ? 1 : 0, time, time);
+    const SampleStats stats(1, lostPacket ? 1 : 0, sendTime, sendTime, rtt);
 
     UpdateStats(stats);
 }
@@ -53,7 +55,7 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
         if (newStartIndex != _startIndex) {
             auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
             for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
-                _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval);
+                _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
                 startInterval += Interval;
             }
 

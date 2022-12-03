@@ -14,7 +14,7 @@ public:
     TimeRangedStats();
 
     [[nodiscard]] const std::vector<SampleStats>& GetSamplesStats() const;
-    void AddPacket(bool lostPacket, SampleStats::clock::time_point time);
+    void AddPacket(bool lostPacket, SampleStats::clock::time_point sendTime, SampleStats::clock::duration rtt);
     void UpdateStats(const std::vector<SampleStats>& stats);
 
 private:
