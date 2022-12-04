@@ -75,11 +75,11 @@ public:
 
         si_me.sin_family = AF_INET;
         si_me.sin_port = htons(_port);
-        si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+        si_me.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
         // bind socket to port
-        if (bind(_socket, reinterpret_cast<const struct sockaddr*>(&si_me), sizeof(si_me)) == -1) { // NOLINT
-            throw std::runtime_error("bind");
+        if (bind(_socket, reinterpret_cast<const struct sockaddr*>(&si_me), sizeof(si_me)) != 0) { // NOLINT
+            throw std::runtime_error("Socket: failed to bind");
         }
     }
 

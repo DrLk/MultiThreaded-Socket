@@ -17,10 +17,10 @@ namespace FastTransport::Protocol {
 void TestConnection()
 {
     const ConnectionAddr addr("127.0.0.1", 8);
-    FastTransportContext src(10100);
-    FastTransportContext dst(10200);
-    const ConnectionAddr srcAddr("127.0.0.1", 10100);
-    const ConnectionAddr dstAddr("127.0.0.1", 10200);
+    FastTransportContext src(11100);
+    FastTransportContext dst(11200);
+    const ConnectionAddr srcAddr("127.0.0.1", 11100);
+    const ConnectionAddr dstAddr("127.0.0.1", 11200);
 
     IConnection* srcConnection = src.Connect(dstAddr);
     for (int i = 0; i < 20000; i++) {
