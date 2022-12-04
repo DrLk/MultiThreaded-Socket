@@ -4,13 +4,6 @@
 
 namespace FastTransport::Protocol {
 
-static IPacket::List Recv()
-{
-    IPacket::List result;
-
-    return result;
-}
-
 FastTransportContext::FastTransportContext(int port)
     : _shutdownContext(false)
     , _udpQueue(port, 2, 100, 100)

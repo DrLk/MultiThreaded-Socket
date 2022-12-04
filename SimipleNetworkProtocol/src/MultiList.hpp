@@ -138,13 +138,6 @@ public:
             return *this;
         }
 
-        const Iterator operator++(int) // NOLINT(fuchsia-overloaded-operator)
-        {
-            Iterator retval = *this;
-            ++(*this);
-            return retval;
-        }
-
         bool operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
         {
             return _it1 == other._it1 && _it2 == other._it2;

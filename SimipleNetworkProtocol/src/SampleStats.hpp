@@ -5,14 +5,14 @@
 
 namespace FastTransport::Protocol {
 
-struct alignas(32) SampleStats {
+struct alignas(64) SampleStats {
     using clock = std::chrono::steady_clock;
 
     static constexpr int MinPacketsCount = 100;
 
     SampleStats(int allPackets, int lostPackets, clock::time_point start, clock::time_point end, clock::duration rtt);
 
-    void Merge(const SampleStats& stats);
+    void Merge(const SampleStats& that);
 
     [[nodiscard]] int GetAllPackets() const;
     [[nodiscard]] int GetLostPackets() const;

@@ -36,17 +36,13 @@ void TimeRangedStats::UpdateStats(const std::vector<SampleStats>& stats)
 
 TimeRangedStats::clock::duration TimeRangedStats::GetAverageRtt() const
 {
-    auto allPackets = std::accumulate(_stats.begin(), _stats.end(), 0, [](int rtt, const SampleStats& stat) {
-        return rtt + stat.GetAllPackets();
-    });
-
     auto countStats = std::ranges::count_if(_stats, [](const SampleStats& sample) {
         return sample.GetRtt() > 0ms;
     });
 
     if (countStats < 20) {
         return 3000ms;
-}
+    }
 
     auto averageRtt = std::accumulate(_stats.begin(), _stats.end(), clock::duration(), [](clock::duration rtt, const SampleStats& stat) {
         return rtt += stat.GetRtt();

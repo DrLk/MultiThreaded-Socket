@@ -23,5 +23,5 @@ jobs:
               run: |
                 clang-tidy-16 --version
                 cd ./SimipleNetworkProtocol/src
-                clang-tidy-16 -extra-arg=-std=c++20 -checks='*, -modernize-use-trailing-return-type,-llvmlibc-*,-llvm-header-guard,-altera-unroll-loops,-fuchsia-default-arguments-calls,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-performance-move-const-arg,-hicpp-move-const-arg,-misc-definitions-in-headers,-altera-id-dependent-backward-branch,-readability-convert-member-functions-to-static,-bugprone-easily-swappable-parameters,-google-readability-todo' ./*pp
+                clang-tidy-16 -extra-arg=-std=c++20 -checks='*, -modernize-use-trailing-return-type,-llvmlibc-*,-llvm-header-guard,-altera-unroll-loops,-fuchsia-default-arguments-calls,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-performance-move-const-arg,-hicpp-move-const-arg,-misc-definitions-in-headers,-altera-id-dependent-backward-branch,-readability-convert-member-functions-to-static,-bugprone-easily-swappable-parameters,-google-readability-todo' -warnings-as-errors='*' ./*pp
 

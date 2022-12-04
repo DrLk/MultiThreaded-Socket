@@ -59,9 +59,16 @@ public:
         ioctl(_socket, FIONBIO, &mode); // NOLINT
 #endif
 
-        int n = 10 * 1024 * 1024;
-        int result = setsockopt(_socket, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&n), sizeof(n));
-        result = setsockopt(_socket, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&n), sizeof(n));
+        const int bufferSize = 10 * 1024 * 1024;
+        int result = setsockopt(_socket, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&bufferSize), sizeof(bufferSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        if (result != 0) {
+            throw std::runtime_error("Socket: failed to set SO_RCVBUF");
+        }
+
+        result = setsockopt(_socket, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&bufferSize), sizeof(bufferSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        if (result != 0) {
+            throw std::runtime_error("Socket: failed to set SO_SNDBUF");
+        }
 
         // zero out the structure
         std::memset(&si_me, 0, sizeof(si_me));
