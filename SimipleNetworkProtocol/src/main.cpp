@@ -41,7 +41,7 @@ void Test()
     std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 }
 
-int main(size_t argc, char** argv)
+int main(int argc, char** argv)
 {
 #ifdef WIN32
     WSADATA wsaData;
@@ -51,7 +51,7 @@ int main(size_t argc, char** argv)
         Test();
     }
 
-    const std::span<char*> args = { argv, argc };
+    const std::span<char*> args = { argv, static_cast<size_t>(argc) };
     const int port = std::stoi(args[2]);
     const int threadCount = std::stoi(args[3]);
     const int sendBufferSize = std::stoi(args[4]);
