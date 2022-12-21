@@ -45,7 +45,10 @@ int main(int argc, char** argv)
 {
 #ifdef WIN32
     WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (error) {
+        throw std::runtime_error("Socket: failed toWSAStartup");
+    }
 #endif
     if (argc == 1) {
         Test();

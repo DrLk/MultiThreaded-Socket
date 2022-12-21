@@ -16,26 +16,18 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
 {
     OutgoingPacket::List sendQueue;
 
-    bool sleep = false;
-
     while (true) {
-        if (sleep) {
-            std::this_thread::sleep_for(1ms);
-        }
-
         if (sendQueue.empty()) { // NOLINT
-            const std::lock_guard lock(udpQueue._sendQueue._mutex);
-            if (udpQueue._sendQueue.empty()) {
-                sleep = true;
-                continue;
-            }
-            sleep = false;
+            std::unique_lock lock(udpQueue._sendQueue._mutex);
+            udpQueue._sendQueue._condition.wait(lock, [&udpQueue]() { return !udpQueue._sendQueue.empty(); });
 
             if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size()) {
                 auto freeSendQueue = udpQueue._sendQueue.TryGenerate(udpQueue._sendQueueSizePerThread);
                 sendQueue.splice(std::move(freeSendQueue));
             } else {
-                sendQueue = std::move(udpQueue._sendQueue);
+                LockedList<OutgoingPacket> queue;
+                queue.swap(udpQueue._sendQueue);
+                sendQueue = std::move(queue);
             }
         }
 
@@ -59,7 +51,9 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
 
         if (!sendQueue.empty()) {
             const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
-            udpQueue._sendFreeQueue.splice(std::move(sendQueue)); // NOLINT
+            OutgoingPacket::List queue;
+            queue.swap(sendQueue);
+            udpQueue._sendFreeQueue.splice(std::move(queue)); // NOLINT
         }
     }
 }

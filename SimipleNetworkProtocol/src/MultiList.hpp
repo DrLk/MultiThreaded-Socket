@@ -179,6 +179,11 @@ public:
         }
     }
 
+    void swap(MultiList& that) noexcept
+    {
+        _lists.swap(that._lists);
+    }
+
 private:
     std::list<std::list<T>> _lists;
 

@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#define INVALID_SOCKET (-1)
 #endif
 #include <cstring> //memset
 #include <span>
@@ -46,7 +47,7 @@ public:
 
         // create a UDP socket
         _socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (_socket == -1) {
+        if (_socket == INVALID_SOCKET) {
             throw std::runtime_error("socket");
         }
 
@@ -113,9 +114,9 @@ public:
 
 private:
 #ifdef WIN32
-    SOCKET _socket;
+    SOCKET _socket { INVALID_SOCKET };
 #else
-    int _socket { -1 };
+    int _socket { INVALID_SOCKET };
 #endif
     uint16_t _port;
 };

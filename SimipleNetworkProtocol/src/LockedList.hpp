@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <mutex>
 
 #include "MultiList.hpp"
@@ -14,4 +15,5 @@ public:
     }
 
     std::mutex _mutex; // NOLINT(misc-non-private-member-variables-in-classes)
+    std::condition_variable _condition {};
 };
