@@ -14,7 +14,7 @@
 
 namespace FastTransport::Protocol {
 
-using namespace FastTransport::Containers;
+using FastTransport::Containers::LockedList;
 
 class FastTransportContext {
 public:

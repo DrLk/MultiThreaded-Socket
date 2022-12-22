@@ -12,7 +12,7 @@
 
 namespace FastTransport::Protocol {
 
-using namespace FastTransport::Containers;
+using FastTransport::Containers::LockedList;
 
 class Packet : public IPacket {
 public:
