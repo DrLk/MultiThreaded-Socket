@@ -8,8 +8,11 @@
 #include "ConnectionKey.hpp"
 #include "IConnectionState.hpp"
 #include "IPacket.hpp"
+#include "LockedList.hpp"
 #include "SpeedController.hpp"
 #include "UDPQueue.hpp"
+
+using namespace FastTransport::Containers;
 
 namespace FastTransport::Protocol {
 class FastTransportContext {

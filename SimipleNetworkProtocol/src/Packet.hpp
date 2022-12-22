@@ -10,6 +10,8 @@
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 
+using namespace FastTransport::Containers;
+
 namespace FastTransport::Protocol {
 class Packet : public IPacket {
 public:

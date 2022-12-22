@@ -19,7 +19,7 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
     while (true) {
         if (sendQueue.empty()) { // NOLINT
             std::unique_lock lock(udpQueue._sendQueue._mutex);
-            udpQueue._sendQueue._condition.wait(lock, [&udpQueue]() { return !udpQueue._sendQueue.empty(); });
+            udpQueue._sendQueue.Wait(lock, [&udpQueue]() { return !udpQueue._sendQueue.empty(); });
 
             if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size()) {
                 auto freeSendQueue = udpQueue._sendQueue.TryGenerate(udpQueue._sendQueueSizePerThread);

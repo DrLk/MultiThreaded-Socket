@@ -13,6 +13,8 @@
 #include "Packet.hpp"
 #include "SendQueue.hpp"
 
+using namespace FastTransport::Containers;
+
 namespace FastTransport::Protocol {
 
 using namespace std::chrono_literals;

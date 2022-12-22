@@ -41,7 +41,7 @@ IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
         const std::lock_guard lock(_recvFreeQueue._mutex);
         _recvFreeQueue.splice(std::move(freeBuffers));
     }
-    _recvFreeQueue._condition.notify_all();
+    _recvFreeQueue.NotifyAll();
 
     IPacket::List result;
     {
@@ -58,7 +58,7 @@ OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
     if (!data.empty()) {
         const std::lock_guard lock(_sendQueue._mutex);
         _sendQueue.splice(std::move(data));
-        _sendQueue._condition.notify_all();
+        _sendQueue.NotifyAll();
     }
 
     OutgoingPacket::List result;
@@ -89,7 +89,7 @@ void UDPQueue::ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, 
         if (recvQueue.empty()) {
             std::unique_lock lock(udpQueue._recvFreeQueue._mutex);
 
-            udpQueue._recvFreeQueue._condition.wait(lock, [&udpQueue] { return !udpQueue._recvFreeQueue.empty(); });
+            udpQueue._recvFreeQueue.Wait(lock, [&udpQueue] { return !udpQueue._recvFreeQueue.empty(); });
 
             if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread) {
                 auto freeRecvQueue = udpQueue._recvFreeQueue.TryGenerate(udpQueue._recvQueueSizePerThread);

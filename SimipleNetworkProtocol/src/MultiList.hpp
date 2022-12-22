@@ -72,7 +72,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] bool empty() const
+    [[nodiscard]] bool empty() const noexcept
     {
         return _lists.empty();
     }
@@ -91,7 +91,7 @@ public:
         }
     }
 
-    [[nodiscard]] std::size_t size() const
+    [[nodiscard]] std::size_t size() const noexcept
     {
         std::size_t size = 0;
         for (const auto& it1 : _lists) {
