@@ -36,8 +36,8 @@ public:
 
     ConnectionAddr(const ConnectionAddr& that) = default;
     ConnectionAddr& operator=(const ConnectionAddr& that) = default;
-    ConnectionAddr(ConnectionAddr&& that) = default;
-    ConnectionAddr& operator=(ConnectionAddr&& that) = default;
+    ConnectionAddr(ConnectionAddr&& that) noexcept = default;
+    ConnectionAddr& operator=(ConnectionAddr&& that) noexcept = default;
     ~ConnectionAddr() = default;
 
     bool operator==(const ConnectionAddr& that) const // NOLINT(fuchsia-overloaded-operator)

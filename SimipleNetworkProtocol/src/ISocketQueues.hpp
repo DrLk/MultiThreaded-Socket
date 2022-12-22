@@ -8,9 +8,9 @@ class ISocketQueues {
 public:
     ISocketQueues() = default;
     ISocketQueues(const ISocketQueues& that) = default;
-    ISocketQueues(ISocketQueues&& that) = default;
+    ISocketQueues(ISocketQueues&& that) noexcept = default;
     ISocketQueues& operator=(const ISocketQueues& that) = default;
-    ISocketQueues& operator=(ISocketQueues&& that) = default;
+    ISocketQueues& operator=(ISocketQueues&& that) noexcept = default;
     virtual ~ISocketQueues() = default;
     virtual IRecvQueue* RecvQueue() = 0;
     virtual ISendQueue* SendQueue() = 0;

@@ -10,7 +10,7 @@ namespace FastTransport::Containers {
 template <class T>
 class LockedList : public FastTransport::Containers::MultiList<T> {
 public:
-    LockedList& operator=(FastTransport::Containers::MultiList<T>&& that); // NOLINT(fuchsia-overloaded-operator)
+    LockedList& operator=(FastTransport::Containers::MultiList<T>&& that) noexcept; // NOLINT(fuchsia-overloaded-operator)
 
     template <class Predicate>
     void Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate);
@@ -22,7 +22,7 @@ private:
 };
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-LockedList<T>& LockedList<T>::operator=(FastTransport::Containers::MultiList<T>&& that)
+LockedList<T>& LockedList<T>::operator=(FastTransport::Containers::MultiList<T>&& that) noexcept
 {
     FastTransport::Containers::MultiList<T>::operator=(std::move(that));
     return *this;
