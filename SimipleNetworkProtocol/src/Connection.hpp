@@ -13,11 +13,11 @@
 #include "Packet.hpp"
 #include "SendQueue.hpp"
 
-using namespace FastTransport::Containers;
-
 namespace FastTransport::Protocol {
 
 using namespace std::chrono_literals;
+using namespace FastTransport::Containers;
+
 class IConnectionState;
 
 class IConnection {
@@ -94,7 +94,7 @@ public:
     LockedList<IPacket::Ptr> _freeSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     LockedList<IPacket::Ptr> _freeRecvPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    LockedList<std::vector<char>> _recvUserData;
+    Containers::LockedList<std::vector<char>> _recvUserData;
 
     std::chrono::microseconds _lastReceivedPacket;
 

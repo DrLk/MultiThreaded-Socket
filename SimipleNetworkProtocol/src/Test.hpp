@@ -8,6 +8,7 @@
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
 #include "ISpeedControllerState.hpp"
+#include "Logger.hpp"
 #include "MultiList.hpp"
 #include "PeriodicExecutor.hpp"
 #include "SpeedController.hpp"
@@ -229,6 +230,17 @@ void TestBBQState()
     }
 
     state.Run(stats, speedState);
+}
+
+void TestLogger()
+{
+    using clock = std::chrono::steady_clock;
+    auto start = clock::now();
+    for (int i = 0; i < 10000; i++) {
+        LOGGER() << i << " " << 123 << "fdsfsd";
+    }
+
+    std::cout << clock::now() - start << std::endl;
 }
 
 } // namespace FastTransport::Protocol

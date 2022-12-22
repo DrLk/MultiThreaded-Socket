@@ -8,9 +8,10 @@
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 
+namespace FastTransport::Protocol {
+
 using namespace FastTransport::Containers;
 
-namespace FastTransport::Protocol {
 class IRecvQueue {
 public:
     IRecvQueue() = default;

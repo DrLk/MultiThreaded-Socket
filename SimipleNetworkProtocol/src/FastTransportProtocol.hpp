@@ -12,9 +12,10 @@
 #include "SpeedController.hpp"
 #include "UDPQueue.hpp"
 
+namespace FastTransport::Protocol {
+
 using namespace FastTransport::Containers;
 
-namespace FastTransport::Protocol {
 class FastTransportContext {
 public:
     explicit FastTransportContext(int port);

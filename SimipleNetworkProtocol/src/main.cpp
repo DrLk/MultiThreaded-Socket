@@ -15,6 +15,7 @@ using namespace FastTransport::Protocol; // NOLINT
 void Test()
 {
     TestConnection();
+    // TestLogger();
     // TestBBQState();
     // TestTimeRangedStats();
     // TestMultiList();

@@ -14,9 +14,10 @@
 #include "SendThreadQueue.hpp"
 #include "Socket.hpp"
 
+namespace FastTransport::Protocol {
+
 using namespace FastTransport::Containers;
 
-namespace FastTransport::Protocol {
 class UDPQueue {
     friend SendThreadQueue;
 
