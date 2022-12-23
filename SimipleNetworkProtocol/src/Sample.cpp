@@ -60,7 +60,8 @@ OutgoingPacket::List Sample::CheckTimeouts(clock::duration timeout)
 
 bool Sample::IsDead() const
 {
-    return _packets.empty();
+    const bool isEmpty = _packets.empty();
+    return isEmpty;
 }
 
 TimeRangedStats Sample::GetStats() const
