@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <thread>
 #include <unordered_map>
 
 #include "Connection.hpp"
@@ -23,7 +24,7 @@ public:
     FastTransportContext(FastTransportContext&& that) = delete;
     FastTransportContext& operator=(const FastTransportContext& that) = delete;
     FastTransportContext& operator=(FastTransportContext&& that) = delete;
-    ~FastTransportContext();
+    ~FastTransportContext() = default;
 
     IPacket::List OnReceive(IPacket::List&& packet);
 
@@ -41,15 +42,13 @@ private:
 
     UDPQueue _udpQueue;
 
-    std::atomic<bool> _shutdownContext;
-
-    std::thread _sendContextThread;
-    std::thread _recvContextThread;
+    std::jthread _sendContextThread;
+    std::jthread _recvContextThread;
 
     IPacket::List OnReceive(IPacket::Ptr&& packet);
 
-    static void SendThread(FastTransportContext& context);
-    static void RecvThread(FastTransportContext& context);
+    static void SendThread(const std::stop_token& stop, FastTransportContext& context);
+    static void RecvThread(const std::stop_token& stop, FastTransportContext& context);
 
     void ConnectionsRun();
     void SendQueueStep();

@@ -12,23 +12,41 @@ SendThreadQueue::SendThreadQueue()
 {
 }
 
-void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
+namespace {
+
+    OutgoingPacket::List GetOutgoingPacketsToSend(LockedList<OutgoingPacket>& sendQueue, size_t size)
+    {
+        OutgoingPacket::List outgoingPackets;
+        {
+            std::unique_lock lock(sendQueue._mutex);
+            if (!sendQueue.Wait(lock, [&sendQueue]() { return !sendQueue.empty(); })) {
+                return outgoingPackets;
+            }
+
+            if (size < sendQueue.size()) {
+                auto freeSendQueue = sendQueue.TryGenerate(size);
+                outgoingPackets.splice(std::move(freeSendQueue));
+            } else {
+                LockedList<OutgoingPacket> queue;
+                queue.swap(sendQueue);
+                outgoingPackets = std::move(queue);
+            }
+        }
+        return outgoingPackets;
+    }
+} // namespace
+
+void SendThreadQueue::WriteThread(const std::stop_token& stop, UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
 {
     OutgoingPacket::List sendQueue;
 
     while (true) {
-        if (sendQueue.empty()) { // NOLINT
-            std::unique_lock lock(udpQueue._sendQueue._mutex);
-            udpQueue._sendQueue.Wait(lock, [&udpQueue]() { return !udpQueue._sendQueue.empty(); });
+        if (stop.stop_requested()) {
+            return;
+        }
 
-            if (udpQueue._sendQueueSizePerThread < udpQueue._sendQueue.size()) {
-                auto freeSendQueue = udpQueue._sendQueue.TryGenerate(udpQueue._sendQueueSizePerThread);
-                sendQueue.splice(std::move(freeSendQueue));
-            } else {
-                LockedList<OutgoingPacket> queue;
-                queue.swap(udpQueue._sendQueue);
-                sendQueue = std::move(queue);
-            }
+        if (sendQueue.empty()) {
+            sendQueue = GetOutgoingPacketsToSend(udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
         }
 
         for (auto& packet : sendQueue) {
@@ -37,8 +55,11 @@ void SendThreadQueue::WriteThread(UDPQueue& udpQueue, SendThreadQueue& /*sendThr
             auto& sockaddr = packet._packet->GetDstAddr();
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
+            if (!socket.WaitWrite()) {
+                break;
+            }
+
             while (true) {
-                socket.WaitWrite();
                 const int result = socket.SendTo(data, sockaddr.GetAddr());
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {

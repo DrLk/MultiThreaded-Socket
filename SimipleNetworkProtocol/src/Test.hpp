@@ -176,7 +176,7 @@ void TestSocket()
 
     sockaddr_storage addr {};
     std::vector<unsigned char> data2(1500);
-    dst.WaitRead();
+    while (!dst.WaitRead()) { }
     auto result2 = dst.RecvFrom(data2, addr);
     std::cout << result << " " << result2;
 }

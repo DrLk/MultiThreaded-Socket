@@ -32,8 +32,8 @@ public:
 
 private:
     unsigned int _port;
-    std::vector<std::thread> _writeThreads;
-    std::vector<std::thread> _readThreads;
+    std::vector<std::jthread> _writeThreads;
+    std::vector<std::jthread> _readThreads;
 
     LockedList<OutgoingPacket> _sendQueue;
     LockedList<IPacket::Ptr> _recvQueue;
@@ -41,7 +41,7 @@ private:
     LockedList<OutgoingPacket> _sendFreeQueue;
     LockedList<IPacket::Ptr> _recvFreeQueue;
 
-    static void ReadThread(UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index);
+    static void ReadThread(const std::stop_token& stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index);
 
     std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
     std::vector<std::shared_ptr<SendThreadQueue>> _sendThreadQueues;

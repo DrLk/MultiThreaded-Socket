@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #define INVALID_SOCKET (-1)
+#define SOCKET_ERROR (-1)
 #endif
 #include <cstring> //memset
 #include <span>
@@ -96,20 +97,50 @@ public:
         return receivedBytes;
     }
 
-    void WaitRead() const
+    [[nodiscard]] bool WaitRead() const
     {
         fd_set ReadSet {};
         FD_ZERO(&ReadSet); // NOLINT
         FD_SET(_socket, &ReadSet); // NOLINT
-        select(_socket + 1, &ReadSet, nullptr, nullptr, nullptr);
+
+        struct timeval timeout {
+            .tv_sec = 0, .tv_usec = 100000
+        };
+
+        int const result = select(_socket + 1, &ReadSet, nullptr, nullptr, &timeout);
+
+        if (result == SOCKET_ERROR) {
+            throw std::runtime_error("Socket: failed to select read");
+        }
+
+        if (result == 0) {
+            return false;
+        }
+
+        return true;
     }
 
-    void WaitWrite() const
+    [[nodiscard]] bool WaitWrite() const
     {
         fd_set WriteSet {};
         FD_ZERO(&WriteSet); // NOLINT
         FD_SET(_socket, &WriteSet); // NOLINT
-        select(_socket + 1, nullptr, &WriteSet, nullptr, nullptr);
+
+        struct timeval timeout {
+            .tv_sec = 0, .tv_usec = 100000
+        };
+
+        int const result = select(_socket + 1, nullptr, &WriteSet, nullptr, &timeout);
+
+        if (result == SOCKET_ERROR) {
+            throw std::runtime_error("Socket: failed to select write");
+        }
+
+        if (result == 0) {
+            return false;
+        }
+
+        return true;
     }
 
 private:

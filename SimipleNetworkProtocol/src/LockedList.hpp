@@ -7,13 +7,15 @@
 
 namespace FastTransport::Containers {
 
+using namespace std::chrono_literals;
+
 template <class T>
 class LockedList : public FastTransport::Containers::MultiList<T> {
 public:
     LockedList& operator=(FastTransport::Containers::MultiList<T>&& that) noexcept; // NOLINT(fuchsia-overloaded-operator)
 
     template <class Predicate>
-    void Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate);
+    bool Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate);
     void NotifyAll() noexcept;
 
     std::mutex _mutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -30,9 +32,9 @@ LockedList<T>& LockedList<T>::operator=(FastTransport::Containers::MultiList<T>&
 
 template <class T>
 template <class Predicate>
-void LockedList<T>::Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate)
+bool LockedList<T>::Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate)
 {
-    _condition.wait(lock, std::forward<Predicate>(predicate));
+    return _condition.wait_for(lock, 100ms, std::forward<Predicate>(predicate));
 }
 
 template <class T>

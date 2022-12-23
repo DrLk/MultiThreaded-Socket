@@ -5,8 +5,7 @@
 namespace FastTransport::Protocol {
 
 FastTransportContext::FastTransportContext(int port)
-    : _shutdownContext(false)
-    , _udpQueue(port, 2, 100, 100)
+    : _udpQueue(port, 2, 100, 100)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
@@ -17,14 +16,6 @@ FastTransportContext::FastTransportContext(int port)
         }
     }
     _udpQueue.Init();
-}
-
-FastTransportContext::~FastTransportContext()
-{
-    _shutdownContext = true;
-
-    _sendContextThread.join();
-    _recvContextThread.join();
 }
 
 IConnection* FastTransportContext::Accept()
@@ -159,19 +150,19 @@ OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
     return _udpQueue.Send(std::move(packets));
 }
 
-void FastTransportContext::SendThread(FastTransportContext& context)
+void FastTransportContext::SendThread(const std::stop_token& stop, FastTransportContext& context)
 {
     PeriodicExecutor executor([&context]() {
         context.ConnectionsRun();
     },
         50ms);
 
-    while (!context._shutdownContext) {
+    while (!stop.stop_requested()) {
         executor.Run();
     }
 }
 
-void FastTransportContext::RecvThread(FastTransportContext& context)
+void FastTransportContext::RecvThread(const std::stop_token& stop, FastTransportContext& context)
 {
     PeriodicExecutor executor([&context]() {
         context.RecvQueueStep();
@@ -179,7 +170,7 @@ void FastTransportContext::RecvThread(FastTransportContext& context)
     },
         50ms);
 
-    while (!context._shutdownContext) {
+    while (!stop.stop_requested()) {
         executor.Run();
     }
 }

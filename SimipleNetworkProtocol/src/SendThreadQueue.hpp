@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <stop_token>
 
 namespace FastTransport::Protocol {
 class UDPQueue;
@@ -12,7 +13,7 @@ class SendThreadQueue {
 public:
     SendThreadQueue();
 
-    static void WriteThread(UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, uint16_t index);
+    static void WriteThread(const std::stop_token& stop, UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, uint16_t index);
 
 private:
     std::chrono::milliseconds _pauseTime;
