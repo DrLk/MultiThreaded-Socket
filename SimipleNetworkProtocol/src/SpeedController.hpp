@@ -4,11 +4,10 @@
 #include <functional>
 #include <map>
 
+#include "ISpeedControllerState.hpp"
 #include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
-
-class ISpeedControllerState;
 
 class SpeedController {
     using clock = std::chrono::steady_clock;
@@ -34,7 +33,7 @@ private:
 
     TimeRangedStats _stats;
 
-    std::map<SpeedState, ISpeedControllerState*> _states = {};
+    std::map<SpeedState, std::unique_ptr<ISpeedControllerState>> _states = {};
     SpeedState _currentState = SpeedState::BBQ;
 
     bool _up;

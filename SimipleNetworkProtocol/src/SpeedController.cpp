@@ -4,8 +4,6 @@
 #include <limits>
 #include <ranges>
 
-#include "ISpeedControllerState.hpp"
-
 namespace FastTransport::Protocol {
 using namespace std::chrono_literals;
 
@@ -14,15 +12,13 @@ SpeedController::SpeedController()
     , _up(true)
     , _speedIncrement(1)
 {
-    _states = {
-        { SpeedState::FAST, new FastAccelerationState() },
-        { SpeedState::BBQ, new BBQState() }
-    };
+    _states.emplace(SpeedState::FAST, std::make_unique<FastAccelerationState>());
+    _states.emplace(SpeedState::BBQ, std::make_unique<BBQState>());
 }
 
 size_t SpeedController::GetNumberPacketToSend()
 {
-    auto* state = _states[_currentState];
+    const auto& state = _states[_currentState];
     static SpeedControllerState speedState;
     state->Run(_stats.GetSamplesStats(), speedState);
     return speedState.realSpeed;
