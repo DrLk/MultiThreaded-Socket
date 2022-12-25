@@ -27,9 +27,7 @@ namespace {
                 auto freeSendQueue = sendQueue.TryGenerate(size);
                 outgoingPackets.splice(std::move(freeSendQueue));
             } else {
-                LockedList<OutgoingPacket> queue;
-                queue.swap(sendQueue);
-                outgoingPackets = std::move(queue);
+                outgoingPackets.swap(sendQueue);
             }
         }
         return outgoingPackets;
@@ -71,9 +69,9 @@ void SendThreadQueue::WriteThread(const std::stop_token& stop, UDPQueue& udpQueu
         }
 
         if (!sendQueue.empty()) {
-            const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
             OutgoingPacket::List queue;
             queue.swap(sendQueue);
+            const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
             udpQueue._sendFreeQueue.splice(std::move(queue)); // NOLINT
         }
     }

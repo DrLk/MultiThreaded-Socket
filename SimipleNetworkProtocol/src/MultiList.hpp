@@ -7,6 +7,7 @@ template <class T>
 class MultiList {
 public:
     MultiList() = default;
+    virtual ~MultiList() = default;
 
     MultiList(const MultiList& that) = delete;
     MultiList& operator=(const MultiList& that) = delete;
@@ -15,7 +16,11 @@ public:
     {
     }
 
-    ~MultiList() = default;
+    MultiList& operator=(MultiList&& that) noexcept
+    {
+        _lists = std::move(that._lists);
+        return *this;
+    }
 
     MultiList TryGenerate(std::size_t size)
     {
@@ -64,12 +69,6 @@ public:
             }
         }
         _lists.splice(_lists.end(), std::move(that._lists));
-    }
-
-    MultiList& operator=(MultiList&& that) noexcept
-    {
-        _lists = std::move(that._lists);
-        return *this;
     }
 
     [[nodiscard]] bool empty() const noexcept

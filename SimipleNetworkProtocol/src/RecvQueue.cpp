@@ -80,7 +80,7 @@ std::list<SeqNumberType> RecvQueue::GetSelectiveAcks()
 
     {
         const std::lock_guard lock(_selectiveAcksMutex);
-        selectiveAcks = std::move(_selectiveAcks);
+        selectiveAcks.swap(_selectiveAcks);
     }
 
     return selectiveAcks;

@@ -46,10 +46,9 @@ IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
     IPacket::List result;
     {
         const std::lock_guard lock(_recvQueue._mutex);
-        if (!_recvQueue.empty()) {
-            result = std::move(_recvQueue);
-        }
+        result.swap(_recvQueue);
     }
+
     return result;
 }
 
@@ -64,7 +63,7 @@ OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
     OutgoingPacket::List result;
     {
         const std::lock_guard lock(_sendFreeQueue._mutex);
-        result = std::move(_sendFreeQueue);
+        result.swap(_sendFreeQueue);
     }
 
     return result;
@@ -134,9 +133,9 @@ void UDPQueue::ReadThread(const std::stop_token& stop, UDPQueue& udpQueue, RecvT
         }
 
         {
-            const std::lock_guard lock(udpQueue._recvQueue._mutex);
             IPacket::List queue;
             queue.swap(recvThreadQueue._recvThreadQueue);
+            const std::lock_guard lock(udpQueue._recvQueue._mutex);
             udpQueue._recvQueue.splice(std::move(queue));
         }
     }

@@ -10,9 +10,14 @@ namespace FastTransport::Containers {
 using namespace std::chrono_literals;
 
 template <class T>
-class LockedList : public FastTransport::Containers::MultiList<T> {
+class LockedList final : public FastTransport::Containers::MultiList<T> {
 public:
-    LockedList& operator=(FastTransport::Containers::MultiList<T>&& that) noexcept; // NOLINT(fuchsia-overloaded-operator)
+    LockedList();
+    LockedList(const LockedList& that) = delete;
+    LockedList(LockedList&& that) noexcept;
+    LockedList& operator=(const LockedList& that) = delete;
+    LockedList& operator=(LockedList&& that) noexcept; // NOLINT(fuchsia-overloaded-operator)
+    ~LockedList() override;
 
     template <class Predicate>
     bool Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate);
@@ -23,12 +28,24 @@ private:
     std::condition_variable _condition {};
 };
 
+template <class T>
+LockedList<T>::LockedList() = default;
+
+template <class T>
+LockedList<T>::LockedList(LockedList&& that) noexcept
+    : FastTransport::Containers::MultiList<T>(std::move(that))
+{
+}
+
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-LockedList<T>& LockedList<T>::operator=(FastTransport::Containers::MultiList<T>&& that) noexcept
+LockedList<T>& LockedList<T>::operator=(LockedList&& that) noexcept
 {
     FastTransport::Containers::MultiList<T>::operator=(std::move(that));
     return *this;
 }
+
+template <class T>
+LockedList<T>::~LockedList() = default;
 
 template <class T>
 template <class Predicate>
