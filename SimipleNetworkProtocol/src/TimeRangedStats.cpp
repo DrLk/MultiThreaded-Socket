@@ -9,7 +9,7 @@ namespace FastTransport::Protocol {
 TimeRangedStats::TimeRangedStats()
 {
     auto now = SampleStats::clock::time_point(std::chrono::duration_cast<std::chrono::seconds>(SampleStats::clock::now().time_since_epoch()));
-    for (int i = 0; i < StatsSize; i++) {
+    for (int i = 0; i < Size; i++) {
         _stats.emplace_back(0, 0, now, now + Interval, 0ms);
         now += Interval;
     }
@@ -71,16 +71,14 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
         auto diff = stats.GetStart() - _stats[_startIndex % Size].GetStart();
         const size_t newEndIndex = _startIndex + diff / Interval;
 
-        auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size);
-        if (newStartIndex != _startIndex) {
-            auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
-            for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
-                _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
-                startInterval += Interval;
-            }
-
-            _startIndex = newStartIndex;
+        auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size + 1);
+        auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
+        for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
+            _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
+            startInterval += Interval;
         }
+
+        _startIndex = newStartIndex;
 
         _stats[newEndIndex % Size].Merge(stats);
     }

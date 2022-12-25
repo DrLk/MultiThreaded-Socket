@@ -52,18 +52,18 @@ void TestConnection()
     }
 
     auto start = std::chrono::steady_clock::now();
+    static size_t totalCount = 0;
     while (true) {
-        static size_t totalCount = 0;
         static size_t countPerSecond;
         recvPackets = dstConnection->Recv(std::move(recvPackets));
         if (!recvPackets.empty()) {
             totalCount += recvPackets.size();
             countPerSecond += recvPackets.size();
-            std::cout << "Recv packets : " << totalCount << std::endl;
         }
 
         auto duration = std::chrono::steady_clock::now() - start;
         if (duration > 1s) {
+            std::cout << "Recv packets : " << totalCount << std::endl;
             std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
             countPerSecond = 0;
             start = std::chrono::steady_clock::now();

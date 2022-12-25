@@ -20,7 +20,6 @@ public:
     [[nodiscard]] clock::duration GetAverageRtt() const;
 
 private:
-    static constexpr int StatsSize = 100;
     static constexpr std::chrono::milliseconds Interval = std::chrono::milliseconds(50);
     static constexpr size_t Size = 100;
 
