@@ -46,39 +46,39 @@ public:
     static std::pair<Connection*, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
 };
 
-class SendingSynState : public BasicConnectionState {
+class SendingSynState final : public BasicConnectionState {
 public:
     IConnectionState* SendPackets(Connection& connection) override;
 };
 
-class WaitingSynState : public BasicConnectionState {
+class WaitingSynState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
-class WaitingSynAckState : public BasicConnectionState {
+class WaitingSynAckState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* OnTimeOut(Connection& connection) override;
 };
 
-class SendingSynAckState : public BasicConnectionState {
+class SendingSynAckState final : public BasicConnectionState {
     IConnectionState* SendPackets(Connection& connection) override;
 };
 
-class DataState : public BasicConnectionState {
+class DataState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* SendPackets(Connection& connection) override;
     IConnectionState* OnTimeOut(Connection& connection) override;
 };
 
-class ClosingState : public BasicConnectionState {
+class ClosingState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
-class ClosedState : public BasicConnectionState {
+class ClosedState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };

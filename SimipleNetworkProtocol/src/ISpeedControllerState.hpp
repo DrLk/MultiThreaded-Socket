@@ -100,7 +100,7 @@ protected:
     }
 };
 
-class BBQState : public ISpeedControllerState {
+class BBQState final : public ISpeedControllerState {
 public:
     BBQState() = default;
 
@@ -190,7 +190,7 @@ private:
     }
 };
 
-class FastAccelerationState : public ISpeedControllerState {
+class FastAccelerationState final : public ISpeedControllerState {
 public:
     FastAccelerationState() = default;
 

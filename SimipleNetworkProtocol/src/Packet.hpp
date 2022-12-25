@@ -14,9 +14,8 @@ namespace FastTransport::Protocol {
 
 using FastTransport::Containers::LockedList;
 
-class Packet : public IPacket {
+class Packet final : public IPacket {
 public:
-    using BufferType = LockedList<ElementType>;
     using Ptr = std::shared_ptr<Packet>;
 
     Packet(const Packet& that) = delete;
