@@ -10,7 +10,7 @@
 #include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
-class InflightQueue final : public IInFlightQueue {
+class InFlightQueue final : public IInFlightQueue {
     using clock = std::chrono::steady_clock;
 
     std::mutex _receivedAcksMutex;

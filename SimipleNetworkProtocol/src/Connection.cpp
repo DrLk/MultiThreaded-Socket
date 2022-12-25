@@ -12,6 +12,7 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     : _state(state)
     , _key(addr, myID)
     , _lastReceivedPacket(DefaultTimeOut)
+    , _inFlightQueue(std::make_unique<InFlightQueue>())
     , _recvQueue(std::make_unique<RecvQueue>())
     , _sendQueue(std::make_unique<SendQueue>())
 {
