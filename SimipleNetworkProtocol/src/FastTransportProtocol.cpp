@@ -1,5 +1,6 @@
 #include "FastTransportProtocol.hpp"
 
+#include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
 
 namespace FastTransport::Protocol {

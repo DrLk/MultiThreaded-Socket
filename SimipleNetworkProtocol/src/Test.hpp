@@ -6,11 +6,12 @@
 #include <thread>
 
 #include "FastTransportProtocol.hpp"
-#include "IPacket.hpp"
 #include "ISpeedControllerState.hpp"
 #include "Logger.hpp"
 #include "MultiList.hpp"
+#include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
+#include "RecvQueue.hpp"
 #include "SpeedController.hpp"
 #include "TimeRangedStats.hpp"
 
@@ -142,7 +143,7 @@ void TestPeriodicExecutor()
 
 void TestRecvQueue()
 {
-    RecvQueue queue;
+    std::unique_ptr<IRecvQueue> queue = std::make_unique<RecvQueue>();
 
     std::vector<IPacket::Ptr> packets;
     constexpr SeqNumberType beginSeqNumber = 0;
@@ -153,13 +154,18 @@ void TestRecvQueue()
     }
 
     const IPacket::Ptr packet = std::make_unique<Packet>(1500);
+
+    IPacket::List freePackets;
     for (auto& packet : packets) {
-        queue.AddPacket(std::move(packet));
+        auto freePacket = queue->AddPacket(std::move(packet));
+        if (freePacket) {
+            freePackets.push_back(std::move(freePacket));
+        }
     }
 
-    queue.ProccessUnorderedPackets();
+    queue->ProccessUnorderedPackets();
 
-    auto data = queue.GetUserData();
+    auto data = queue->GetUserData();
 }
 
 void TestSocket()

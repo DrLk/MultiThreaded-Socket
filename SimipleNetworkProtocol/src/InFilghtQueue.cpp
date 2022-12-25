@@ -1,11 +1,9 @@
-#include "IInFilghtQueue.hpp"
-
-#include <utility>
+#include "InflightQueue.hpp"
 
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
-IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
+IPacket::List InflightQueue::AddQueue(OutgoingPacket::List&& packets)
 {
     IPacket::List freePackets;
     std::unordered_set<SeqNumberType> receivedAcks;
@@ -43,7 +41,7 @@ IPacket::List IInflightQueue::AddQueue(OutgoingPacket::List&& packets)
     return freePackets;
 }
 
-void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
+void InflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
 {
     if (!acks.IsValid()) {
         throw std::runtime_error("Not Implemented");
@@ -59,7 +57,7 @@ void IInflightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
     }
 }
 
-IPacket::List IInflightQueue::ProcessAcks()
+IPacket::List InflightQueue::ProcessAcks()
 {
     IPacket::List freePackets;
 
@@ -82,7 +80,7 @@ IPacket::List IInflightQueue::ProcessAcks()
     return freePackets;
 }
 
-OutgoingPacket::List IInflightQueue::CheckTimeouts()
+OutgoingPacket::List InflightQueue::CheckTimeouts()
 {
     OutgoingPacket::List needToSend;
 
@@ -102,7 +100,7 @@ OutgoingPacket::List IInflightQueue::CheckTimeouts()
     return needToSend;
 }
 
-std::size_t IInflightQueue::GetNumberPacketToSend()
+std::size_t InflightQueue::GetNumberPacketToSend()
 {
     return _speedController.GetNumberPacketToSend();
 }

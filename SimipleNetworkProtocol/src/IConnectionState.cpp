@@ -18,7 +18,7 @@ std::pair<Connection*, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet,
 
 void BasicConnectionState::ProcessInflightPackets(Connection& connection)
 {
-    IPacket::List freePackets = connection.GetInFlightQueue().ProcessAcks();
+    IPacket::List freePackets = connection.ProcessAcks();
 
     {
         const std::lock_guard lock(connection._freeSendPackets._mutex);
@@ -155,9 +155,9 @@ IConnectionState* DataState::SendPackets(Connection& connection)
     }
 
     {
-        OutgoingPacket::List packets = connection.GetInFlightQueue().CheckTimeouts();
+        OutgoingPacket::List packets = connection.CheckTimeouts();
         if (!packets.empty()) {
-            connection.GetSendQueue().ReSendPackets(std::move(packets));
+            connection.ReSendPackets(std::move(packets));
         }
     }
 
@@ -191,7 +191,7 @@ IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connec
         break;
     }
     case PacketType::SACK: {
-        connection.GetInFlightQueue().AddAcks(packet->GetAcks());
+        connection.AddAcks(packet->GetAcks());
         // send free;
         freePackets.push_back(std::move(packet));
 

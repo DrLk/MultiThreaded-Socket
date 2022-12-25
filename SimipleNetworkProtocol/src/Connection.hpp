@@ -1,22 +1,20 @@
 #pragma once
 
-#include <chrono>
-#include <list>
 #include <memory>
-#include <vector>
 
 #include "ConnectionKey.hpp"
-#include "IInFilghtQueue.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "LockedList.hpp"
-#include "Packet.hpp"
-#include "SendQueue.hpp"
+#include "OutgoingPacket.hpp"
 
 namespace FastTransport::Protocol {
 
 using namespace std::chrono_literals;
 using FastTransport::Containers::LockedList;
+
+class ISendQueue;
+class IInFlightQueue;
 
 class IConnectionState;
 
@@ -34,28 +32,24 @@ public:
     virtual IPacket::List Recv(IPacket::List&& freePackets) = 0;
 };
 
-class Connection : public IConnection {
+class Connection final : public IConnection {
 public:
-    Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID)
-        : _state(state)
-        , _key(addr, myID)
-        , _lastReceivedPacket(DefaultTimeOut)
-    {
-        for (int i = 0; i < 1000; i++) {
-            _freeSendPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-            _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-        }
-    }
+    Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID);
+    Connection(const Connection& that) = delete;
+    Connection(Connection&& that) = delete;
+    Connection& operator=(const Connection& that) = delete;
+    Connection& operator=(Connection&& that) = delete;
+    ~Connection() override;
 
     void Send(IPacket::Ptr&& data) override;
-    IPacket::List Send(IPacket::List&& data) override;
 
-    IPacket::List Recv(IPacket::List&& freePackets) override;
+    [[nodiscard]] IPacket::List Send(IPacket::List&& data) override;
+    [[nodiscard]] IPacket::List Recv(IPacket::List&& freePackets) override;
 
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
+    [[nodiscard]] IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
-    const ConnectionKey& GetConnectionKey() const;
-    OutgoingPacket::List GetPacketsToSend();
+    [[nodiscard]] const ConnectionKey& GetConnectionKey() const;
+    [[nodiscard]] OutgoingPacket::List GetPacketsToSend();
 
     void ProcessSentPackets(OutgoingPacket::List&& packets);
     void ProcessRecvPackets();
@@ -65,22 +59,13 @@ public:
     void Run();
 
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
+    void ReSendPackets(OutgoingPacket::List&& packets);
 
-    IInflightQueue& GetInFlightQueue()
-    {
-        return _inFlightQueue;
-    }
+    [[nodiscard]] IPacket::List ProcessAcks();
+    [[nodiscard]] OutgoingPacket::List CheckTimeouts();
+    void AddAcks(const SelectiveAckBuffer::Acks& acks);
 
-    RecvQueue& GetRecvQueue()
-    {
-        return _recvQueue;
-    }
-
-    SendQueue& GetSendQueue()
-    {
-        return _sendQueue;
-    }
-
+    IRecvQueue& GetRecvQueue();
     IPacket::List GetFreeRecvPackets();
 
     IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -94,14 +79,14 @@ public:
     LockedList<IPacket::Ptr> _freeSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     LockedList<IPacket::Ptr> _freeRecvPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    Containers::LockedList<std::vector<char>> _recvUserData;
+    static constexpr std::chrono::microseconds DefaultTimeOut = 100ms;
+
+    LockedList<std::vector<char>> _recvUserData;
 
     std::chrono::microseconds _lastReceivedPacket;
 
-    static constexpr std::chrono::microseconds DefaultTimeOut = 100ms;
-
-    IInflightQueue _inFlightQueue;
-    RecvQueue _recvQueue;
-    SendQueue _sendQueue;
+    std::unique_ptr<IInFlightQueue> _inFlightQueue;
+    std::unique_ptr<IRecvQueue> _recvQueue;
+    std::unique_ptr<ISendQueue> _sendQueue;
 };
 } // namespace FastTransport::Protocol

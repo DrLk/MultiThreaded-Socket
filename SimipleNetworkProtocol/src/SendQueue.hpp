@@ -4,7 +4,6 @@
 
 #include <atomic>
 #include <set>
-#include <vector>
 
 #include "HeaderBuffer.hpp"
 #include "MultiList.hpp"
@@ -12,23 +11,24 @@
 #include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
-class SendQueue : public ISendQueue {
-    using DataType = std::vector<char>;
 
+using FastTransport::Containers::MultiList;
+
+class SendQueue final : public ISendQueue {
 public:
     SendQueue();
 
-    void SendPacket(IPacket::Ptr&& packet, bool needAck);
-    void ReSendPackets(OutgoingPacket::List&& packets);
+    void SendPacket(IPacket::Ptr&& packet, bool needAck) override;
+    void ReSendPackets(OutgoingPacket::List&& packets) override;
 
     // make list of list to get fast 1k packets
-    OutgoingPacket::List GetPacketsToSend(size_t size);
+    [[nodiscard]] OutgoingPacket::List GetPacketsToSend(size_t size) override;
 
 private:
     static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
     std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
 
-    Containers::MultiList<OutgoingPacket> _needToSend;
+    MultiList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
 };
 } // namespace FastTransport::Protocol
