@@ -17,7 +17,7 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     , _sendQueue(std::make_unique<SendQueue>())
 {
     for (int i = 0; i < 1000; i++) {
-        _freeSendPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+        _freeInternalSendPackets.push_back(std::move(std::make_unique<Packet>(1500)));
         _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
     }
 }
@@ -37,18 +37,18 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     return freePackets;
 }
 
-void Connection::Send(IPacket::Ptr&& data)
-{
-    const std::lock_guard lock(_sendUserDataMutex);
-    _sendUserData.push_back(std::move(data));
-}
-
 IPacket::List Connection::Send(IPacket::List&& data)
 {
     const std::lock_guard lock(_sendUserDataMutex);
     _sendUserData.splice(std::move(data));
 
-    throw std::runtime_error("Not Implemented");
+    IPacket::List result;
+    {
+        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        result.swap(_freeUserSendPackets);
+    }
+
+    return result;
 }
 
 IPacket::List Connection::Recv(IPacket::List&& freePackets)
@@ -77,8 +77,8 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
     auto freePackets = _inFlightQueue->AddQueue(std::move(packets));
 
     {
-        const std::lock_guard lock(_freeSendPackets._mutex);
-        _freeSendPackets.splice(std::move(freePackets));
+        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        _freeUserSendPackets.splice(std::move(freePackets));
     }
 }
 
@@ -126,6 +126,14 @@ IPacket::List Connection::GetFreeRecvPackets()
     }
 
     return freePackets;
+}
+
+void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
+{
+    if (!freePackets.empty()) {
+        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        _freeUserSendPackets.splice(std::move(freePackets));
+    }
 }
 
 void Connection::Close()

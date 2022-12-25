@@ -27,7 +27,6 @@ public:
     IConnection& operator=(IConnection&&) = default;
     virtual ~IConnection() = default;
 
-    virtual void Send(IPacket::Ptr&& data) = 0;
     virtual IPacket::List Send(IPacket::List&& data) = 0;
     virtual IPacket::List Recv(IPacket::List&& freePackets) = 0;
 };
@@ -40,8 +39,6 @@ public:
     Connection& operator=(const Connection& that) = delete;
     Connection& operator=(Connection&& that) = delete;
     ~Connection() override;
-
-    void Send(IPacket::Ptr&& data) override;
 
     [[nodiscard]] IPacket::List Send(IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(IPacket::List&& freePackets) override;
@@ -68,6 +65,8 @@ public:
     IRecvQueue& GetRecvQueue();
     IPacket::List GetFreeRecvPackets();
 
+    void AddFreeUserSendPackets(IPacket::List&& freePackets);
+
     IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     IPacket::List _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -76,8 +75,9 @@ public:
     ConnectionKey _key; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     ConnectionID _destinationID { 0 }; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
-    LockedList<IPacket::Ptr> _freeSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     LockedList<IPacket::Ptr> _freeRecvPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+
+    IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
     static constexpr std::chrono::microseconds DefaultTimeOut = 100ms;
 
@@ -88,5 +88,7 @@ private:
     std::unique_ptr<IInFlightQueue> _inFlightQueue;
     std::unique_ptr<IRecvQueue> _recvQueue;
     std::unique_ptr<ISendQueue> _sendQueue;
+
+    LockedList<IPacket::Ptr> _freeUserSendPackets;
 };
 } // namespace FastTransport::Protocol

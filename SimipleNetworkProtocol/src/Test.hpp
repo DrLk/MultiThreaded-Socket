@@ -25,10 +25,13 @@ void TestConnection()
     const ConnectionAddr dstAddr("127.0.0.1", 11200);
 
     IConnection* srcConnection = src.Connect(dstAddr);
+
+    IPacket::List userData;
     for (int i = 0; i < 20000; i++) {
-        IPacket::Ptr data = std::make_unique<Packet>(1500);
-        srcConnection->Send(std::move(data));
+        userData.push_back(std::make_unique<Packet>(1500));
     }
+
+    userData = srcConnection->Send(std::move(userData));
 
     IConnection* dstConnection = nullptr;
     while (dstConnection == nullptr) {

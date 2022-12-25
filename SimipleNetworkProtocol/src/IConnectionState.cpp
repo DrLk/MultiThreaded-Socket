@@ -20,17 +20,17 @@ void BasicConnectionState::ProcessInflightPackets(Connection& connection)
 {
     IPacket::List freePackets = connection.ProcessAcks();
 
-    {
-        const std::lock_guard lock(connection._freeSendPackets._mutex);
-        connection._freeSendPackets.splice(std::move(freePackets));
+    if (connection._freeInternalSendPackets.size() < 100) {
+        connection._freeInternalSendPackets.splice(freePackets.TryGenerate(1000));
     }
+
+    connection.AddFreeUserSendPackets(std::move(freePackets));
 }
 
 IConnectionState* SendingSynState::SendPackets(Connection& connection)
 {
-    const std::lock_guard lock(connection._freeSendPackets._mutex);
-    IPacket::Ptr synPacket = std::move(connection._freeSendPackets.back());
-    connection._freeSendPackets.pop_back();
+    IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
+    connection._freeInternalSendPackets.pop_back();
 
     synPacket->GetHeader().SetPacketType(PacketType::SYN);
     synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
@@ -63,9 +63,8 @@ IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& 
 
 IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 {
-    const std::lock_guard lock(connection._freeSendPackets._mutex);
-    IPacket::Ptr synPacket = std::move(connection._freeSendPackets.back());
-    connection._freeSendPackets.pop_back();
+    IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
+    connection._freeInternalSendPackets.pop_back();
 
     synPacket->GetHeader().SetPacketType(PacketType::SYN_ACK);
     synPacket->GetHeader().SetDstConnectionID(connection._destinationID);
@@ -121,13 +120,8 @@ IConnectionState* DataState::SendPackets(Connection& connection)
     std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     // TODO: maybe error after std::move second loop
     while (!acks.empty()) {
-
-        IPacket::Ptr packet;
-        {
-            const std::lock_guard lock(connection._freeSendPackets._mutex);
-            packet = std::move(connection._freeSendPackets.back());
-            connection._freeSendPackets.pop_back();
-        }
+        IPacket::Ptr packet = std::move(connection._freeInternalSendPackets.back());
+        connection._freeInternalSendPackets.pop_back();
 
         packet->GetHeader().SetPacketType(PacketType::SACK);
         packet->GetHeader().SetSrcConnectionID(connection._key.GetID());
