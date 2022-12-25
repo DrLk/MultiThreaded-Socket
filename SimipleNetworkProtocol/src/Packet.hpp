@@ -12,8 +12,6 @@
 
 namespace FastTransport::Protocol {
 
-using FastTransport::Containers::LockedList;
-
 class Packet final : public IPacket {
 public:
     using Ptr = std::shared_ptr<Packet>;
