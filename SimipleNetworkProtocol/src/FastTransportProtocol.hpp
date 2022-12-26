@@ -9,13 +9,10 @@
 #include "ConnectionKey.hpp"
 #include "IConnectionState.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
 #include "SpeedController.hpp"
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
-
-using FastTransport::Containers::LockedList;
 
 class FastTransportContext {
 public:
@@ -32,8 +29,7 @@ public:
     IConnection* Connect(const ConnectionAddr&);
 
 private:
-    LockedList<IPacket::Ptr> _freeSendPackets;
-    LockedList<IPacket::Ptr> _freeRecvPackets;
+    IPacket::List _freeRecvPackets;
 
     std::unordered_map<ConnectionKey, Connection*> _connections;
     std::vector<Connection*> _incomingConnections;
@@ -45,6 +41,7 @@ private:
     std::jthread _sendContextThread;
     std::jthread _recvContextThread;
 
+    void InitRecvPackets();
     IPacket::List OnReceive(IPacket::Ptr&& packet);
 
     static void SendThread(const std::stop_token& stop, FastTransportContext& context);

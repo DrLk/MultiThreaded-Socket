@@ -10,12 +10,6 @@ FastTransportContext::FastTransportContext(int port)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
-    {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
-        for (int i = 0; i < 1000; i++) {
-            _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-        }
-    }
     _udpQueue.Init();
 }
 
@@ -39,6 +33,13 @@ IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
     _connections.insert({ connection->GetConnectionKey(), connection });
 
     return connection;
+}
+
+void FastTransportContext::InitRecvPackets()
+{
+    for (int i = 0; i < 1000; i++) {
+        _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
+    }
 }
 
 IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
@@ -122,10 +123,7 @@ void FastTransportContext::RecvQueueStep()
 {
     // TODO: get 1k freePackets
     IPacket::List freePackets;
-    {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
-        freePackets.splice(std::move(_freeRecvPackets));
-    }
+    freePackets.swap(_freeRecvPackets);
 
     auto receivedPackets = _udpQueue.Recv(std::move(freePackets));
 
@@ -133,10 +131,7 @@ void FastTransportContext::RecvQueueStep()
 
     freeRecvPackets.splice(GetConnectionsFreeRecvPackets());
 
-    {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
-        _freeRecvPackets.splice(std::move(freeRecvPackets));
-    }
+    _freeRecvPackets.splice(std::move(freeRecvPackets));
 }
 
 void FastTransportContext::CheckRecvQueue()
@@ -170,6 +165,8 @@ void FastTransportContext::RecvThread(const std::stop_token& stop, FastTransport
         context.CheckRecvQueue();
     },
         50ms);
+
+    context.InitRecvPackets();
 
     while (!stop.stop_requested()) {
         executor.Run();
