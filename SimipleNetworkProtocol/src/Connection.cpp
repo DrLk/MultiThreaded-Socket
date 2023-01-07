@@ -74,7 +74,9 @@ OutgoingPacket::List Connection::GetPacketsToSend()
 
 void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
 {
-    auto freePackets = _inFlightQueue->AddQueue(std::move(packets));
+    auto [freeInternalPackets, freePackets] = _inFlightQueue->AddQueue(std::move(packets));
+
+    _freeInternalSendPackets.splice(std::move(freeInternalPackets));
 
     {
         const std::lock_guard lock(_freeUserSendPackets._mutex);

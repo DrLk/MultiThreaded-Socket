@@ -19,11 +19,6 @@ std::pair<Connection*, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet,
 void BasicConnectionState::ProcessInflightPackets(Connection& connection)
 {
     IPacket::List freePackets = connection.ProcessAcks();
-
-    if (connection._freeInternalSendPackets.size() < 100) {
-        connection._freeInternalSendPackets.splice(freePackets.TryGenerate(1000));
-    }
-
     connection.AddFreeUserSendPackets(std::move(freePackets));
 }
 

@@ -31,7 +31,11 @@ void TestConnection()
         userData.push_back(std::make_unique<Packet>(1500));
     }
 
-    userData = srcConnection->Send(std::move(userData));
+    std::jthread sendThread([&userData, &srcConnection]() {
+        while (true) {
+            userData = srcConnection->Send(std::move(userData));
+        }
+    });
 
     IConnection* dstConnection = nullptr;
     while (dstConnection == nullptr) {
@@ -44,33 +48,38 @@ void TestConnection()
         std::this_thread::sleep_for(500ms);
     }
 
-    IPacket::List recvPackets;
+    std::jthread recvThread([&dstConnection]() {
+        IPacket::List recvPackets;
 
-    for (int i = 0; i < 20000; i++) {
-        IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
-        recvPackets.push_back(std::move(recvPacket));
-    }
-
-    auto start = std::chrono::steady_clock::now();
-    static size_t totalCount = 0;
-    while (true) {
-        static size_t countPerSecond;
-        recvPackets = dstConnection->Recv(std::move(recvPackets));
-        if (!recvPackets.empty()) {
-            totalCount += recvPackets.size();
-            countPerSecond += recvPackets.size();
+        for (int i = 0; i < 20000; i++) {
+            IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
+            recvPackets.push_back(std::move(recvPacket));
         }
 
-        auto duration = std::chrono::steady_clock::now() - start;
-        if (duration > 1s) {
-            std::cout << "Recv packets : " << totalCount << std::endl;
-            std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
-            countPerSecond = 0;
-            start = std::chrono::steady_clock::now();
-        }
+        auto start = std::chrono::steady_clock::now();
+        static size_t totalCount = 0;
+        while (true) {
+            static size_t countPerSecond;
+            recvPackets = dstConnection->Recv(std::move(recvPackets));
+            if (!recvPackets.empty()) {
+                totalCount += recvPackets.size();
+                countPerSecond += recvPackets.size();
+            }
 
-        // std::this_thread::sleep_for(500ms);
-    }
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << "Recv packets : " << totalCount << std::endl;
+                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
+                countPerSecond = 0;
+                start = std::chrono::steady_clock::now();
+            }
+
+            // std::this_thread::sleep_for(500ms);
+        }
+    });
+
+    recvThread.join();
+    sendThread.join();
 }
 
 void TestTimer()
@@ -105,12 +114,11 @@ void TestSleep()
 
     std::vector<std::thread> threads(10);
     for (auto i = 0; i < 10; i++) {
-        threads.emplace_back([&counter]() {
+        threads[i] = std::thread([&counter]() {
             auto start = std::chrono::system_clock::now();
             while (true) {
                 counter++;
                 std::this_thread::sleep_for(std::chrono::microseconds(1));
-                // std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
                 auto end = std::chrono::system_clock::now();
                 if ((end - start) > 1000ms) {

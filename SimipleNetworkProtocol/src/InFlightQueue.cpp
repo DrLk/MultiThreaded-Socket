@@ -5,9 +5,10 @@
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
-IPacket::List InFlightQueue::AddQueue(OutgoingPacket::List&& packets)
+std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::List&& packets)
 {
     IPacket::List freePackets;
+    IPacket::List freeInternalPackets;
     std::unordered_set<SeqNumberType> receivedAcks;
     std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
@@ -27,7 +28,7 @@ IPacket::List InFlightQueue::AddQueue(OutgoingPacket::List&& packets)
                 freePackets.push_back(std::move(packet._packet));
             }
         } else {
-            freePackets.push_back(std::move(packet._packet));
+            freeInternalPackets.push_back(std::move(packet._packet));
         }
     }
 
@@ -40,7 +41,7 @@ IPacket::List InFlightQueue::AddQueue(OutgoingPacket::List&& packets)
         _receivedAcks.merge(std::move(receivedAcks));
     }
 
-    return freePackets;
+    return { std::move(freeInternalPackets), std::move(freePackets) };
 }
 
 void InFlightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)

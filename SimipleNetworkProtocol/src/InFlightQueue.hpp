@@ -12,7 +12,7 @@
 namespace FastTransport::Protocol {
 class InFlightQueue final : public IInFlightQueue {
 public:
-    [[nodiscard]] IPacket::List AddQueue(OutgoingPacket::List&& packets) override;
+    [[nodiscard]] std::pair<IPacket::List, IPacket::List> AddQueue(OutgoingPacket::List&& packets) override;
     void AddAcks(const SelectiveAckBuffer::Acks& acks) override;
     [[nodiscard]] IPacket::List ProcessAcks() override;
     [[nodiscard]] OutgoingPacket::List CheckTimeouts() override;
