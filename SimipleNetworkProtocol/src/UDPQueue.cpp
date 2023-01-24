@@ -79,7 +79,7 @@ IPacket::List UDPQueue::CreateBuffers(int size)
     return buffers;
 }
 
-void UDPQueue::ReadThread(const std::stop_token& stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index)
+void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index)
 {
     IPacket::List recvQueue;
 
@@ -92,10 +92,9 @@ void UDPQueue::ReadThread(const std::stop_token& stop, UDPQueue& udpQueue, RecvT
         if (recvQueue.empty()) {
             std::unique_lock lock(udpQueue._recvFreeQueue._mutex);
 
-            if (!udpQueue._recvFreeQueue.Wait(lock, [&udpQueue] { return !udpQueue._recvFreeQueue.empty(); })) {
+            if (!udpQueue._recvFreeQueue.Wait(lock, stop, [&udpQueue] { return !udpQueue._recvFreeQueue.empty(); })) {
                 continue;
             }
-
             if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread) {
                 auto freeRecvQueue = udpQueue._recvFreeQueue.TryGenerate(udpQueue._recvQueueSizePerThread);
                 recvQueue.splice(std::move(freeRecvQueue));

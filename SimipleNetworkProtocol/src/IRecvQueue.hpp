@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <stop_token>
 
 #include "IPacket.hpp"
 
@@ -17,7 +18,7 @@ public:
 
     [[nodiscard]] virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
     virtual void ProccessUnorderedPackets() = 0;
-    [[nodiscard]] virtual IPacket::List GetUserData() = 0;
+    [[nodiscard]] virtual IPacket::List GetUserData(std::stop_token stop) = 0;
 
     [[nodiscard]] virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
     [[nodiscard]] virtual SeqNumberType GetLastAck() const = 0;

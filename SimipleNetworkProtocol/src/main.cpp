@@ -55,7 +55,7 @@ int main(int argc, char** argv)
         Test();
     }
 
-    const std::span<char*> args = { argv, static_cast<size_t>(argc) };
+    const std::span<char*> args { argv, static_cast<size_t>(argc) };
     const int port = std::stoi(args[2]);
     const int threadCount = std::stoi(args[3]);
     const int sendBufferSize = std::stoi(args[4]);

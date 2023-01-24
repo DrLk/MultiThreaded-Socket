@@ -31,9 +31,9 @@ void TestConnection()
         userData.push_back(std::make_unique<Packet>(1500));
     }
 
-    std::jthread sendThread([&userData, &srcConnection]() {
+    std::jthread sendThread([&userData, &srcConnection](std::stop_token stop) {
         while (true) {
-            userData = srcConnection->Send(std::move(userData));
+            userData = srcConnection->Send(stop, std::move(userData));
         }
     });
 
@@ -48,7 +48,7 @@ void TestConnection()
         std::this_thread::sleep_for(500ms);
     }
 
-    std::jthread recvThread([&dstConnection]() {
+    std::jthread recvThread([&dstConnection](std::stop_token stop) {
         IPacket::List recvPackets;
 
         for (int i = 0; i < 20000; i++) {
@@ -60,7 +60,7 @@ void TestConnection()
         static size_t totalCount = 0;
         while (true) {
             static size_t countPerSecond;
-            recvPackets = dstConnection->Recv(std::move(recvPackets));
+            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
             if (!recvPackets.empty()) {
                 totalCount += recvPackets.size();
                 countPerSecond += recvPackets.size();
@@ -113,12 +113,12 @@ void TestSleep()
     std::atomic<uint64_t> counter = 0;
 
     std::vector<std::thread> threads(10);
-    for (auto i = 0; i < 10; i++) {
+    for (auto i = 0; i < 1; i++) {
         threads[i] = std::thread([&counter]() {
             auto start = std::chrono::system_clock::now();
             while (true) {
                 counter++;
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
+                std::this_thread::sleep_for(10ms);
 
                 auto end = std::chrono::system_clock::now();
                 if ((end - start) > 1000ms) {
@@ -143,7 +143,7 @@ void TestPeriodicExecutor()
                       << "counter: " << counter << std::endl;
         }
 
-        std::this_thread::sleep_for(1ms);
+        // std::this_thread::sleep_for(1ms);
     },
         std::chrono::milliseconds(1000 / RUNS_NUMBER));
 
@@ -176,7 +176,7 @@ void TestRecvQueue()
 
     queue->ProccessUnorderedPackets();
 
-    auto data = queue->GetUserData();
+    auto data = queue->GetUserData(std::stop_token());
 }
 
 void TestSocket()

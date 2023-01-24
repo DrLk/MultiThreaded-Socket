@@ -27,7 +27,6 @@ void PeriodicExecutor::Run()
             std::this_thread::sleep_for(interval);
         } else {
             while ((clock::now() - _end) < _interval) {
-                ;
             }
         }
 

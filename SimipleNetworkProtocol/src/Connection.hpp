@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stop_token>
 
 #include "ConnectionKey.hpp"
 #include "IPacket.hpp"
@@ -27,8 +28,8 @@ public:
     IConnection& operator=(IConnection&&) = default;
     virtual ~IConnection() = default;
 
-    virtual IPacket::List Send(IPacket::List&& data) = 0;
-    virtual IPacket::List Recv(IPacket::List&& freePackets) = 0;
+    virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
+    virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
 };
 
 class Connection final : public IConnection {
@@ -40,8 +41,8 @@ public:
     Connection& operator=(Connection&& that) = delete;
     ~Connection() override;
 
-    [[nodiscard]] IPacket::List Send(IPacket::List&& data) override;
-    [[nodiscard]] IPacket::List Recv(IPacket::List&& freePackets) override;
+    [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
+    [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
 
     [[nodiscard]] IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 

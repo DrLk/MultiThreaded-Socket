@@ -60,14 +60,16 @@ void RecvQueue::ProccessUnorderedPackets()
         const std::lock_guard lock(_data._mutex);
         _data.splice(std::move(data));
     }
+    _data.NotifyAll();
 }
 
-IPacket::List RecvQueue::GetUserData()
+IPacket::List RecvQueue::GetUserData(std::stop_token stop)
 {
     IPacket::List data;
 
     {
-        const std::lock_guard lock(_data._mutex);
+        std::unique_lock lock(_data._mutex);
+        _data.Wait(lock, stop, [this]() { return !_data.empty(); });
         data.splice(std::move(_data));
     }
 

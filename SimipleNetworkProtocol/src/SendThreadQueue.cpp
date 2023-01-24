@@ -14,12 +14,12 @@ SendThreadQueue::SendThreadQueue()
 
 namespace {
 
-    OutgoingPacket::List GetOutgoingPacketsToSend(LockedList<OutgoingPacket>& sendQueue, size_t size)
+    OutgoingPacket::List GetOutgoingPacketsToSend(std::stop_token stop, LockedList<OutgoingPacket>& sendQueue, size_t size)
     {
         OutgoingPacket::List outgoingPackets;
         {
             std::unique_lock lock(sendQueue._mutex);
-            if (!sendQueue.Wait(lock, [&sendQueue]() { return !sendQueue.empty(); })) {
+            if (!sendQueue.Wait(lock, stop, [&sendQueue]() { return !sendQueue.empty(); })) {
                 return outgoingPackets;
             }
 
@@ -34,7 +34,7 @@ namespace {
     }
 } // namespace
 
-void SendThreadQueue::WriteThread(const std::stop_token& stop, UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
+void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
 {
     OutgoingPacket::List sendQueue;
 
@@ -44,7 +44,7 @@ void SendThreadQueue::WriteThread(const std::stop_token& stop, UDPQueue& udpQueu
         }
 
         if (sendQueue.empty()) {
-            sendQueue = GetOutgoingPacketsToSend(udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
+            sendQueue = GetOutgoingPacketsToSend(stop, udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
         }
 
         for (auto& packet : sendQueue) {

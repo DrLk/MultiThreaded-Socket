@@ -44,8 +44,8 @@ private:
     void InitRecvPackets();
     IPacket::List OnReceive(IPacket::Ptr&& packet);
 
-    static void SendThread(const std::stop_token& stop, FastTransportContext& context);
-    static void RecvThread(const std::stop_token& stop, FastTransportContext& context);
+    static void SendThread(std::stop_token stop, FastTransportContext& context);
+    static void RecvThread(std::stop_token stop, FastTransportContext& context);
 
     void ConnectionsRun();
     void SendQueueStep();

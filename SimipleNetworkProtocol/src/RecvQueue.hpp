@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <stop_token>
 #include <unordered_map>
 #include <vector>
 
@@ -20,7 +21,7 @@ public:
 
     [[nodiscard]] IPacket::Ptr AddPacket(IPacket::Ptr&& packet) override;
     void ProccessUnorderedPackets() override;
-    [[nodiscard]] IPacket::List GetUserData() override;
+    [[nodiscard]] IPacket::List GetUserData(std::stop_token stop) override;
 
     [[nodiscard]] std::list<SeqNumberType> GetSelectiveAcks() override;
     [[nodiscard]] SeqNumberType GetLastAck() const override;

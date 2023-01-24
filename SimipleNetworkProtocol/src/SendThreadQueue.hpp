@@ -13,7 +13,7 @@ class SendThreadQueue {
 public:
     SendThreadQueue();
 
-    static void WriteThread(const std::stop_token& stop, UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, uint16_t index);
+    static void WriteThread(std::stop_token stop, UDPQueue& udpQueue, SendThreadQueue& sendThreadQueue, const Socket& socket, uint16_t index);
 
 private:
     std::chrono::milliseconds _pauseTime;

@@ -146,7 +146,7 @@ OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
     return _udpQueue.Send(std::move(packets));
 }
 
-void FastTransportContext::SendThread(const std::stop_token& stop, FastTransportContext& context)
+void FastTransportContext::SendThread(std::stop_token stop, FastTransportContext& context)
 {
     PeriodicExecutor executor([&context]() {
         context.ConnectionsRun();
@@ -158,7 +158,7 @@ void FastTransportContext::SendThread(const std::stop_token& stop, FastTransport
     }
 }
 
-void FastTransportContext::RecvThread(const std::stop_token& stop, FastTransportContext& context)
+void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext& context)
 {
     PeriodicExecutor executor([&context]() {
         context.RecvQueueStep();

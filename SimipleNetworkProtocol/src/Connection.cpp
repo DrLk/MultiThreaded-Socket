@@ -37,28 +37,31 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     return freePackets;
 }
 
-IPacket::List Connection::Send(IPacket::List&& data)
+IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 {
-    const std::lock_guard lock(_sendUserDataMutex);
-    _sendUserData.splice(std::move(data));
+    {
+        const std::lock_guard lock(_sendUserDataMutex);
+        _sendUserData.splice(std::move(data));
+    }
 
     IPacket::List result;
     {
-        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        std::unique_lock lock(_freeUserSendPackets._mutex);
+        _freeUserSendPackets.Wait(lock, stop, [this]() { return !_freeUserSendPackets.empty(); });
         result.swap(_freeUserSendPackets);
     }
 
     return result;
 }
 
-IPacket::List Connection::Recv(IPacket::List&& freePackets)
+IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets)
 {
     {
         const std::lock_guard lock(_freeRecvPackets._mutex);
         _freeRecvPackets.splice(std::move(freePackets));
     }
 
-    return _recvQueue->GetUserData();
+    return _recvQueue->GetUserData(stop);
 }
 
 const ConnectionKey& Connection::GetConnectionKey() const
@@ -78,9 +81,10 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
 
     _freeInternalSendPackets.splice(std::move(freeInternalPackets));
 
-    {
+    if (!freePackets.empty()) {
         const std::lock_guard lock(_freeUserSendPackets._mutex);
         _freeUserSendPackets.splice(std::move(freePackets));
+        _freeUserSendPackets.NotifyAll();
     }
 }
 
@@ -135,6 +139,8 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
     if (!freePackets.empty()) {
         const std::lock_guard lock(_freeUserSendPackets._mutex);
         _freeUserSendPackets.splice(std::move(freePackets));
+
+        _freeUserSendPackets.NotifyAll();
     }
 }
 

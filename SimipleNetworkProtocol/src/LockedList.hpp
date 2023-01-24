@@ -1,9 +1,9 @@
 #pragma once
 
 #include <condition_variable>
-#include <mutex>
 
 #include "MultiList.hpp"
+#include "SpinLock.hpp"
 
 namespace FastTransport::Containers {
 
@@ -11,6 +11,9 @@ using namespace std::chrono_literals;
 
 template <class T>
 class LockedList final : public FastTransport::Containers::MultiList<T> {
+
+    using Mutex = FastTransport::Protocol::SpinLock;
+
 public:
     LockedList();
     LockedList(const LockedList& that) = delete;
@@ -20,12 +23,12 @@ public:
     ~LockedList() override;
 
     template <class Predicate>
-    bool Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate);
+    bool Wait(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate);
     void NotifyAll() noexcept;
 
-    std::mutex _mutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    Mutex _mutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    std::condition_variable _condition {};
+    std::condition_variable_any _condition {};
 };
 
 template <class T>
@@ -49,9 +52,9 @@ LockedList<T>::~LockedList() = default;
 
 template <class T>
 template <class Predicate>
-bool LockedList<T>::Wait(std::unique_lock<std::mutex>& lock, Predicate&& predicate)
+bool LockedList<T>::Wait(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate)
 {
-    return _condition.wait_for(lock, 100ms, std::forward<Predicate>(predicate));
+    return _condition.wait(lock, stop, std::forward<Predicate>(predicate));
 }
 
 template <class T>
