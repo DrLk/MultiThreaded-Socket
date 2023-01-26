@@ -13,7 +13,7 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     std::unordered_map<SeqNumberType, OutgoingPacket> queue;
 
     {
-        const std::lock_guard lock(_receivedAcksMutex);
+        const std::scoped_lock lock(_receivedAcksMutex);
         receivedAcks.swap(_receivedAcks);
     }
 
@@ -37,7 +37,7 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     }
 
     {
-        const std::lock_guard lock(_receivedAcksMutex);
+        const std::scoped_lock lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 
@@ -55,7 +55,7 @@ void InFlightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
     //_speedController.AddrecievedAcks(receivedAcks.size());
 
     {
-        const std::lock_guard lock(_receivedAcksMutex);
+        const std::scoped_lock lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 }
@@ -67,7 +67,7 @@ IPacket::List InFlightQueue::ProcessAcks()
     std::unordered_set<SeqNumberType> receivedAcks;
 
     {
-        const std::lock_guard lock(_receivedAcksMutex);
+        const std::scoped_lock lock(_receivedAcksMutex);
         receivedAcks = std::exchange(_receivedAcks, std::unordered_set<SeqNumberType>());
     }
 
@@ -76,7 +76,7 @@ IPacket::List InFlightQueue::ProcessAcks()
     }
 
     {
-        const std::lock_guard lock(_receivedAcksMutex);
+        const std::scoped_lock lock(_receivedAcksMutex);
         _receivedAcks.merge(std::move(receivedAcks));
     }
 

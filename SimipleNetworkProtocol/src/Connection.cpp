@@ -25,7 +25,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
     {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::scoped_lock lock(_freeRecvPackets._mutex);
         freePackets.splice(std::move(_freeRecvPackets));
     }
 
@@ -35,7 +35,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 {
     {
-        const std::lock_guard lock(_sendUserDataMutex);
+        const std::scoped_lock lock(_sendUserDataMutex);
         _sendUserData.splice(std::move(data));
     }
 
@@ -52,7 +52,7 @@ IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets)
 {
     {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::scoped_lock lock(_freeRecvPackets._mutex);
         _freeRecvPackets.splice(std::move(freePackets));
     }
 
@@ -83,7 +83,7 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
     _freeInternalSendPackets.splice(std::move(freeInternalPackets));
 
     if (!freePackets.empty()) {
-        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        const std::scoped_lock lock(_freeUserSendPackets._mutex);
         _freeUserSendPackets.splice(std::move(freePackets));
         _freeUserSendPackets.NotifyAll();
     }
@@ -128,7 +128,7 @@ IPacket::List Connection::GetFreeRecvPackets()
 {
     IPacket::List freePackets;
     {
-        const std::lock_guard lock(_freeRecvPackets._mutex);
+        const std::scoped_lock lock(_freeRecvPackets._mutex);
         freePackets.splice(std::move(_freeRecvPackets));
     }
 
@@ -138,7 +138,7 @@ IPacket::List Connection::GetFreeRecvPackets()
 void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
-        const std::lock_guard lock(_freeUserSendPackets._mutex);
+        const std::scoped_lock lock(_freeUserSendPackets._mutex);
         _freeUserSendPackets.splice(std::move(freePackets));
 
         _freeUserSendPackets.NotifyAll();

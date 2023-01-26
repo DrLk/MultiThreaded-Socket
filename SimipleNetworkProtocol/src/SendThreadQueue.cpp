@@ -71,7 +71,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         if (!sendQueue.empty()) {
             OutgoingPacket::List queue;
             queue.swap(sendQueue);
-            const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
+            const std::scoped_lock lock(udpQueue._sendFreeQueue._mutex);
             udpQueue._sendFreeQueue.splice(std::move(queue));
             udpQueue._sendFreeQueue.NotifyAll();
         }

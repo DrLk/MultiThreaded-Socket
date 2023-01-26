@@ -21,7 +21,7 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
 
     if (packetNumber < _beginFullRecievedAck) {
         {
-            const std::lock_guard lock(_selectiveAcksMutex);
+            const std::scoped_lock lock(_selectiveAcksMutex);
             _selectiveAcks.push_back(packetNumber);
         }
 
@@ -29,7 +29,7 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
     }
 
     {
-        const std::lock_guard lock(_selectiveAcksMutex);
+        const std::scoped_lock lock(_selectiveAcksMutex);
         _selectiveAcks.push_back(packetNumber);
     }
 
@@ -57,7 +57,7 @@ void RecvQueue::ProccessUnorderedPackets()
     _beginFullRecievedAck--;
 
     {
-        const std::lock_guard lock(_data._mutex);
+        const std::scoped_lock lock(_data._mutex);
         _data.splice(std::move(data));
     }
     _data.NotifyAll();
@@ -81,7 +81,7 @@ std::list<SeqNumberType> RecvQueue::GetSelectiveAcks()
     std::list<SeqNumberType> selectiveAcks;
 
     {
-        const std::lock_guard lock(_selectiveAcksMutex);
+        const std::scoped_lock lock(_selectiveAcksMutex);
         selectiveAcks.swap(_selectiveAcks);
     }
 

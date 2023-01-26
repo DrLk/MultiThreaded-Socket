@@ -154,7 +154,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
 
     IPacket::List userData;
     {
-        const std::lock_guard lock(connection._sendUserDataMutex);
+        const std::scoped_lock lock(connection._sendUserDataMutex);
         userData = std::move(connection._sendUserData);
     }
 
