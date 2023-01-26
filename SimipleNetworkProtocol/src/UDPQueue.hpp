@@ -22,16 +22,16 @@ class UDPQueue {
     friend SendThreadQueue;
 
 public:
-    UDPQueue(int port, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
+    UDPQueue(const ConnectionAddr& address, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
     void Init();
 
-    IPacket::List Recv(IPacket::List&& freeBuffers);
-    OutgoingPacket::List Send(OutgoingPacket::List&& data);
+    IPacket::List Recv(std::stop_token stop, IPacket::List&& freeBuffers);
+    OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List&& data);
 
     static IPacket::List CreateBuffers(int size);
 
 private:
-    unsigned int _port;
+    ConnectionAddr _address;
     std::vector<std::jthread> _writeThreads;
     std::vector<std::jthread> _readThreads;
 

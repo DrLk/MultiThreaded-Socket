@@ -49,6 +49,8 @@ public:
     [[nodiscard]] const ConnectionKey& GetConnectionKey() const;
     [[nodiscard]] OutgoingPacket::List GetPacketsToSend();
 
+    void SetInternalFreePackets(IPacket::List&& freeInternalSendPackets, IPacket::List&& freeRecvPackets);
+
     void ProcessSentPackets(OutgoingPacket::List&& packets);
     void ProcessRecvPackets();
 

@@ -16,7 +16,7 @@ namespace FastTransport::Protocol {
 
 class FastTransportContext {
 public:
-    explicit FastTransportContext(int port);
+    explicit FastTransportContext(const ConnectionAddr& address);
     FastTransportContext(const FastTransportContext& that) = delete;
     FastTransportContext(FastTransportContext&& that) = delete;
     FastTransportContext& operator=(const FastTransportContext& that) = delete;
@@ -34,7 +34,7 @@ private:
     std::unordered_map<ConnectionKey, Connection*> _connections;
     std::vector<Connection*> _incomingConnections;
 
-    OutgoingPacket::List Send(OutgoingPacket::List& packets);
+    OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List& packets);
 
     UDPQueue _udpQueue;
 
@@ -47,9 +47,9 @@ private:
     static void SendThread(std::stop_token stop, FastTransportContext& context);
     static void RecvThread(std::stop_token stop, FastTransportContext& context);
 
-    void ConnectionsRun();
-    void SendQueueStep();
-    void RecvQueueStep();
+    void ConnectionsRun(std::stop_token stop);
+    void SendQueueStep(std::stop_token stop);
+    void RecvQueueStep(std::stop_token stop);
     void CheckRecvQueue();
 
     IPacket::List GetConnectionsFreeRecvPackets();

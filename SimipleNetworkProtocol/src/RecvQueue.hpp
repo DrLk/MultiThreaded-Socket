@@ -27,7 +27,7 @@ public:
     [[nodiscard]] SeqNumberType GetLastAck() const override;
 
 private:
-    static constexpr int QueueSize = 1000;
+    static constexpr int QueueSize = 250000;
     std::vector<IPacket::Ptr> _queue;
     LockedList<IPacket::Ptr> _data;
     std::mutex _selectiveAcksMutex;

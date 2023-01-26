@@ -24,6 +24,8 @@ public:
 
     template <class Predicate>
     bool Wait(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate);
+    template <class Predicate>
+    bool WaitFor(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate);
     void NotifyAll() noexcept;
 
     Mutex _mutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -55,6 +57,13 @@ template <class Predicate>
 bool LockedList<T>::Wait(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate)
 {
     return _condition.wait(lock, stop, std::forward<Predicate>(predicate));
+}
+
+template <class T>
+template <class Predicate>
+bool LockedList<T>::WaitFor(std::unique_lock<Mutex>& lock, std::stop_token stop, Predicate&& predicate)
+{
+    return _condition.wait_for(lock, stop, 50ms, std::forward<Predicate>(predicate));
 }
 
 template <class T>

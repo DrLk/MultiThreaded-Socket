@@ -134,7 +134,7 @@ public:
     }
 
 private:
-    static constexpr double SpeedIncreaseRatio = 1.3;
+    static constexpr double SpeedIncreaseRatio = 2.0;
 
     class ApproximateInt {
     public:

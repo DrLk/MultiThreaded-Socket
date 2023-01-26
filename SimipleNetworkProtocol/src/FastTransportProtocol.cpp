@@ -2,11 +2,12 @@
 
 #include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
+#include "ThreadName.hpp"
 
 namespace FastTransport::Protocol {
 
-FastTransportContext::FastTransportContext(int port)
-    : _udpQueue(port, 2, 100, 100)
+FastTransportContext::FastTransportContext(const ConnectionAddr& address)
+    : _udpQueue(address, 4, 1000, 1000)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
@@ -30,6 +31,7 @@ IConnection* FastTransportContext::Accept()
 IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 {
     auto* connection = new Connection(new SendingSynState(), dstAddr, GenerateID()); // NOLINT(cppcoreguidelines-owning-memory)
+    connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
     _connections.insert({ connection->GetConnectionKey(), connection });
 
     return connection;
@@ -37,9 +39,7 @@ IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 
 void FastTransportContext::InitRecvPackets()
 {
-    for (int i = 0; i < 1000; i++) {
-        _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-    }
+    _freeRecvPackets = UDPQueue::CreateBuffers(1000);
 }
 
 IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
@@ -71,6 +71,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
     } else {
         auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
         if (connection != nullptr) {
+            connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
             _incomingConnections.push_back(connection);
             _connections.insert({ connection->GetConnectionKey(), connection });
         }
@@ -81,23 +82,23 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
     return freePackets;
 }
 
-void FastTransportContext::ConnectionsRun()
+void FastTransportContext::ConnectionsRun(std::stop_token stop)
 {
     for (auto& [key, connection] : _connections) {
         connection->Run();
     }
 
-    SendQueueStep();
+    SendQueueStep(stop);
 }
 
-void FastTransportContext::SendQueueStep()
+void FastTransportContext::SendQueueStep(std::stop_token stop)
 {
     OutgoingPacket::List packets;
     for (auto& [key, connection] : _connections) {
         packets.splice(connection->GetPacketsToSend());
     }
 
-    OutgoingPacket::List inFlightPackets = Send(packets);
+    OutgoingPacket::List inFlightPackets = Send(stop, packets);
 
     std::unordered_map<ConnectionKey, OutgoingPacket::List> connectionOutgoingPackets;
     for (auto& outgoingPacket : inFlightPackets) {
@@ -119,13 +120,13 @@ void FastTransportContext::SendQueueStep()
     }
 }
 
-void FastTransportContext::RecvQueueStep()
+void FastTransportContext::RecvQueueStep(std::stop_token stop)
 {
     // TODO: get 1k freePackets
     IPacket::List freePackets;
     freePackets.swap(_freeRecvPackets);
 
-    auto receivedPackets = _udpQueue.Recv(std::move(freePackets));
+    auto receivedPackets = _udpQueue.Recv(stop, std::move(freePackets));
 
     auto freeRecvPackets = OnReceive(std::move(receivedPackets));
 
@@ -141,35 +142,29 @@ void FastTransportContext::CheckRecvQueue()
     }
 }
 
-OutgoingPacket::List FastTransportContext::Send(OutgoingPacket::List& packets)
+OutgoingPacket::List FastTransportContext::Send(std::stop_token stop, OutgoingPacket::List& packets)
 {
-    return _udpQueue.Send(std::move(packets));
+    return _udpQueue.Send(stop, std::move(packets));
 }
 
 void FastTransportContext::SendThread(std::stop_token stop, FastTransportContext& context)
 {
-    PeriodicExecutor executor([&context]() {
-        context.ConnectionsRun();
-    },
-        50ms);
+    SetThreadName("SendThread");
 
     while (!stop.stop_requested()) {
-        executor.Run();
+        context.ConnectionsRun(stop);
     }
 }
 
 void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext& context)
 {
-    PeriodicExecutor executor([&context]() {
-        context.RecvQueueStep();
-        context.CheckRecvQueue();
-    },
-        50ms);
+    SetThreadName("RecvThread");
 
     context.InitRecvPackets();
 
     while (!stop.stop_requested()) {
-        executor.Run();
+        context.RecvQueueStep(stop);
+        context.CheckRecvQueue();
     }
 }
 

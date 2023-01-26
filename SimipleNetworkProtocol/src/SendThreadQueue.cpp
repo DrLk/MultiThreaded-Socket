@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "ThreadName.hpp"
 #include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;
@@ -36,12 +37,11 @@ namespace {
 
 void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, uint16_t index)
 {
+    SetThreadName("WriteThread");
+
     OutgoingPacket::List sendQueue;
 
-    while (true) {
-        if (stop.stop_requested()) {
-            return;
-        }
+    while (!stop.stop_requested()) {
 
         if (sendQueue.empty()) {
             sendQueue = GetOutgoingPacketsToSend(stop, udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
@@ -72,7 +72,8 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
             OutgoingPacket::List queue;
             queue.swap(sendQueue);
             const std::lock_guard lock(udpQueue._sendFreeQueue._mutex);
-            udpQueue._sendFreeQueue.splice(std::move(queue)); // NOLINT
+            udpQueue._sendFreeQueue.splice(std::move(queue));
+            udpQueue._sendFreeQueue.NotifyAll();
         }
     }
 }

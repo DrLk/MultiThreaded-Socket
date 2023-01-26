@@ -2,7 +2,6 @@
 
 #include "IConnectionState.hpp"
 #include "InFlightQueue.hpp"
-#include "Packet.hpp"
 #include "RecvQueue.hpp"
 #include "SendQueue.hpp"
 
@@ -16,10 +15,6 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     , _recvQueue(std::make_unique<RecvQueue>())
     , _sendQueue(std::make_unique<SendQueue>())
 {
-    for (int i = 0; i < 1000; i++) {
-        _freeInternalSendPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-        _freeRecvPackets.push_back(std::move(std::make_unique<Packet>(1500)));
-    }
 }
 
 Connection ::~Connection() = default;
@@ -73,6 +68,12 @@ OutgoingPacket::List Connection::GetPacketsToSend()
 {
     const std::size_t size = _inFlightQueue->GetNumberPacketToSend();
     return _sendQueue->GetPacketsToSend(size);
+}
+
+void Connection::SetInternalFreePackets(IPacket::List&& freeInternalSendPackets, IPacket::List&& freeRecvPackets)
+{
+    _freeInternalSendPackets.splice(std::move(freeInternalSendPackets));
+    _freeRecvPackets.splice(std::move(freeRecvPackets));
 }
 
 void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)

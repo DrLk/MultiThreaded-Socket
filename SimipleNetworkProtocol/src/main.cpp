@@ -57,13 +57,14 @@ int main(int argc, char** argv)
 
     const std::span<char*> args { argv, static_cast<size_t>(argc) };
     const int port = std::stoi(args[2]);
+    const ConnectionAddr address("0.0.0.0", port);
     const int threadCount = std::stoi(args[3]);
     const int sendBufferSize = std::stoi(args[4]);
     const int recvBufferSize = std::stoi(args[5]);
 
     const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[6]));
     const std::string dstIP = args[7];
-    UDPQueue socket(port, threadCount, sendBufferSize, recvBufferSize);
+    UDPQueue socket(address, threadCount, sendBufferSize, recvBufferSize);
 
     socket.Init();
 

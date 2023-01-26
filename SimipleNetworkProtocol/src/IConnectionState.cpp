@@ -2,6 +2,7 @@
 
 #include "Connection.hpp"
 #include "IPacket.hpp"
+#include "Logger.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -73,6 +74,7 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 
 IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
+    LOGGER() << "WaitingSynAckState::OnRecvPackets";
     IPacket::List freePackets;
     auto header = packet->GetHeader();
 

@@ -5,12 +5,13 @@
 #include <memory>
 
 #include "Packet.hpp"
+#include "ThreadName.hpp"
 
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
-UDPQueue::UDPQueue(int port, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread)
-    : _port(port)
+UDPQueue::UDPQueue(const ConnectionAddr& address, int threadCount, int sendQueueSizePerThread, int recvQueueSizePerThread)
+    : _address(address)
     , _threadCount(threadCount)
     , _sendQueueSizePerThread(sendQueueSizePerThread)
     , _recvQueueSizePerThread(recvQueueSizePerThread)
@@ -19,8 +20,10 @@ UDPQueue::UDPQueue(int port, int threadCount, int sendQueueSizePerThread, int re
 
 void UDPQueue::Init()
 {
+    ConnectionAddr threadAddress = _address;
     for (int i = 0; i < _threadCount; i++) {
-        _sockets.emplace_back(std::make_shared<Socket>(_port + i));
+        threadAddress.SetPort(_address.GetPort() + i);
+        _sockets.emplace_back(std::make_shared<Socket>(threadAddress));
     }
 
     std::for_each(_sockets.begin(), _sockets.end(), [](std::shared_ptr<Socket>& socket) {
@@ -35,7 +38,7 @@ void UDPQueue::Init()
     }
 }
 
-IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
+IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
 {
     {
         const std::lock_guard lock(_recvFreeQueue._mutex);
@@ -45,14 +48,15 @@ IPacket::List UDPQueue::Recv(IPacket::List&& freeBuffers)
 
     IPacket::List result;
     {
-        const std::lock_guard lock(_recvQueue._mutex);
+        std::unique_lock lock(_recvQueue._mutex);
+        _recvQueue.WaitFor(lock, stop, [this]() { return !_recvQueue.empty(); });
         result.swap(_recvQueue);
     }
 
     return result;
 }
 
-OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
+OutgoingPacket::List UDPQueue::Send(std::stop_token stop, OutgoingPacket::List&& data)
 {
     if (!data.empty()) {
         const std::lock_guard lock(_sendQueue._mutex);
@@ -62,7 +66,8 @@ OutgoingPacket::List UDPQueue::Send(OutgoingPacket::List&& data)
 
     OutgoingPacket::List result;
     {
-        const std::lock_guard lock(_sendFreeQueue._mutex);
+        std::unique_lock lock(_sendFreeQueue._mutex);
+        _sendFreeQueue.WaitFor(lock, stop, [this]() { return !_sendFreeQueue.empty(); });
         result.swap(_sendFreeQueue);
     }
 
@@ -73,7 +78,7 @@ IPacket::List UDPQueue::CreateBuffers(int size)
 {
     IPacket::List buffers;
     for (int i = 0; i < size; i++) {
-        buffers.push_back(IPacket::Ptr(new Packet(1500)));
+        buffers.push_back(std::make_unique<Packet>(1400));
     }
 
     return buffers;
@@ -81,13 +86,11 @@ IPacket::List UDPQueue::CreateBuffers(int size)
 
 void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index)
 {
+    SetThreadName("ReadThread");
+
     IPacket::List recvQueue;
 
-    while (true) {
-
-        if (stop.stop_requested()) {
-            return;
-        }
+    while (!stop.stop_requested()) {
 
         if (recvQueue.empty()) {
             std::unique_lock lock(udpQueue._recvFreeQueue._mutex);
@@ -131,11 +134,12 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
             }
         }
 
-        {
+        if (!recvThreadQueue._recvThreadQueue.empty()) {
             IPacket::List queue;
             queue.swap(recvThreadQueue._recvThreadQueue);
             const std::lock_guard lock(udpQueue._recvQueue._mutex);
             udpQueue._recvQueue.splice(std::move(queue));
+            udpQueue._recvQueue.NotifyAll();
         }
     }
 }

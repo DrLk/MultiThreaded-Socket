@@ -18,21 +18,16 @@
 namespace FastTransport::Protocol {
 void TestConnection()
 {
-    const ConnectionAddr addr("127.0.0.1", 8);
-    FastTransportContext src(11100);
-    FastTransportContext dst(11200);
-    const ConnectionAddr srcAddr("127.0.0.1", 11100);
+    FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+    FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
     const ConnectionAddr dstAddr("127.0.0.1", 11200);
+
+    IPacket::List userData = UDPQueue::CreateBuffers(200000);
 
     IConnection* srcConnection = src.Connect(dstAddr);
 
-    IPacket::List userData;
-    for (int i = 0; i < 20000; i++) {
-        userData.push_back(std::make_unique<Packet>(1500));
-    }
-
     std::jthread sendThread([&userData, &srcConnection](std::stop_token stop) {
-        while (true) {
+        while (!stop.stop_requested()) {
             userData = srcConnection->Send(stop, std::move(userData));
         }
     });
@@ -49,16 +44,11 @@ void TestConnection()
     }
 
     std::jthread recvThread([&dstConnection](std::stop_token stop) {
-        IPacket::List recvPackets;
-
-        for (int i = 0; i < 20000; i++) {
-            IPacket::Ptr recvPacket = std::make_unique<Packet>(1500);
-            recvPackets.push_back(std::move(recvPacket));
-        }
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
         auto start = std::chrono::steady_clock::now();
         static size_t totalCount = 0;
-        while (true) {
+        while (!stop.stop_requested()) {
             static size_t countPerSecond;
             recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
             if (!recvPackets.empty()) {
@@ -159,12 +149,12 @@ void TestRecvQueue()
     std::vector<IPacket::Ptr> packets;
     constexpr SeqNumberType beginSeqNumber = 0;
     for (int i = 0; i < 10; i++) {
-        IPacket::Ptr packet(new Packet(1500));
+        IPacket::Ptr packet(new Packet(1400));
         packet->GetHeader().SetSeqNumber(i + beginSeqNumber);
         packets.push_back(std::move(packet));
     }
 
-    const IPacket::Ptr packet = std::make_unique<Packet>(1500);
+    const IPacket::Ptr packet = std::make_unique<Packet>(1400);
 
     IPacket::List freePackets;
     for (auto& packet : packets) {
@@ -181,18 +171,18 @@ void TestRecvQueue()
 
 void TestSocket()
 {
-    Socket src(10100);
-    Socket dst(10200);
+    Socket src(ConnectionAddr("0.0.0.0", 10100));
+    Socket dst(ConnectionAddr("0.0.0.0", 10200));
 
     src.Init();
     dst.Init();
 
-    std::vector<unsigned char> data(1500);
-    const ConnectionAddr dstAddr("127.0.0.1", 10200);
+    std::vector<unsigned char> data(1400);
+    const ConnectionAddr dstAddr("192.0.0.1", 10200);
     auto result = src.SendTo(data, dstAddr.GetAddr());
 
     sockaddr_storage addr {};
-    std::vector<unsigned char> data2(1500);
+    std::vector<unsigned char> data2(1400);
     while (!dst.WaitRead()) { }
     auto result2 = dst.RecvFrom(data2, addr);
     std::cout << result << " " << result2;

@@ -41,7 +41,7 @@ TimeRangedStats::clock::duration TimeRangedStats::GetAverageRtt() const
     });
 
     if (countStats < 20) {
-        return 3000ms;
+        return 500ms;
     }
 
     auto averageRtt = std::accumulate(_stats.begin(), _stats.end(), clock::duration(), [](clock::duration rtt, const SampleStats& stat) {

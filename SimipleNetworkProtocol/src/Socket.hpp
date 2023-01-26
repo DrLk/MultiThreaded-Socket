@@ -19,11 +19,13 @@
 #include <fcntl.h>
 #endif
 
+#include "ConnectionAddr.hpp"
+
 namespace FastTransport::Protocol {
 class Socket {
 public:
-    explicit Socket(uint16_t port)
-        : _port(port)
+    explicit Socket(const ConnectionAddr& address)
+        : _address(address)
     {
     }
 
@@ -43,9 +45,6 @@ public:
 
     void Init()
     {
-        struct sockaddr_in si_me {
-        };
-
         // create a UDP socket
         _socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (_socket == INVALID_SOCKET) {
@@ -72,15 +71,8 @@ public:
             throw std::runtime_error("Socket: failed to set SO_SNDBUF");
         }
 
-        // zero out the structure
-        std::memset(&si_me, 0, sizeof(si_me));
-
-        si_me.sin_family = AF_INET;
-        si_me.sin_port = htons(_port);
-        si_me.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
         // bind socket to port
-        if (bind(_socket, reinterpret_cast<const struct sockaddr*>(&si_me), sizeof(si_me)) != 0) { // NOLINT
+        if (bind(_socket, reinterpret_cast<const sockaddr*>(&_address.GetAddr()), sizeof(sockaddr)) != 0) { // NOLINT
             throw std::runtime_error("Socket: failed to bind");
         }
     }
@@ -149,7 +141,7 @@ private:
 #else
     int _socket { INVALID_SOCKET };
 #endif
-    uint16_t _port;
+    ConnectionAddr _address;
 };
 
 } // namespace FastTransport::Protocol
