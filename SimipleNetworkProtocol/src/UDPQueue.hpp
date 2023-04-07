@@ -28,7 +28,10 @@ public:
     IPacket::List Recv(std::stop_token stop, IPacket::List&& freeBuffers);
     OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List&& data);
 
-    static IPacket::List CreateBuffers(int size);
+    [[nodiscard]] size_t GetRecvQueueSizePerThread() const;
+    [[nodiscard]] size_t GetThreadCount() const;
+
+    static IPacket::List CreateBuffers(size_t size);
 
 private:
     ConnectionAddr _address;
@@ -41,12 +44,12 @@ private:
     LockedList<OutgoingPacket> _sendFreeQueue;
     LockedList<IPacket::Ptr> _recvFreeQueue;
 
-    static void ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index);
+    static void ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, size_t index);
 
     std::vector<std::shared_ptr<RecvThreadQueue>> _recvThreadQueues;
     std::vector<std::shared_ptr<SendThreadQueue>> _sendThreadQueues;
 
-    int _threadCount;
+    size_t _threadCount;
 
     size_t _sendQueueSizePerThread;
     size_t _recvQueueSizePerThread;

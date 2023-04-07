@@ -21,7 +21,7 @@ UDPQueue::UDPQueue(const ConnectionAddr& address, int threadCount, int sendQueue
 void UDPQueue::Init()
 {
     ConnectionAddr threadAddress = _address;
-    for (int i = 0; i < _threadCount; i++) {
+    for (size_t i = 0; i < _threadCount; i++) {
         threadAddress.SetPort(_address.GetPort() + i);
         _sockets.emplace_back(std::make_shared<Socket>(threadAddress));
     }
@@ -30,9 +30,12 @@ void UDPQueue::Init()
         socket->Init();
     });
 
-    for (int i = 0; i < _threadCount; i++) {
+    for (size_t i = 0; i < _threadCount; i++) {
         _sendThreadQueues.push_back(std::make_shared<SendThreadQueue>());
         _writeThreads.emplace_back(SendThreadQueue::WriteThread, std::ref(*this), std::ref(*_sendThreadQueues.back()), std::ref(*_sockets[i]), i);
+    }
+
+    for (size_t i = 0; i < _threadCount; i++) {
         _recvThreadQueues.push_back(std::make_shared<RecvThreadQueue>());
         _readThreads.emplace_back(ReadThread, std::ref(*this), std::ref(*_recvThreadQueues.back()), std::ref(*_sockets[i]), i);
     }
@@ -74,17 +77,27 @@ OutgoingPacket::List UDPQueue::Send(std::stop_token stop, OutgoingPacket::List&&
     return result;
 }
 
-IPacket::List UDPQueue::CreateBuffers(int size)
+size_t UDPQueue::GetRecvQueueSizePerThread() const
+{
+    return _recvQueueSizePerThread;
+}
+
+size_t UDPQueue::GetThreadCount() const
+{
+    return _threadCount;
+}
+
+IPacket::List UDPQueue::CreateBuffers(size_t size)
 {
     IPacket::List buffers;
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         buffers.push_back(std::make_unique<Packet>(1400));
     }
 
     return buffers;
 }
 
-void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, uint16_t index)
+void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, size_t index)
 {
     SetThreadName("ReadThread");
 

@@ -17,6 +17,7 @@ public:
     [[nodiscard]] IPacket::List ProcessAcks() override;
     [[nodiscard]] OutgoingPacket::List CheckTimeouts() override;
     [[nodiscard]] size_t GetNumberPacketToSend() override;
+    [[nodiscard]] IPacket::List GetAllPackets() override;
 
 private:
     using clock = std::chrono::steady_clock;

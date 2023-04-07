@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 
@@ -25,14 +26,15 @@ public:
 
     IPacket::List OnReceive(IPacket::List&& packet);
 
-    IConnection* Accept();
-    IConnection* Connect(const ConnectionAddr&);
+    IConnection::Ptr Accept(std::stop_token stop);
+    IConnection::Ptr Connect(const ConnectionAddr&);
 
 private:
     IPacket::List _freeRecvPackets;
 
-    std::unordered_map<ConnectionKey, Connection*> _connections;
-    std::vector<Connection*> _incomingConnections;
+    std::shared_mutex _connectionsMutex;
+    std::unordered_map<ConnectionKey, std::shared_ptr<Connection>> _connections;
+    LockedList<Connection::Ptr> _incomingConnections;
 
     OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List& packets);
 
@@ -51,6 +53,8 @@ private:
     void SendQueueStep(std::stop_token stop);
     void RecvQueueStep(std::stop_token stop);
     void CheckRecvQueue();
+
+    void RemoveReadClosedConnections();
 
     IPacket::List GetConnectionsFreeRecvPackets();
 

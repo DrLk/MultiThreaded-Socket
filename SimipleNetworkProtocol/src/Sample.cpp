@@ -68,4 +68,17 @@ TimeRangedStats Sample::GetStats() const
 {
     return _timeRangedStats;
 }
+
+IPacket::List Sample::FreePackets()
+{
+    IPacket::List freePackets;
+
+    for (auto& [seqNumber, outgoingPacket] : _packets) {
+        freePackets.push_back(std::move(outgoingPacket._packet));
+    }
+
+    _packets.clear();
+
+    return freePackets;
+}
 } // namespace FastTransport::Protocol

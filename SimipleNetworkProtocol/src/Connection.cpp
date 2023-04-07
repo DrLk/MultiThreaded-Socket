@@ -10,10 +10,12 @@ namespace FastTransport::Protocol {
 Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID)
     : _state(state)
     , _key(addr, myID)
-    , _lastReceivedPacket(DefaultTimeOut)
+    , _lastPacketReceive(clock::now())
     , _inFlightQueue(std::make_unique<InFlightQueue>())
     , _recvQueue(std::make_unique<RecvQueue>())
     , _sendQueue(std::make_unique<SendQueue>())
+    , _connected(false)
+    , _closed(false)
 {
 }
 
@@ -21,7 +23,7 @@ Connection ::~Connection() = default;
 
 IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
-    _lastReceivedPacket = Connection::DefaultTimeOut;
+    _lastPacketReceive = clock::now();
     auto freePackets = _state->OnRecvPackets(std::move(packet), *this);
 
     {
@@ -59,6 +61,16 @@ IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets
     return _recvQueue->GetUserData(stop);
 }
 
+void Connection::Close()
+{
+    _closed = true;
+}
+
+bool Connection::IsClosed() const
+{
+    return _closed;
+}
+
 const ConnectionKey& Connection::GetConnectionKey() const
 {
     return _key;
@@ -91,6 +103,10 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
 
 void Connection::ProcessRecvPackets()
 {
+    if (IsClosed()) {
+        return;
+    }
+
     _recvQueue->ProccessUnorderedPackets();
 }
 
@@ -135,6 +151,16 @@ IPacket::List Connection::GetFreeRecvPackets()
     return freePackets;
 }
 
+IPacket::List Connection::GetFreeSendPackets()
+{
+    IPacket::List freePackets;
+    {
+        IPacket::List const freePackets = _inFlightQueue->GetAllPackets();
+    }
+
+    return freePackets;
+}
+
 void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
@@ -145,15 +171,11 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
     }
 }
 
-void Connection::Close()
-{
-    throw std::runtime_error("Not implemented");
-}
-
 void Connection::Run()
 {
-    if (_lastReceivedPacket.count() == 0) {
-        _state->OnTimeOut(*this);
+    if (clock::now() - _lastPacketReceive > DefaultTimeOut) {
+        _state = _state->OnTimeOut(*this);
+        _lastPacketReceive = clock::now();
     } else {
         _state = _state->SendPackets(*this);
         _state->ProcessInflightPackets(*this);

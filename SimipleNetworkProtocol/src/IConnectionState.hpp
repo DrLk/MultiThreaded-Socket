@@ -3,11 +3,11 @@
 #include <list>
 #include <memory>
 
+#include "Connection.hpp"
 #include "HeaderBuffer.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
-class Connection;
 class Packet;
 
 enum ConnectionState {
@@ -43,7 +43,7 @@ public:
 
 class ListenState {
 public:
-    static std::pair<Connection*, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
+    static std::pair<Connection::Ptr, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
 };
 
 class SendingSynState final : public BasicConnectionState {

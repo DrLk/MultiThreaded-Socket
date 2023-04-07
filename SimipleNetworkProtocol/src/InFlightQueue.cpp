@@ -108,4 +108,14 @@ std::size_t InFlightQueue::GetNumberPacketToSend()
     return _speedController.GetNumberPacketToSend();
 }
 
+IPacket::List InFlightQueue::GetAllPackets()
+{
+    IPacket::List freePackets;
+    for (auto& sample : _samples) {
+        freePackets.splice(sample.FreePackets());
+    }
+
+    return freePackets;
+}
+
 } // namespace FastTransport::Protocol

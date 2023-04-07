@@ -18,33 +18,15 @@
 namespace FastTransport::Protocol {
 void TestConnection()
 {
-    FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
-    FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
-    const ConnectionAddr dstAddr("127.0.0.1", 11200);
 
-    IPacket::List userData = UDPQueue::CreateBuffers(200000);
-
-    IConnection* srcConnection = src.Connect(dstAddr);
-
-    std::jthread sendThread([&userData, &srcConnection](std::stop_token stop) {
-        while (!stop.stop_requested()) {
-            userData = srcConnection->Send(stop, std::move(userData));
-        }
-    });
-
-    IConnection* dstConnection = nullptr;
-    while (dstConnection == nullptr) {
-        dstConnection = dst.Accept();
-
-        if (dstConnection != nullptr) {
-            break;
-        }
-
-        std::this_thread::sleep_for(500ms);
-    }
-
-    std::jthread recvThread([&dstConnection](std::stop_token stop) {
+    std::jthread recvThread([](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+
+        const IConnection::Ptr dstConnection = dst.Accept(stop);
+        if (dstConnection == nullptr) {
+            throw std::runtime_error("Accept return nullptr");
+        }
 
         auto start = std::chrono::steady_clock::now();
         static size_t totalCount = 0;
@@ -65,6 +47,75 @@ void TestConnection()
             }
 
             // std::this_thread::sleep_for(500ms);
+        }
+    });
+
+    std::this_thread::sleep_for(500ms);
+
+    std::jthread sendThread([](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        IPacket::List userData = UDPQueue::CreateBuffers(200000);
+        while (!stop.stop_requested()) {
+            userData = srcConnection->Send(stop, std::move(userData));
+        }
+    });
+
+    recvThread.join();
+    sendThread.join();
+}
+
+void TestCloseConnection()
+{
+    const int connectionCount = 10;
+    FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+    FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+
+    std::jthread sendThread([connectionCount, &src](std::stop_token stop) {
+        IPacket::List userData = UDPQueue::CreateBuffers(20);
+
+        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+        std::vector<IConnection::Ptr> connections;
+        for (int i = 0; i < connectionCount; i++) {
+            const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+            userData = srcConnection->Send(stop, std::move(userData));
+            connections.push_back(srcConnection);
+        }
+
+        while (!connections.empty()) {
+            std::erase_if(connections, [](const IConnection::Ptr& connection) {
+                if (connection->IsClosed()) {
+                    LOGGER() << "Closed";
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+
+            std::this_thread::sleep_for(50ms);
+        }
+    });
+
+    std::this_thread::sleep_for(500ms);
+
+    std::jthread recvThread([connectionCount, &dst](std::stop_token stop) {
+        for (int i = 0; i < connectionCount; i++) {
+            const IConnection::Ptr dstConnection = dst.Accept(stop);
+            if (dstConnection == nullptr) {
+                throw std::runtime_error("Accept return nullptr");
+            }
+
+            LOGGER() << "Get " << i << " connections";
+            IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
+            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+            while (recvPackets.empty()) {
+                recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+            }
+
+            dstConnection->Close();
         }
     });
 

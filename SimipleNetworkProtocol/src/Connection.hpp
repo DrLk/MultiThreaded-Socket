@@ -21,6 +21,8 @@ class IConnectionState;
 
 class IConnection {
 public:
+    using Ptr = std::shared_ptr<IConnection>;
+
     IConnection() = default;
     IConnection(const IConnection&) = default;
     IConnection(IConnection&&) = default;
@@ -30,10 +32,17 @@ public:
 
     virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
     virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
+
+    virtual void Close() = 0;
+    [[nodiscard]] virtual bool IsClosed() const = 0;
 };
 
 class Connection final : public IConnection {
+    using clock = std::chrono::steady_clock;
+
 public:
+    using Ptr = std::shared_ptr<Connection>;
+
     Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID);
     Connection(const Connection& that) = delete;
     Connection(Connection&& that) = delete;
@@ -43,6 +52,9 @@ public:
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
+
+    void Close() override;
+    [[nodiscard]] bool IsClosed() const override;
 
     [[nodiscard]] IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
@@ -54,8 +66,6 @@ public:
     void ProcessSentPackets(OutgoingPacket::List&& packets);
     void ProcessRecvPackets();
 
-    void Close();
-
     void Run();
 
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
@@ -66,7 +76,9 @@ public:
     void AddAcks(const SelectiveAckBuffer::Acks& acks);
 
     IRecvQueue& GetRecvQueue();
-    IPacket::List GetFreeRecvPackets();
+
+    [[nodiscard]] IPacket::List GetFreeRecvPackets();
+    [[nodiscard]] IPacket::List GetFreeSendPackets();
 
     void AddFreeUserSendPackets(IPacket::List&& freePackets);
 
@@ -82,16 +94,19 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    static constexpr std::chrono::microseconds DefaultTimeOut = 100ms;
+    static constexpr std::chrono::microseconds DefaultTimeOut = 3000ms;
 
     LockedList<std::vector<char>> _recvUserData;
 
-    std::chrono::microseconds _lastReceivedPacket;
+    clock::time_point _lastPacketReceive;
 
     std::unique_ptr<IInFlightQueue> _inFlightQueue;
     std::unique_ptr<IRecvQueue> _recvQueue;
     std::unique_ptr<ISendQueue> _sendQueue;
 
     LockedList<IPacket::Ptr> _freeUserSendPackets;
+
+    bool _connected;
+    std::atomic<bool> _closed;
 };
 } // namespace FastTransport::Protocol

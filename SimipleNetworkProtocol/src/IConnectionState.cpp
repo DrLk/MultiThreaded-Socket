@@ -1,15 +1,16 @@
 #include "IConnectionState.hpp"
 
-#include "Connection.hpp"
+#include <mutex>
+
 #include "IPacket.hpp"
 #include "Logger.hpp"
 
 namespace FastTransport::Protocol {
 
-std::pair<Connection*, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
+std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
 {
     if (packet->GetHeader().GetPacketType() == PacketType::SYN) {
-        auto* connection = new Connection(new WaitingSynState(), packet->GetDstAddr(), myID); // NOLINT
+        Connection::Ptr connection = std::make_shared<Connection>(new WaitingSynState(), packet->GetDstAddr(), myID); // NOLINT
         auto freePackets = connection->OnRecvPackets(std::move(packet));
         return { connection, std::move(freePackets) };
     }
@@ -32,6 +33,7 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
     synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
+    connection._state = new WaitingSynAckState();
     connection.SendPacket(std::move(synPacket), false);
 
     return new WaitingSynAckState();
@@ -67,6 +69,7 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
     synPacket->GetHeader().SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
+    connection._state = new DataState();
     connection.SendPacket(std::move(synPacket), false);
 
     return new DataState();

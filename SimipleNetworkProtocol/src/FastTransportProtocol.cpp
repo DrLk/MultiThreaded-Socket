@@ -14,32 +14,44 @@ FastTransportContext::FastTransportContext(const ConnectionAddr& address)
     _udpQueue.Init();
 }
 
-IConnection* FastTransportContext::Accept()
+IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
 {
-    if (_incomingConnections.empty()) {
-        return nullptr;
+    Connection::Ptr connection = nullptr;
+    {
+        std::unique_lock lock(_incomingConnections._mutex);
+        if (_incomingConnections.Wait(lock, stop, [this]() { return !_incomingConnections.empty(); })) {
+
+            connection = _incomingConnections.back();
+            _incomingConnections.pop_back();
+        } else {
+            return connection;
+        }
     }
 
-    Connection* connection = _incomingConnections.back();
-    _incomingConnections.pop_back();
-
-    _connections.insert({ connection->GetConnectionKey(), connection });
+    {
+        const std::scoped_lock lock(_connectionsMutex);
+        _connections.insert({ connection->GetConnectionKey(), connection });
+    }
 
     return connection;
 }
 
-IConnection* FastTransportContext::Connect(const ConnectionAddr& dstAddr)
+IConnection::Ptr FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 {
-    auto* connection = new Connection(new SendingSynState(), dstAddr, GenerateID()); // NOLINT(cppcoreguidelines-owning-memory)
+    const Connection::Ptr& connection = std::make_shared<Connection>(new SendingSynState(), dstAddr, GenerateID()); // NOLINT(cppcoreguidelines-owning-memory)
     connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
-    _connections.insert({ connection->GetConnectionKey(), connection });
+
+    {
+        const std::scoped_lock lock(_connectionsMutex);
+        _connections.insert({ connection->GetConnectionKey(), connection });
+    }
 
     return connection;
 }
 
 void FastTransportContext::InitRecvPackets()
 {
-    _freeRecvPackets = UDPQueue::CreateBuffers(1000);
+    _freeRecvPackets = UDPQueue::CreateBuffers(_udpQueue.GetRecvQueueSizePerThread() * _udpQueue.GetThreadCount());
 }
 
 IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
@@ -63,20 +75,31 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         throw std::runtime_error("Not implemented");
     }
 
-    auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
+    {
+        std::shared_lock sharedLock(_connectionsMutex);
+        auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
 
-    if (connection != _connections.end()) {
-        auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
-        freePackets.splice(std::move(freeRecvPackets));
-    } else {
-        auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
-        if (connection != nullptr) {
-            connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
-            _incomingConnections.push_back(connection);
-            _connections.insert({ connection->GetConnectionKey(), connection });
+        if (connection != _connections.end()) {
+            auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
+            freePackets.splice(std::move(freeRecvPackets));
+        } else {
+            auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
+            if (connection != nullptr) {
+                connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
+
+                sharedLock.unlock();
+                {
+                    const std::scoped_lock lock(_connectionsMutex);
+                    _connections.insert({ connection->GetConnectionKey(), connection });
+                }
+                sharedLock.lock();
+
+                _incomingConnections.push_back(std::move(connection));
+                _incomingConnections.NotifyAll();
+            }
+
+            freePackets.splice(std::move(freeRecvPackets));
         }
-
-        freePackets.splice(std::move(freeRecvPackets));
     }
 
     return freePackets;
@@ -84,8 +107,12 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 
 void FastTransportContext::ConnectionsRun(std::stop_token stop)
 {
-    for (auto& [key, connection] : _connections) {
-        connection->Run();
+    {
+        const std::shared_lock lock(_connectionsMutex);
+
+        for (auto& [key, connection] : _connections) {
+            connection->Run();
+        }
     }
 
     SendQueueStep(stop);
@@ -94,8 +121,13 @@ void FastTransportContext::ConnectionsRun(std::stop_token stop)
 void FastTransportContext::SendQueueStep(std::stop_token stop)
 {
     OutgoingPacket::List packets;
-    for (auto& [key, connection] : _connections) {
-        packets.splice(connection->GetPacketsToSend());
+
+    {
+        const std::shared_lock lock(_connectionsMutex);
+
+        for (auto& [key, connection] : _connections) {
+            packets.splice(connection->GetPacketsToSend());
+        }
     }
 
     OutgoingPacket::List inFlightPackets = Send(stop, packets);
@@ -109,6 +141,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
     }
 
     for (auto& [connectionKey, outgoingPacket] : connectionOutgoingPackets) {
+        const std::shared_lock lock(_connectionsMutex);
         auto connection = _connections.find(connectionKey);
 
         if (connection != _connections.end()) {
@@ -137,9 +170,28 @@ void FastTransportContext::RecvQueueStep(std::stop_token stop)
 
 void FastTransportContext::CheckRecvQueue()
 {
+    const std::shared_lock lock(_connectionsMutex);
+
     for (auto& [key, connection] : _connections) {
         connection->ProcessRecvPackets();
     }
+}
+
+void FastTransportContext::RemoveReadClosedConnections()
+{
+    const std::scoped_lock lock(_connectionsMutex);
+
+    std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
+        const auto& [key, connection] = that;
+
+        if (connection->IsClosed()) {
+            IPacket::List freeRecvPackets = connection->GetFreeRecvPackets();
+            const IPacket::List freeSendPackets = connection->GetFreeSendPackets();
+
+            _freeRecvPackets.splice(std::move(freeRecvPackets));
+        }
+        return connection->IsClosed();
+    });
 }
 
 OutgoingPacket::List FastTransportContext::Send(std::stop_token stop, OutgoingPacket::List& packets)
@@ -163,6 +215,7 @@ void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext
     context.InitRecvPackets();
 
     while (!stop.stop_requested()) {
+        context.RemoveReadClosedConnections();
         context.RecvQueueStep(stop);
         context.CheckRecvQueue();
     }
@@ -170,6 +223,8 @@ void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext
 
 IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
 {
+    const std::shared_lock lock(_connectionsMutex);
+
     IPacket::List freeRecvPackets;
     for (auto& [key, connection] : _connections) {
         freeRecvPackets.splice(connection->GetFreeRecvPackets());

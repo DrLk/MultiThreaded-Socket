@@ -20,6 +20,8 @@ public:
     bool IsDead() const;
     TimeRangedStats GetStats() const;
 
+    IPacket::List FreePackets();
+
 private:
     std::unordered_map<SeqNumberType, OutgoingPacket> _packets;
 
