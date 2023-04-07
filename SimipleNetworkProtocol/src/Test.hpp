@@ -90,9 +90,9 @@ void TestCloseConnection()
                 if (connection->IsClosed()) {
                     LOGGER() << "Closed";
                     return true;
-                } else {
-                    return false;
                 }
+
+                return false;
             });
 
             std::this_thread::sleep_for(50ms);
