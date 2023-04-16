@@ -68,59 +68,65 @@ void TestConnection()
     sendThread.join();
 }
 
+void Recv(std::stop_token stop, int connectionCount)
+{
+    FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+    for (int i = 0; i < connectionCount; i++) {
+        const IConnection::Ptr dstConnection = dst.Accept(stop);
+        if (dstConnection == nullptr) {
+            throw std::runtime_error("Accept return nullptr");
+        }
+
+        LOGGER() << "Get " << i << " connections";
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
+        while (!dstConnection->IsClosed()) {
+            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+
+            if (!recvPackets.empty()) {
+                std::this_thread::sleep_for(500ms);
+                break;
+            }
+        }
+
+        dstConnection->Close();
+    }
+}
+
+void Send(std::stop_token stop, int connectionCount)
+{
+    FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+    const ConnectionAddr dstAddr("127.0.0.1", 11200);
+    std::vector<IConnection::Ptr> connections;
+    for (int i = 0; i < connectionCount; i++) {
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+        IPacket::List userData = UDPQueue::CreateBuffers(1);
+        userData = srcConnection->Send(stop, std::move(userData));
+        connections.push_back(srcConnection);
+    }
+
+    while (!connections.empty()) {
+        std::erase_if(connections, [](const IConnection::Ptr& connection) {
+            if (connection->IsClosed()) {
+                LOGGER() << "Closed";
+                return true;
+            }
+
+            return false;
+        });
+
+        std::this_thread::sleep_for(50ms);
+    }
+}
+
 void TestCloseConnection()
 {
     const int connectionCount = 5;
-    FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
-    FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
 
-    std::jthread recvThread([connectionCount, &dst](std::stop_token stop) {
-        for (int i = 0; i < connectionCount; i++) {
-            const IConnection::Ptr dstConnection = dst.Accept(stop);
-            if (dstConnection == nullptr) {
-                throw std::runtime_error("Accept return nullptr");
-            }
-
-            LOGGER() << "Get " << i << " connections";
-            IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
-            while (!dstConnection->IsClosed()) {
-                recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
-
-                if (!recvPackets.empty()) {
-                    std::this_thread::sleep_for(500ms);
-                    break;
-                }
-            }
-
-            dstConnection->Close();
-        }
-    });
+    std::jthread recvThread(Recv, connectionCount);
 
     std::this_thread::sleep_for(500ms);
 
-    std::jthread sendThread([connectionCount, &src](std::stop_token stop) {
-        const ConnectionAddr dstAddr("127.0.0.1", 11200);
-        std::vector<IConnection::Ptr> connections;
-        for (int i = 0; i < connectionCount; i++) {
-            const IConnection::Ptr srcConnection = src.Connect(dstAddr);
-            IPacket::List userData = UDPQueue::CreateBuffers(1);
-            userData = srcConnection->Send(stop, std::move(userData));
-            connections.push_back(srcConnection);
-        }
-
-        while (!connections.empty()) {
-            std::erase_if(connections, [](const IConnection::Ptr& connection) {
-                if (connection->IsClosed()) {
-                    LOGGER() << "Closed";
-                    return true;
-                }
-
-                return false;
-            });
-
-            std::this_thread::sleep_for(50ms);
-        }
-    });
+    std::jthread sendThread(Send, connectionCount);
 
     recvThread.join();
     sendThread.join();
