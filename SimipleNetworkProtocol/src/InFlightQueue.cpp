@@ -87,7 +87,7 @@ OutgoingPacket::List InFlightQueue::CheckTimeouts()
 {
     OutgoingPacket::List needToSend;
 
-    clock::duration const timeout = _speedController.GetTimeout();
+    const clock::duration timeout = _speedController.GetTimeout();
     for (auto& sample : _samples) {
         needToSend.splice(sample.CheckTimeouts(timeout));
     }

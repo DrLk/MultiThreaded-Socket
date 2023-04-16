@@ -1,8 +1,11 @@
 #include "FastTransportProtocol.hpp"
 
+#include "Logger.hpp"
 #include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
 #include "ThreadName.hpp"
+
+#define TRACER() LOGGER() << "[" << connection->GetConnectionKey() << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::Protocol {
 
@@ -87,15 +90,17 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
             if (connection != nullptr) {
                 connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
-                sharedLock.unlock();
                 {
+                    sharedLock.unlock();
                     const std::scoped_lock lock(_connectionsMutex);
                     _connections.insert({ connection->GetConnectionKey(), connection });
                 }
-                sharedLock.lock();
 
-                _incomingConnections.push_back(std::move(connection));
-                _incomingConnections.NotifyAll();
+                {
+                    const std::scoped_lock lock(_incomingConnections._mutex);
+                    _incomingConnections.push_back(std::move(connection));
+                    _incomingConnections.NotifyAll();
+                }
             }
 
             freePackets.splice(std::move(freeRecvPackets));
@@ -140,15 +145,16 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
         connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
     }
 
-    for (auto& [connectionKey, outgoingPacket] : connectionOutgoingPackets) {
+    for (auto& [connectionKey, outgoingPackets] : connectionOutgoingPackets) {
         const std::shared_lock lock(_connectionsMutex);
         auto connection = _connections.find(connectionKey);
 
         if (connection != _connections.end()) {
-            connection->second->ProcessSentPackets(std::move(outgoingPacket));
+            connection->second->ProcessSentPackets(std::move(outgoingPackets));
         } else {
-            // needs return free packets to pool
-            throw std::runtime_error("Not implemented");
+            for (OutgoingPacket& packet : outgoingPackets) {
+                _freeSendPackets.push_back(std::move(packet._packet));
+            };
         }
     }
 }
@@ -177,7 +183,7 @@ void FastTransportContext::CheckRecvQueue()
     }
 }
 
-void FastTransportContext::RemoveReadClosedConnections()
+void FastTransportContext::RemoveRecvClosedConnections()
 {
     const std::scoped_lock lock(_connectionsMutex);
 
@@ -185,12 +191,27 @@ void FastTransportContext::RemoveReadClosedConnections()
         const auto& [key, connection] = that;
 
         if (connection->IsClosed()) {
-            IPacket::List freeRecvPackets = connection->GetFreeRecvPackets();
-            const IPacket::List freeSendPackets = connection->GetFreeSendPackets();
-
+            TRACER() << "RemoveRecvClosedConnections - Closed";
+            IPacket::List freeRecvPackets = connection->CleanFreeRecvPackets();
             _freeRecvPackets.splice(std::move(freeRecvPackets));
         }
-        return connection->IsClosed();
+
+        return connection->CanBeDeleted();
+    });
+}
+void FastTransportContext::RemoveSendClosedConnections()
+{
+    const std::scoped_lock lock(_connectionsMutex);
+    std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
+        const auto& [key, connection] = that;
+
+        if (connection->IsClosed()) {
+            TRACER() << "RemoveSendClosedConnections - Closed";
+            IPacket::List freeSendPackets = connection->CleanFreeSendPackets();
+            _freeSendPackets.splice(std::move(freeSendPackets));
+        }
+
+        return connection->CanBeDeleted();
     });
 }
 
@@ -204,6 +225,7 @@ void FastTransportContext::SendThread(std::stop_token stop, FastTransportContext
     SetThreadName("SendThread");
 
     while (!stop.stop_requested()) {
+        context.RemoveSendClosedConnections();
         context.ConnectionsRun(stop);
     }
 }
@@ -215,7 +237,7 @@ void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext
     context.InitRecvPackets();
 
     while (!stop.stop_requested()) {
-        context.RemoveReadClosedConnections();
+        context.RemoveRecvClosedConnections();
         context.RecvQueueStep(stop);
         context.CheckRecvQueue();
     }
@@ -235,7 +257,7 @@ IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
 
 ConnectionID FastTransportContext::GenerateID()
 {
-    static ConnectionID _nextID = 0;
+    static std::atomic<ConnectionID> _nextID = 0;
     // TODO: Check after overflow
     return ++_nextID;
 }

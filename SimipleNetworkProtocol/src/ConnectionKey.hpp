@@ -26,6 +26,8 @@ private:
     ConnectionID _id;
     ConnectionAddr _dstAddr;
 };
+
+std::ostream& operator<<(std::ostream& stream, const ConnectionKey& key); // NOLINT(fuchsia-overloaded-operator)
 } // namespace FastTransport::Protocol
 
 namespace std {

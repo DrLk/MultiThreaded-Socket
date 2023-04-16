@@ -1,11 +1,13 @@
 #pragma once
 
 #include <list>
-#include <stop_token>
 
 #include "IPacket.hpp"
+#include "LockedList.hpp"
 
 namespace FastTransport::Protocol {
+
+using FastTransport::Containers::LockedList;
 
 class IRecvQueue {
 public:
@@ -18,7 +20,7 @@ public:
 
     [[nodiscard]] virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
     virtual void ProccessUnorderedPackets() = 0;
-    [[nodiscard]] virtual IPacket::List GetUserData(std::stop_token stop) = 0;
+    virtual LockedList<IPacket::Ptr>& GetUserData() = 0;
 
     [[nodiscard]] virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
     [[nodiscard]] virtual SeqNumberType GetLastAck() const = 0;

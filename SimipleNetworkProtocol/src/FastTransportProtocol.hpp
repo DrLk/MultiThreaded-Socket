@@ -31,6 +31,7 @@ public:
 
 private:
     IPacket::List _freeRecvPackets;
+    IPacket::List _freeSendPackets;
 
     std::shared_mutex _connectionsMutex;
     std::unordered_map<ConnectionKey, std::shared_ptr<Connection>> _connections;
@@ -54,7 +55,8 @@ private:
     void RecvQueueStep(std::stop_token stop);
     void CheckRecvQueue();
 
-    void RemoveReadClosedConnections();
+    void RemoveRecvClosedConnections();
+    void RemoveSendClosedConnections();
 
     IPacket::List GetConnectionsFreeRecvPackets();
 

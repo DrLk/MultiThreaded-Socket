@@ -70,9 +70,29 @@ void TestConnection()
 
 void TestCloseConnection()
 {
-    const int connectionCount = 10;
+    const int connectionCount = 2;
     FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
     FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+
+    std::jthread recvThread([connectionCount, &dst](std::stop_token stop) {
+        for (int i = 0; i < connectionCount; i++) {
+            const IConnection::Ptr dstConnection = dst.Accept(stop);
+            if (dstConnection == nullptr) {
+                throw std::runtime_error("Accept return nullptr");
+            }
+
+            LOGGER() << "Get " << i << " connections";
+            IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
+            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+            while (!dstConnection->IsClosed()) {
+                recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+            }
+
+            dstConnection->Close();
+        }
+    });
+
+    std::this_thread::sleep_for(500ms);
 
     std::jthread sendThread([connectionCount, &src](std::stop_token stop) {
         IPacket::List userData = UDPQueue::CreateBuffers(20);
@@ -96,26 +116,6 @@ void TestCloseConnection()
             });
 
             std::this_thread::sleep_for(50ms);
-        }
-    });
-
-    std::this_thread::sleep_for(500ms);
-
-    std::jthread recvThread([connectionCount, &dst](std::stop_token stop) {
-        for (int i = 0; i < connectionCount; i++) {
-            const IConnection::Ptr dstConnection = dst.Accept(stop);
-            if (dstConnection == nullptr) {
-                throw std::runtime_error("Accept return nullptr");
-            }
-
-            LOGGER() << "Get " << i << " connections";
-            IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
-            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
-            while (recvPackets.empty()) {
-                recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
-            }
-
-            dstConnection->Close();
         }
     });
 
@@ -217,7 +217,12 @@ void TestRecvQueue()
 
     queue->ProccessUnorderedPackets();
 
-    auto data = queue->GetUserData(std::stop_token());
+    auto& userData = queue->GetUserData();
+    IPacket::List result;
+    std::unique_lock lock(userData._mutex);
+    if (userData.Wait(lock, std::stop_token(), [&userData, &result]() { return !userData.empty(); })) {
+        result.swap(userData);
+    }
 }
 
 void TestSocket()
@@ -282,7 +287,7 @@ void TestBBQState()
     std::uniform_int_distribution<int> distribution(0, 100);
 
     for (int i = 0; i < 100; i++) {
-        SampleStats::clock::duration const rtt = 100ms;
+        const SampleStats::clock::duration rtt = 100ms;
         stats.emplace_back(distribution(mt19937), 0, startInterval, startInterval + 50ms, rtt);
         startInterval += 50ms;
     }

@@ -5,6 +5,8 @@
 #include "IPacket.hpp"
 #include "Logger.hpp"
 
+#define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection._destinationID << "]: " // NOLINT(cppcoreguidelines-macro-usage)
+
 namespace FastTransport::Protocol {
 
 std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
@@ -26,6 +28,8 @@ void BasicConnectionState::ProcessInflightPackets(Connection& connection)
 
 IConnectionState* SendingSynState::SendPackets(Connection& connection)
 {
+    TRACER() << "SendingSynState::SendPackets";
+
     IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
     connection._freeInternalSendPackets.pop_back();
 
@@ -41,6 +45,8 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
 
 IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
+    TRACER() << "WaitingSynState::OnRecvPackets";
+
     IPacket::List freePackets;
     auto header = packet->GetHeader();
     if (!header.IsValid()) {
@@ -61,6 +67,8 @@ IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& 
 
 IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 {
+    TRACER() << "SendingSynAckState::SendPackets";
+
     IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
     connection._freeInternalSendPackets.pop_back();
 
@@ -77,7 +85,8 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
 
 IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
-    LOGGER() << "WaitingSynAckState::OnRecvPackets";
+    TRACER() << "WaitingSynAckState::OnRecvPackets";
+
     IPacket::List freePackets;
     auto header = packet->GetHeader();
 
@@ -110,8 +119,10 @@ IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connectio
     return freePackets;
 }
 
-IConnectionState* WaitingSynAckState::OnTimeOut(Connection& /*connection*/)
+IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
 {
+    TRACER() << "WaitingSynAckState::OnTimeOut";
+
     return new SendingSynState();
 }
 
@@ -207,6 +218,8 @@ IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connec
 
 IConnectionState* DataState::OnTimeOut(Connection& connection)
 {
+    TRACER() << "DataState::OnTimeOut";
+
     connection.Close();
     return this;
 }

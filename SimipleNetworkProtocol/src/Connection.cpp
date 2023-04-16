@@ -16,6 +16,8 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     , _sendQueue(std::make_unique<SendQueue>())
     , _connected(false)
     , _closed(false)
+    , _cleanRecvBuffers(false)
+    , _cleanSendBuffers(false)
 {
 }
 
@@ -44,8 +46,9 @@ IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
     IPacket::List result;
     {
         std::unique_lock lock(_freeUserSendPackets._mutex);
-        _freeUserSendPackets.Wait(lock, stop, [this]() { return !_freeUserSendPackets.empty(); });
-        result.swap(_freeUserSendPackets);
+        if (_freeUserSendPackets.Wait(lock, stop, [this]() { return !_freeUserSendPackets.empty() || IsClosed(); })) {
+            result.swap(_freeUserSendPackets);
+        }
     }
 
     return result;
@@ -58,17 +61,33 @@ IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets
         _freeRecvPackets.splice(std::move(freePackets));
     }
 
-    return _recvQueue->GetUserData(stop);
+    IPacket::List result;
+    {
+        LockedList<IPacket::Ptr>& userData = _recvQueue->GetUserData();
+        std::unique_lock lock(userData._mutex);
+        if (userData.Wait(lock, stop, [this, &userData]() { return !userData.empty() || IsClosed(); })) {
+            result.swap(userData);
+        }
+    }
+
+    return result;
 }
 
 void Connection::Close()
 {
     _closed = true;
+    _freeUserSendPackets.NotifyAll();
+    _recvQueue->GetUserData().NotifyAll();
 }
 
 bool Connection::IsClosed() const
 {
     return _closed;
+}
+
+bool Connection::CanBeDeleted() const
+{
+    return _cleanRecvBuffers && _cleanSendBuffers;
 }
 
 const ConnectionKey& Connection::GetConnectionKey() const
@@ -151,12 +170,16 @@ IPacket::List Connection::GetFreeRecvPackets()
     return freePackets;
 }
 
-IPacket::List Connection::GetFreeSendPackets()
+IPacket::List Connection::CleanFreeRecvPackets()
 {
-    IPacket::List freePackets;
-    {
-        IPacket::List const freePackets = _inFlightQueue->GetAllPackets();
-    }
+    _cleanRecvBuffers = true;
+    return GetFreeRecvPackets();
+}
+
+IPacket::List Connection::CleanFreeSendPackets()
+{
+    _cleanSendBuffers = true;
+    IPacket::List freePackets = _inFlightQueue->GetAllPackets();
 
     return freePackets;
 }

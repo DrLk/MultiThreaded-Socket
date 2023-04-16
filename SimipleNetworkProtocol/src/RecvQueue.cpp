@@ -63,17 +63,9 @@ void RecvQueue::ProccessUnorderedPackets()
     _data.NotifyAll();
 }
 
-IPacket::List RecvQueue::GetUserData(std::stop_token stop)
+LockedList<IPacket::Ptr>& RecvQueue::GetUserData()
 {
-    IPacket::List data;
-
-    {
-        std::unique_lock lock(_data._mutex);
-        _data.Wait(lock, stop, [this]() { return !_data.empty(); });
-        data.splice(std::move(_data));
-    }
-
-    return data;
+    return _data;
 }
 
 std::list<SeqNumberType> RecvQueue::GetSelectiveAcks()

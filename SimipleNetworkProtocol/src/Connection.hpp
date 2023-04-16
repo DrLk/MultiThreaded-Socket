@@ -55,6 +55,7 @@ public:
 
     void Close() override;
     [[nodiscard]] bool IsClosed() const override;
+    [[nodiscard]] bool CanBeDeleted() const;
 
     [[nodiscard]] IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
@@ -78,7 +79,9 @@ public:
     IRecvQueue& GetRecvQueue();
 
     [[nodiscard]] IPacket::List GetFreeRecvPackets();
-    [[nodiscard]] IPacket::List GetFreeSendPackets();
+
+    [[nodiscard]] IPacket::List CleanFreeRecvPackets();
+    [[nodiscard]] IPacket::List CleanFreeSendPackets();
 
     void AddFreeUserSendPackets(IPacket::List&& freePackets);
 
@@ -94,7 +97,7 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    static constexpr std::chrono::microseconds DefaultTimeOut = 3000ms;
+    static constexpr std::chrono::microseconds DefaultTimeOut = 5s;
 
     LockedList<std::vector<char>> _recvUserData;
 
@@ -108,5 +111,7 @@ private:
 
     bool _connected;
     std::atomic<bool> _closed;
+    std::atomic<bool> _cleanRecvBuffers;
+    std::atomic<bool> _cleanSendBuffers;
 };
 } // namespace FastTransport::Protocol

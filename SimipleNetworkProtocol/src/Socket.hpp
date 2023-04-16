@@ -99,7 +99,7 @@ public:
             .tv_sec = 0, .tv_usec = 100000
         };
 
-        int const result = select(_socket + 1, &ReadSet, nullptr, nullptr, &timeout);
+        const int result = select(_socket + 1, &ReadSet, nullptr, nullptr, &timeout);
 
         if (result == SOCKET_ERROR) {
             throw std::runtime_error("Socket: failed to select read");
@@ -122,7 +122,7 @@ public:
             .tv_sec = 0, .tv_usec = 100000
         };
 
-        int const result = select(_socket + 1, nullptr, &WriteSet, nullptr, &timeout);
+        const int result = select(_socket + 1, nullptr, &WriteSet, nullptr, &timeout);
 
         if (result == SOCKET_ERROR) {
             throw std::runtime_error("Socket: failed to select write");

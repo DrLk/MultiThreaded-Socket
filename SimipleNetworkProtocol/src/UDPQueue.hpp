@@ -3,7 +3,6 @@
 #include <functional>
 #include <list>
 #include <memory>
-#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -35,8 +34,6 @@ public:
 
 private:
     ConnectionAddr _address;
-    std::vector<std::jthread> _writeThreads;
-    std::vector<std::jthread> _readThreads;
 
     LockedList<OutgoingPacket> _sendQueue;
     LockedList<IPacket::Ptr> _recvQueue;
@@ -55,5 +52,8 @@ private:
     size_t _recvQueueSizePerThread;
 
     std::vector<std::shared_ptr<Socket>> _sockets;
+
+    std::vector<std::jthread> _writeThreads;
+    std::vector<std::jthread> _readThreads;
 };
 } // namespace FastTransport::Protocol
