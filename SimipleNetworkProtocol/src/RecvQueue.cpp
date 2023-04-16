@@ -56,11 +56,13 @@ void RecvQueue::ProccessUnorderedPackets()
 
     _beginFullRecievedAck--;
 
-    {
-        const std::scoped_lock lock(_data._mutex);
-        _data.splice(std::move(data));
+    if (!data.empty()) {
+        {
+            const std::scoped_lock lock(_data._mutex);
+            _data.splice(std::move(data));
+        }
+        _data.NotifyAll();
     }
-    _data.NotifyAll();
 }
 
 LockedList<IPacket::Ptr>& RecvQueue::GetUserData()

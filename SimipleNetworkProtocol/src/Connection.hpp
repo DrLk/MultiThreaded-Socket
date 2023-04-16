@@ -5,7 +5,6 @@
 
 #include "ConnectionKey.hpp"
 #include "IPacket.hpp"
-#include "IRecvQueue.hpp"
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
 
@@ -16,7 +15,7 @@ using FastTransport::Containers::LockedList;
 
 class ISendQueue;
 class IInFlightQueue;
-
+class IRecvQueue;
 class IConnectionState;
 
 class IConnection {
@@ -87,8 +86,7 @@ public:
 
     IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
-    IPacket::List _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-    std::mutex _sendUserDataMutex; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
+    LockedList<IPacket::Ptr> _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     ConnectionKey _key; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     ConnectionID _destinationID { 0 }; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
@@ -97,7 +95,7 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    static constexpr std::chrono::microseconds DefaultTimeOut = 5s;
+    static constexpr std::chrono::microseconds DefaultTimeOut = 30s;
 
     LockedList<std::vector<char>> _recvUserData;
 

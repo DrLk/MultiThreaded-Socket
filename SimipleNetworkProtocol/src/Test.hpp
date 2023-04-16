@@ -70,7 +70,7 @@ void TestConnection()
 
 void TestCloseConnection()
 {
-    const int connectionCount = 2;
+    const int connectionCount = 5;
     FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
     FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
 
@@ -83,9 +83,13 @@ void TestCloseConnection()
 
             LOGGER() << "Get " << i << " connections";
             IPacket::List recvPackets = UDPQueue::CreateBuffers(30);
-            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
             while (!dstConnection->IsClosed()) {
                 recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+
+                if (!recvPackets.empty()) {
+                    std::this_thread::sleep_for(500ms);
+                    break;
+                }
             }
 
             dstConnection->Close();
@@ -95,12 +99,11 @@ void TestCloseConnection()
     std::this_thread::sleep_for(500ms);
 
     std::jthread sendThread([connectionCount, &src](std::stop_token stop) {
-        IPacket::List userData = UDPQueue::CreateBuffers(20);
-
         const ConnectionAddr dstAddr("127.0.0.1", 11200);
         std::vector<IConnection::Ptr> connections;
         for (int i = 0; i < connectionCount; i++) {
             const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+            IPacket::List userData = UDPQueue::CreateBuffers(1);
             userData = srcConnection->Send(stop, std::move(userData));
             connections.push_back(srcConnection);
         }

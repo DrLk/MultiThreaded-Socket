@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "IPacket.hpp"
+#include "IRecvQueue.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection._destinationID << "]: " // NOLINT(cppcoreguidelines-macro-usage)
@@ -168,7 +169,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
 
     IPacket::List userData;
     {
-        const std::scoped_lock lock(connection._sendUserDataMutex);
+        const std::scoped_lock lock(connection._sendUserData._mutex);
         userData = std::move(connection._sendUserData);
     }
 

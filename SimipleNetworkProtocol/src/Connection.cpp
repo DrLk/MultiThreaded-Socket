@@ -39,7 +39,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 {
     {
-        const std::scoped_lock lock(_sendUserDataMutex);
+        const std::scoped_lock lock(_sendUserData._mutex);
         _sendUserData.splice(std::move(data));
     }
 

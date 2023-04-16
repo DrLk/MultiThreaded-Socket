@@ -43,11 +43,11 @@ void UDPQueue::Init()
 
 IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
 {
-    {
+    if (!freeBuffers.empty()) {
         const std::scoped_lock lock(_recvFreeQueue._mutex);
         _recvFreeQueue.splice(std::move(freeBuffers));
+        _recvFreeQueue.NotifyAll();
     }
-    _recvFreeQueue.NotifyAll();
 
     IPacket::List result;
     {
