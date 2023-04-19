@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "Socket.hpp"
 #include "ThreadName.hpp"
 #include "UDPQueue.hpp"
 

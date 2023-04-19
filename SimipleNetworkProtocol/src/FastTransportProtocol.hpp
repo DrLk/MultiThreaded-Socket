@@ -34,7 +34,7 @@ private:
     IPacket::List _freeSendPackets;
 
     std::shared_mutex _connectionsMutex;
-    std::unordered_map<ConnectionKey, std::shared_ptr<Connection>> _connections;
+    std::unordered_map<ConnectionKey, std::shared_ptr<Connection>, ConnectionKey::HashFunction> _connections;
     LockedList<Connection::Ptr> _incomingConnections;
 
     OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List& packets);

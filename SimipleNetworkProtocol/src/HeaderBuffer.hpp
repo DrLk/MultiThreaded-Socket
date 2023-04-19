@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "ConnectionAddr.hpp"
+#include "ConnectionID.hpp"
 
 namespace FastTransport::Protocol {
-using ConnectionID = uint16_t;
 using SeqNumberType = unsigned int;
 using MagicNumber = int;
 

@@ -137,7 +137,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
 
     OutgoingPacket::List inFlightPackets = Send(stop, packets);
 
-    std::unordered_map<ConnectionKey, OutgoingPacket::List> connectionOutgoingPackets;
+    std::unordered_map<ConnectionKey, OutgoingPacket::List, ConnectionKey::HashFunction> connectionOutgoingPackets;
     for (auto& outgoingPacket : inFlightPackets) {
         auto& packet = outgoingPacket._packet;
         const ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetSrcConnectionID());

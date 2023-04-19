@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "Connection.hpp"
-#include "HeaderBuffer.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {

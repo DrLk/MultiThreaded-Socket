@@ -12,6 +12,7 @@
 #include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
 #include "RecvQueue.hpp"
+#include "Socket.hpp"
 #include "SpeedController.hpp"
 #include "TimeRangedStats.hpp"
 

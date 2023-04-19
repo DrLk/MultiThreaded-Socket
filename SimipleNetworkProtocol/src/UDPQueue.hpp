@@ -11,11 +11,12 @@
 #include "OutgoingPacket.hpp"
 #include "RecvThreadQueue.hpp"
 #include "SendThreadQueue.hpp"
-#include "Socket.hpp"
 
 namespace FastTransport::Protocol {
 
 using FastTransport::Containers::LockedList;
+
+class Socket;
 
 class UDPQueue {
     friend SendThreadQueue;

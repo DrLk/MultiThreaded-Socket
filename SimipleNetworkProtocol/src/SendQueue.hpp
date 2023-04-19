@@ -5,10 +5,8 @@
 #include <atomic>
 #include <set>
 
-#include "HeaderBuffer.hpp"
 #include "MultiList.hpp"
 #include "OutgoingPacket.hpp"
-#include "SpeedController.hpp"
 
 namespace FastTransport::Protocol {
 

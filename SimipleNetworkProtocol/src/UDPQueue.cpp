@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "Packet.hpp"
+#include "Socket.hpp"
 #include "ThreadName.hpp"
 
 using namespace std::chrono_literals;
