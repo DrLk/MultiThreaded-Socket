@@ -149,7 +149,7 @@ OutgoingPacket::List Connection::CheckTimeouts()
     return _inFlightQueue->CheckTimeouts();
 }
 
-void Connection::AddAcks(const SelectiveAckBuffer::Acks& acks)
+void Connection::AddAcks(std::span<SeqNumberType> acks)
 {
     return _inFlightQueue->AddAcks(acks);
 }

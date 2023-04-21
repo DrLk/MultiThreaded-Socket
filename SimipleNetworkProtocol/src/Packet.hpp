@@ -1,12 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <list>
-#include <memory>
-#include <mutex>
-#include <vector>
 
-#include "HeaderBuffer.hpp"
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 
@@ -21,35 +16,31 @@ public:
     Packet(Packet&& that) = delete;
     Packet& operator=(Packet&& that) = delete;
 
-    explicit Packet(int size)
-        : _element(size)
-        , _time(0)
-    {
-    }
-
+    explicit Packet(int size);
     ~Packet() override = default;
 
-    SelectiveAckBuffer GetAcksBuffer() override
+    [[nodiscard]] std::span<SeqNumberType> GetAcks() override;
+    void SetAcks(const std::list<SeqNumberType>& acks) override;
+
+    [[nodiscard]] PacketType GetPacketType() const override;
+    void SetPacketType(PacketType type) override;
+    [[nodiscard]] ConnectionID GetSrcConnectionID() const override;
+    void SetSrcConnectionID(ConnectionID connectionId) override;
+    [[nodiscard]] ConnectionID GetDstConnectionID() const override;
+    void SetDstConnectionID(ConnectionID connectionId) override;
+    [[nodiscard]] SeqNumberType GetSeqNumber() const override;
+    void SetSeqNumber(SeqNumberType seq) override;
+    [[nodiscard]] SeqNumberType GetAckNumber() const override;
+    void SetAckNumber(SeqNumberType ack) override;
+    void SetMagic() override;
+    [[nodiscard]] bool IsValid() const override;
+
+    std::span<ElementType> GetPayload() override
     {
-        throw std::runtime_error("Not Implemented");
+        throw std::runtime_error("Not implemented");
     }
 
-    SelectiveAckBuffer::Acks GetAcks() override
-    {
-        return { _element.data(), _element.size() };
-    }
-
-    Header GetHeader() override
-    {
-        return { _element.data(), _element.size() };
-    }
-
-    PayloadBuffer::Payload GetPayload() override
-    {
-        return { _element.data(), _element.size() };
-    }
-
-    ConnectionAddr& GetDstAddr() override
+    [[nodiscard]] const ConnectionAddr& GetDstAddr() const override
     {
         return _dstAddr;
     }
@@ -70,7 +61,7 @@ public:
         _time = time;
     }
 
-    ElementType& GetElement() override
+    std::vector<ElementType>& GetElement() override
     {
         return _element;
     }
@@ -86,7 +77,7 @@ public:
     }
 
 private:
-    ElementType _element;
+    mutable std::vector<ElementType> _element;
 
     ConnectionAddr _srcAddr;
     ConnectionAddr _dstAddr;

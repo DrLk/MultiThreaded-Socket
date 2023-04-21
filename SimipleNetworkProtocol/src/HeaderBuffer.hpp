@@ -6,22 +6,10 @@
 #include <vector>
 
 #include "ConnectionAddr.hpp"
-#include "ConnectionID.hpp"
+#include "HeaderTypes.hpp"
 
 namespace FastTransport::Protocol {
-using SeqNumberType = unsigned int;
 using MagicNumber = int;
-
-enum class PacketType : int16_t {
-    NONE = 0,
-    SYN = 1,
-    ACK = 2,
-    SYN_ACK = 3,
-    DATA = 4,
-    SACK = 8,
-    FIN = 16,
-    CLOSE = 32
-};
 
 const MagicNumber Magic_Number = 0x12345678;
 class Header : protected std::span<unsigned char> {
@@ -41,34 +29,42 @@ public:
 
         return *reinterpret_cast<MagicNumber*>(data()) == Magic_Number; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
+
     [[nodiscard]] PacketType GetPacketType() const
     {
         return *reinterpret_cast<PacketType*>(data() + sizeof(MagicNumber)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     [[nodiscard]] ConnectionID GetSrcConnectionID() const
     {
         return *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     [[nodiscard]] ConnectionID GetDstConnectionID() const
     {
         return *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     [[nodiscard]] SeqNumberType GetSeqNumber() const
     {
         return *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     [[nodiscard]] SeqNumberType GetAckNumber() const
     {
         return *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     void SetMagic()
     {
         *reinterpret_cast<MagicNumber*>(data()) = Magic_Number; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     void SetPacketType(PacketType type)
     {
         *reinterpret_cast<PacketType*>(data() + sizeof(MagicNumber)) = type; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
     void SetSrcConnectionID(ConnectionID connectionId)
     {
         *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)) = connectionId; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -94,8 +90,6 @@ class SelectiveAckBuffer {
 public:
     class Acks {
     public:
-        static constexpr SeqNumberType MaxAcks = 300;
-
         Acks(unsigned char* start, size_t size)
         {
             const size_t ackPacketStart = Header::Size + sizeof(MaxAcks);

@@ -3,7 +3,9 @@
 #include "IInFlightQueue.hpp"
 
 #include <chrono>
+#include <span>
 
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
 #include "Sample.hpp"
@@ -13,7 +15,7 @@ namespace FastTransport::Protocol {
 class InFlightQueue final : public IInFlightQueue {
 public:
     [[nodiscard]] std::pair<IPacket::List, IPacket::List> AddQueue(OutgoingPacket::List&& packets) override;
-    void AddAcks(const SelectiveAckBuffer::Acks& acks) override;
+    void AddAcks(std::span<SeqNumberType> acks) override;
     [[nodiscard]] IPacket::List ProcessAcks() override;
     [[nodiscard]] OutgoingPacket::List CheckTimeouts() override;
     [[nodiscard]] size_t GetNumberPacketToSend() override;

@@ -19,7 +19,7 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
 
     for (auto& packet : packets) {
         if (packet._needAck) {
-            const SeqNumberType packetNumber = packet._packet->GetHeader().GetSeqNumber();
+            const SeqNumberType packetNumber = packet._packet->GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
             if (ack == receivedAcks.end()) {
                 queue[packetNumber] = std::move(packet);
@@ -44,13 +44,9 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     return { std::move(freeInternalPackets), std::move(freePackets) };
 }
 
-void InFlightQueue::AddAcks(const SelectiveAckBuffer::Acks& acks)
+void InFlightQueue::AddAcks(std::span<SeqNumberType> acks)
 {
-    if (!acks.IsValid()) {
-        throw std::runtime_error("Not Implemented");
-    }
-
-    std::unordered_set<SeqNumberType> receivedAcks(acks.GetAcks().begin(), acks.GetAcks().end());
+    std::unordered_set<SeqNumberType> receivedAcks(acks.begin(), acks.end());
 
     //_speedController.AddrecievedAcks(receivedAcks.size());
 

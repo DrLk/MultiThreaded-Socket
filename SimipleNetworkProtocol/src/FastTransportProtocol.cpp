@@ -73,14 +73,13 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 {
     IPacket::List freePackets;
 
-    const Header header = packet->GetHeader();
-    if (!header.IsValid()) {
+    if (!packet->IsValid()) {
         throw std::runtime_error("Not implemented");
     }
 
     {
         std::shared_lock sharedLock(_connectionsMutex);
-        auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetHeader().GetDstConnectionID()));
+        auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetDstConnectionID()));
 
         if (connection != _connections.end()) {
             auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
@@ -140,7 +139,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
     std::unordered_map<ConnectionKey, OutgoingPacket::List, ConnectionKey::HashFunction> connectionOutgoingPackets;
     for (auto& outgoingPacket : inFlightPackets) {
         auto& packet = outgoingPacket._packet;
-        const ConnectionKey key(packet->GetDstAddr(), packet->GetHeader().GetSrcConnectionID());
+        const ConnectionKey key(packet->GetDstAddr(), packet->GetSrcConnectionID());
 
         connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
     }

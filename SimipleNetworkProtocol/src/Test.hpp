@@ -211,7 +211,7 @@ void TestRecvQueue()
     constexpr SeqNumberType beginSeqNumber = 0;
     for (int i = 0; i < 10; i++) {
         IPacket::Ptr packet(new Packet(1400));
-        packet->GetHeader().SetSeqNumber(i + beginSeqNumber);
+        packet->SetSeqNumber(i + beginSeqNumber);
         packets.push_back(std::move(packet));
     }
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <span>
+
+#include "HeaderTypes.hpp"
 #include "OutgoingPacket.hpp"
 
 namespace FastTransport::Protocol {
@@ -13,7 +16,7 @@ public:
     virtual ~IInFlightQueue() = default;
 
     [[nodiscard]] virtual std::pair<IPacket::List, IPacket::List> AddQueue(OutgoingPacket::List&& packets) = 0;
-    virtual void AddAcks(const SelectiveAckBuffer::Acks& acks) = 0;
+    virtual void AddAcks(std::span<SeqNumberType> acks) = 0;
     [[nodiscard]] virtual IPacket::List ProcessAcks() = 0;
     [[nodiscard]] virtual OutgoingPacket::List CheckTimeouts() = 0;
     [[nodiscard]] virtual size_t GetNumberPacketToSend() = 0;

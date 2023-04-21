@@ -9,7 +9,7 @@ RecvQueue::RecvQueue()
 
 IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
 {
-    const SeqNumberType packetNumber = packet->GetHeader().GetSeqNumber();
+    const SeqNumberType packetNumber = packet->GetSeqNumber();
 
     if (packetNumber == (std::numeric_limits<SeqNumberType>::max)()) {
         throw std::runtime_error("Wrong packet number");

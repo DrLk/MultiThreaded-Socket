@@ -15,13 +15,12 @@ SendQueue::SendQueue()
 
 void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
-    Header header = packet->GetHeader();
-    header.SetMagic();
+    packet->SetMagic();
 
     if (needAck) {
-        header.SetSeqNumber(++_nextPacketNumber);
+        packet->SetSeqNumber(++_nextPacketNumber);
     } else {
-        header.SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
+        packet->SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
     }
 
     {
@@ -55,6 +54,6 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 
 bool SendQueue::OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right)
 {
-    return left._packet->GetHeader().GetSeqNumber() < right._packet->GetHeader().GetSeqNumber();
+    return left._packet->GetSeqNumber() < right._packet->GetSeqNumber();
 };
 } // namespace FastTransport::Protocol

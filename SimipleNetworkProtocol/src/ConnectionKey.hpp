@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConnectionAddr.hpp"
-#include "ConnectionID.hpp"
+#include "HeaderTypes.hpp"
 
 namespace FastTransport::Protocol {
 class ConnectionKey {

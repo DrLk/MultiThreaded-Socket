@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "HeaderBuffer.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "LockedList.hpp"

@@ -51,7 +51,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         for (auto& packet : sendQueue) {
             packet._sendTime = clock::now();
             const auto& data = packet._packet->GetElement();
-            auto& sockaddr = packet._packet->GetDstAddr();
+            ConnectionAddr sockaddr = packet._packet->GetDstAddr();
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             if (!socket.WaitWrite()) {
@@ -65,8 +65,6 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
                     break;
                 }
             }
-
-            sockaddr.SetPort(sockaddr.GetPort() - index);
         }
 
         if (!sendQueue.empty()) {
