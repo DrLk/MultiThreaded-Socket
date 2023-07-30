@@ -11,7 +11,7 @@ RUN apt-get install -y wget software-properties-common
 
 RUN apt-get update
 RUN apt-get upgrade
-RUN apt-get install -y g++-13 clang-tidy-16 clang-format-16
+RUN apt-get install -y g++-13 clang-tidy-16 clang-format-16 cmake make
 
 WORKDIR /build
 ENTRYPOINT ["/bin/bash"]

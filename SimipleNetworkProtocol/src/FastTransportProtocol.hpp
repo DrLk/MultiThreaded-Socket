@@ -10,7 +10,6 @@
 #include "ConnectionKey.hpp"
 #include "IConnectionState.hpp"
 #include "IPacket.hpp"
-#include "SpeedController.hpp"
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {

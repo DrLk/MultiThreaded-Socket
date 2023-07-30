@@ -1,7 +1,5 @@
 #include "IConnectionState.hpp"
 
-#include <mutex>
-
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "Logger.hpp"
@@ -165,10 +163,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
     }
 
     IPacket::List userData;
-    {
-        const std::scoped_lock lock(connection._sendUserData._mutex);
-        userData = std::move(connection._sendUserData);
-    }
+    connection._sendUserData.LockedSwap(userData);
 
     for (auto& packet : userData) {
         packet->SetPacketType(PacketType::DATA);

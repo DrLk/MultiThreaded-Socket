@@ -229,9 +229,8 @@ void TestRecvQueue()
 
     auto& userData = queue->GetUserData();
     IPacket::List result;
-    std::unique_lock lock(userData._mutex);
-    if (userData.Wait(lock, std::stop_token(), [&userData, &result]() { return !userData.empty(); })) {
-        result.swap(userData);
+    if (userData.Wait(std::stop_token())) {
+        userData.LockedSwap(result);
     }
 }
 

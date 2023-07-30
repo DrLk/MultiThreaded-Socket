@@ -3,6 +3,7 @@
 #include "IInFlightQueue.hpp"
 
 #include <chrono>
+#include <mutex>
 #include <span>
 
 #include "HeaderTypes.hpp"

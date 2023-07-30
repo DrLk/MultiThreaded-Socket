@@ -17,7 +17,7 @@ class LogHelper {
 public:
     LogHelper()
         : _memory()
-        , _buffer(_memory.data(), _memory.size(), std::pmr::null_memory_resource())
+        , _buffer(_memory.data(), _memory.size(), std::pmr::new_delete_resource())
         , _osyncstream(std::cout, std::pmr::polymorphic_allocator<char>(&_buffer))
     {
         auto now = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());

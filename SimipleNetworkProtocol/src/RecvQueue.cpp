@@ -57,10 +57,7 @@ void RecvQueue::ProccessUnorderedPackets()
     _beginFullRecievedAck--;
 
     if (!data.empty()) {
-        {
-            const std::scoped_lock lock(_data._mutex);
-            _data.splice(std::move(data));
-        }
+        _data.LockedSplice(std::move(data));
         _data.NotifyAll();
     }
 }

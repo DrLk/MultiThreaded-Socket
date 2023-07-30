@@ -21,11 +21,9 @@ IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
 {
     Connection::Ptr connection = nullptr;
     {
-        std::unique_lock lock(_incomingConnections._mutex);
-        if (_incomingConnections.Wait(lock, stop, [this]() { return !_incomingConnections.empty(); })) {
+        if (_incomingConnections.Wait(stop)) {
 
-            connection = _incomingConnections.back();
-            _incomingConnections.pop_back();
+            connection = _incomingConnections.LockedGetBack();
         } else {
             return connection;
         }
@@ -96,8 +94,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
                 }
 
                 {
-                    const std::scoped_lock lock(_incomingConnections._mutex);
-                    _incomingConnections.push_back(std::move(connection));
+                    _incomingConnections.LockedPushBack(std::move(connection));
                     _incomingConnections.NotifyAll();
                 }
             }

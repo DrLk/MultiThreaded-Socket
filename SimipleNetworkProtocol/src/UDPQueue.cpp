@@ -45,16 +45,14 @@ void UDPQueue::Init()
 IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
 {
     if (!freeBuffers.empty()) {
-        const std::scoped_lock lock(_recvFreeQueue._mutex);
-        _recvFreeQueue.splice(std::move(freeBuffers));
+        _recvFreeQueue.LockedSplice(std::move(freeBuffers));
         _recvFreeQueue.NotifyAll();
     }
 
     IPacket::List result;
     {
-        std::unique_lock lock(_recvQueue._mutex);
-        _recvQueue.WaitFor(lock, stop, [this]() { return !_recvQueue.empty(); });
-        result.swap(_recvQueue);
+        _recvQueue.WaitFor(stop);
+        _recvQueue.LockedSwap(result);
     }
 
     return result;
@@ -63,16 +61,14 @@ IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
 OutgoingPacket::List UDPQueue::Send(std::stop_token stop, OutgoingPacket::List&& data)
 {
     if (!data.empty()) {
-        const std::scoped_lock lock(_sendQueue._mutex);
-        _sendQueue.splice(std::move(data));
+        _sendQueue.LockedSplice(std::move(data));
         _sendQueue.NotifyAll();
     }
 
     OutgoingPacket::List result;
     {
-        std::unique_lock lock(_sendFreeQueue._mutex);
-        _sendFreeQueue.WaitFor(lock, stop, [this]() { return !_sendFreeQueue.empty(); });
-        result.swap(_sendFreeQueue);
+        _sendFreeQueue.WaitFor(stop);
+        _sendFreeQueue.LockedSwap(result);
     }
 
     return result;
@@ -107,19 +103,12 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
     while (!stop.stop_requested()) {
 
         if (recvQueue.empty()) {
-            std::unique_lock lock(udpQueue._recvFreeQueue._mutex);
 
-            if (!udpQueue._recvFreeQueue.Wait(lock, stop, [&udpQueue] { return !udpQueue._recvFreeQueue.empty(); })) {
+            if (!udpQueue._recvFreeQueue.Wait(stop)) {
                 continue;
             }
-            if (udpQueue._recvFreeQueue.size() > udpQueue._recvQueueSizePerThread) {
-                auto freeRecvQueue = udpQueue._recvFreeQueue.TryGenerate(udpQueue._recvQueueSizePerThread);
-                recvQueue.splice(std::move(freeRecvQueue));
-            } else {
-                LockedList<IPacket::Ptr> queue;
-                queue.swap(udpQueue._recvFreeQueue);
-                recvQueue.splice(std::move(queue));
-            }
+
+            recvQueue.splice(udpQueue._recvFreeQueue.LockedTryGenerate(udpQueue._recvQueueSizePerThread));
         }
 
         if (!socket.WaitRead()) {
@@ -151,8 +140,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
         if (!recvThreadQueue._recvThreadQueue.empty()) {
             IPacket::List queue;
             queue.swap(recvThreadQueue._recvThreadQueue);
-            const std::scoped_lock lock(udpQueue._recvQueue._mutex);
-            udpQueue._recvQueue.splice(std::move(queue));
+            udpQueue._recvQueue.LockedSplice(std::move(queue));
             udpQueue._recvQueue.NotifyAll();
         }
     }
