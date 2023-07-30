@@ -12,6 +12,8 @@ RUN apt-get install -y wget software-properties-common
 RUN apt-get update
 RUN apt-get upgrade
 RUN apt-get install -y g++-13 clang-tidy-16 clang-format-16 cmake make
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13
 
 WORKDIR /build
 ENTRYPOINT ["/bin/bash"]
