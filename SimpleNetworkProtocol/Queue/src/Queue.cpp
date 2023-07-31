@@ -2,19 +2,36 @@
 
 namespace TaskQueue {
 
-std::future<void> TaskQueue::Async(std::stop_token stop, std::packaged_task<void()>&& task)
+std::future<void> TaskQueue::Async(std::stop_token stop, std::function<void()>&& function)
 {
+    auto task = std::packaged_task<void()>(function);
     std::future<void> future = task.get_future();
     _taskQueue.LockedPushBack(std::move(task));
+    _taskQueue.NotifyAll();
 
     return future;
 }
-void TaskQueue::ProcessQueue(TaskQueue& taskQueue)
+void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
 {
+    List taskQueue;
+
+    queue._taskQueue.Wait(stop);
+    if (stop.stop_requested()) {
+        return;
+    }
+
+    queue._taskQueue.LockedSwap(taskQueue);
+
+    for (auto& task : taskQueue) {
+        task();
+    }
 }
 
 int64_t add(int64_t lhs, int64_t rhs)
 {
+    TaskQueue queue;
+    std::future wait = queue.Async(std::stop_token(), []() { return; });
+    wait.wait();
     return lhs + rhs;
 }
 
