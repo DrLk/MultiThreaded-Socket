@@ -124,17 +124,26 @@ MultiList<T> MultiList<T>::TryGenerate(std::size_t size)
 {
     MultiList list;
 
-    while (!_lists.empty()) {
+    while (!_lists.empty() && size) {
         auto& front = _lists.front();
         auto frontSize = front.size();
-        list._lists.push_back(std::move(front));
-        _lists.pop_front();
+        if (frontSize > size) {
+            list._lists.emplace_back(0);
 
-        if (frontSize >= size) {
+            auto it = front.begin();
+            while (size--) {
+                it++;
+            }
+            list._lists.back().splice(list._lists.back().end(), front, front.begin(), it);
             break;
-        }
 
-        size -= frontSize;
+        } else {
+
+            list._lists.push_back(std::move(front));
+            _lists.pop_front();
+
+            size -= frontSize;
+        }
     }
 
     return list;

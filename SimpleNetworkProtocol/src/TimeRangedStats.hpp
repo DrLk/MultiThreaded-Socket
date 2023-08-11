@@ -26,7 +26,6 @@ private:
 
     std::vector<SampleStats> _stats;
     size_t _startIndex = 0;
-    clock::time_point _beginTime;
 
     void UpdateStats(const SampleStats& stats);
 };

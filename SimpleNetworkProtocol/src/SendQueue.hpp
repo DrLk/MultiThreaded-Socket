@@ -3,7 +3,6 @@
 #include "ISendQueue.hpp"
 
 #include <atomic>
-#include <set>
 
 #include "MultiList.hpp"
 #include "OutgoingPacket.hpp"
@@ -24,7 +23,7 @@ public:
 
 private:
     static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
-    std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
+    OutgoingPacket::List _resendPackets;
 
     MultiList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;

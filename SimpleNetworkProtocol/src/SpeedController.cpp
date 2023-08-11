@@ -17,6 +17,7 @@ SpeedController::SpeedController()
 {
     _states.emplace(SpeedState::FAST, std::make_unique<FastAccelerationState>());
     _states.emplace(SpeedState::BBQ, std::make_unique<BBQState>());
+    _states.emplace(SpeedState::STABLE, std::make_unique<StableState>());
 }
 
 SpeedController::~SpeedController() = default;
@@ -46,7 +47,7 @@ size_t SpeedController::GetNumberPacketToSend()
         return number;
     }
 
-    return speedState.realSpeed;
+    return 0;
 }
 
 void SpeedController::UpdateStats(const TimeRangedStats& stats)

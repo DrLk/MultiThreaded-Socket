@@ -250,4 +250,17 @@ private:
     int _speedIncrement { 1 };
     bool _up { true };
 };
+
+class StableState final : public ISpeedControllerState {
+public:
+    StableState() = default;
+
+    ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
+    {
+        state.realSpeed = 100;
+
+        return this;
+    }
+};
+
 } // namespace FastTransport::Protocol

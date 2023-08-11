@@ -17,6 +17,8 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
         receivedAcks.swap(_receivedAcks);
     }
 
+    size_t servicePacketNumber = 0;
+    size_t doubleSentPacketNumber = 0;
     for (auto& packet : packets) {
         if (packet._needAck) {
             const SeqNumberType packetNumber = packet._packet->GetSeqNumber();
@@ -24,17 +26,17 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
             if (ack == receivedAcks.end()) {
                 queue[packetNumber] = std::move(packet);
             } else {
+                doubleSentPacketNumber++;
                 receivedAcks.erase(ack);
                 freePackets.push_back(std::move(packet._packet));
             }
         } else {
+            servicePacketNumber++;
             freeInternalPackets.push_back(std::move(packet._packet));
         }
     }
 
-    if (!queue.empty()) {
-        _samples.emplace_back(std::move(queue));
-    }
+    _samples.emplace_back(std::move(queue), servicePacketNumber, doubleSentPacketNumber);
 
     {
         const std::scoped_lock lock(_receivedAcksMutex);

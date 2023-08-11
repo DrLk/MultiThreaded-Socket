@@ -1,5 +1,7 @@
 #include "Queue.hpp"
 
+#include "httplib.hpp"
+
 namespace TaskQueue {
 
 std::future<void> TaskQueue::Async(std::stop_token stop, std::function<void()>&& function)
@@ -37,6 +39,17 @@ int64_t add(int64_t lhs, int64_t rhs)
 
 int64_t substract(int64_t lhs, int64_t rhs)
 {
+    // HTTP
+    //httplib::Client cli("http://www.columbia.edu");
+
+    // HTTPS
+    httplib::Client cli("https://habr.com");
+
+    auto res = cli.Get("/ru/all/");
+    res->status;
+    res->body;
+
+
     return lhs - rhs;
 }
 

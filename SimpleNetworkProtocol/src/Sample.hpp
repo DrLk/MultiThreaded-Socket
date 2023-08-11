@@ -12,7 +12,7 @@ class Sample {
     using clock = std::chrono::steady_clock;
 
 public:
-    explicit Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets);
+    explicit Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets, size_t servicePacketNumber, size_t doubleSentPacketNumber);
     IPacket::List ProcessAcks(std::unordered_set<SeqNumberType>& acks);
     OutgoingPacket::List CheckTimeouts(clock::duration timeout);
 
@@ -23,6 +23,8 @@ public:
 
 private:
     std::unordered_map<SeqNumberType, OutgoingPacket> _packets;
+    size_t _servicePacketNumber;
+    size_t _doubleSentPacketNumber;
 
     TimeRangedStats _timeRangedStats;
 };

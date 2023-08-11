@@ -19,7 +19,6 @@
 namespace FastTransport::Protocol {
 void TestConnection()
 {
-
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);

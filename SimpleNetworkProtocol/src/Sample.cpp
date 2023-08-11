@@ -4,8 +4,10 @@ using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
 
-Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets)
+Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets, size_t servicePacketNumber, size_t doubleSentPacketNumber)
     : _packets(std::move(packets))
+    , _servicePacketNumber(servicePacketNumber)
+    , _doubleSentPacketNumber(doubleSentPacketNumber)
 {
 }
 

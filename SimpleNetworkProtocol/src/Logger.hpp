@@ -21,7 +21,7 @@ public:
         , _osyncstream(std::cout, std::pmr::polymorphic_allocator<char>(&_buffer))
     {
         auto now = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        _osyncstream << "[" << std::format("{:%Y-%m-%d %H:%M:%OS}", now) << "] ";
+        _osyncstream << "[" << std::format("{:%Y-%m-%d %H:%M:%S}", now) << "] ";
     }
 
     ~LogHelper()

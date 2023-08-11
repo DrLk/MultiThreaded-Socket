@@ -145,9 +145,8 @@ IConnectionState* DataState::SendPackets(Connection& connection)
             }
             packetAcks.splice(packetAcks.end(), acks, acks.begin(), end);
         } else {
-            packetAcks = std::move(acks);
-            // TODO: Is it needed to call clear???
-            acks.clear();
+
+            packetAcks.swap(acks);
         }
 
         packet->SetAcks(packetAcks);
