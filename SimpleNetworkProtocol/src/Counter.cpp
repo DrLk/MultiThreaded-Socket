@@ -4,7 +4,7 @@
 
 namespace FastTransport::Performance {
 
-std::unordered_map<std::string, Counter&> Counter::Counters;
+std::unordered_map<std::string, Counter&> Counter::Counters; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables, fuchsia-statically-constructed-objects)
 
 Counter::Counter(std::string_view name)
     : _counter(0)
@@ -25,8 +25,9 @@ void Counter::Count()
 
 void Counter::Print()
 {
-    for (auto& counter : Counters)
+    for (auto& counter : Counters) {
         LOGGER() << "[" << counter.first << "]: " << counter.second._counter;
+    }
 }
 
 } // namespace FastTransport::Performance

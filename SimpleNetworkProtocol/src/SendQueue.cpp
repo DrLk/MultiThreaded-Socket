@@ -9,7 +9,6 @@ namespace FastTransport::Protocol {
 
 SendQueue::SendQueue()
     : _nextPacketNumber(-1)
-    , _resendPackets()
 {
 }
 

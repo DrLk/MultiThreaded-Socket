@@ -255,7 +255,7 @@ class StableState final : public ISpeedControllerState {
 public:
     StableState() = default;
 
-    ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
+    ISpeedControllerState* Run(const std::vector<SampleStats>& /*stats*/, SpeedControllerState& state) override
     {
         state.realSpeed = 100;
 
