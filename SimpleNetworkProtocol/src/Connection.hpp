@@ -1,12 +1,21 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <memory>
+#include <span>
 #include <stop_token>
+#include <vector>
 
 #include "ConnectionKey.hpp"
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
+
+namespace FastTransport::Protocol {
+class ConnectionAddr;
+} // namespace Protocol::FastTransport
 
 namespace FastTransport::Protocol {
 

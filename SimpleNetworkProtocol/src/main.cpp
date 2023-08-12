@@ -1,14 +1,14 @@
-#include <cstdio>
+#include <chrono>
+#include <cstring>
+#include <span>
+#include <stdint.h>
+#include <string>
+#include <thread>
 
-#include "FastTransportProtocol.hpp"
-#include "IConnectionState.hpp"
+#include "ConnectionAddr.hpp"
+#include "IPacket.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
-
-#include <algorithm>
-#include <list>
-#include <memory>
-#include <thread>
 
 using namespace FastTransport::Protocol; // NOLINT
 
@@ -25,20 +25,6 @@ void Test()
     // TestTimer();
     // TestSleep();
     // TestPeriodicExecutor();
-
-    sockaddr_in dstAddr {};
-    // zero out the structure
-    std::memset(&dstAddr, 0, sizeof(dstAddr));
-
-    dstAddr.sin_family = AF_INET;
-    dstAddr.sin_port = htons(9999);
-    auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
-    // auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
-    // auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
-
-    if (result == 0) {
-        std::cout << errno;
-    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 }
@@ -71,20 +57,6 @@ int main(int argc, char** argv)
 
     const IPacket::List recvBuffers = UDPQueue::CreateBuffers(10000);
     const IPacket::List sendBuffers = UDPQueue::CreateBuffers(10000);
-
-    sockaddr_in dstAddr {};
-    // zero out the structure
-    std::memset(&dstAddr, 0, sizeof(dstAddr));
-
-    dstAddr.sin_family = AF_INET;
-    dstAddr.sin_port = htons(dstPort);
-    auto result = inet_pton(AF_INET, dstIP.c_str(), &(dstAddr.sin_addr));
-    if (result != 0) {
-        std::cout << errno;
-    }
-    // auto result = inet_pton(AF_INET, "127.0.0.1", &(dstAddr.sin_addr));
-    // auto result = inet_pton(AF_INET, "8.8.8.8", &(dstAddr.sin_addr));
-    // auto result = inet_pton(AF_INET, "192.168.1.56", &(dstAddr.sin_addr));
 
     return 0;
 }

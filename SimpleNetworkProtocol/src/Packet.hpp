@@ -1,9 +1,15 @@
 #pragma once
 
 #include <chrono>
+#include <list>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <vector>
 
+#include "ConnectionAddr.hpp"
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
 
 namespace FastTransport::Protocol {
 

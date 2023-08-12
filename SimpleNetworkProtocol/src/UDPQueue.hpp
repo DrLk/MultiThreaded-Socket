@@ -1,16 +1,22 @@
 #pragma once
 
-#include <functional>
-#include <list>
 #include <memory>
+#include <stddef.h>
+#include <stop_token>
 #include <thread>
 #include <vector>
 
+#include "ConnectionAddr.hpp"
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
-#include "RecvThreadQueue.hpp"
-#include "SendThreadQueue.hpp"
+
+namespace FastTransport {
+namespace Protocol {
+    class RecvThreadQueue;
+    class SendThreadQueue;
+} // namespace Protocol
+} // namespace FastTransport
 
 namespace FastTransport::Protocol {
 

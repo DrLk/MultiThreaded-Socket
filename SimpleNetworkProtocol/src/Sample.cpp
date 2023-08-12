@@ -1,5 +1,10 @@
 #include "Sample.hpp"
 
+#include <compare>
+#include <utility>
+
+#include "SampleStats.hpp"
+
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {

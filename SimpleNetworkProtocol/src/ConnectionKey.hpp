@@ -1,5 +1,9 @@
 #pragma once
 
+#include <iosfwd>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "ConnectionAddr.hpp"
 #include "HeaderTypes.hpp"
 

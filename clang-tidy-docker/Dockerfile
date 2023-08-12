@@ -1,19 +1,11 @@
-FROM ubuntu:23.04
+FROM alpine:edge
 
 LABEL org.opencontainers.image.source https://github.com/DrLk/MultiThreaded-Socket
 
-RUN apt-get update
-RUN apt-get install -y wget software-properties-common
+RUN apk update
+RUN apk upgrade
 
-#RUN wget -q https://apt.llvm.org/llvm-snapshot.gpg.key
-#RUN apt-key add llvm-snapshot.gpg.key
-#RUN add-apt-repository 'deb http://apt.llvm.org/lunar/ llvm-toolchain-lunar main'
-
-RUN apt-get update
-RUN apt-get upgrade
-RUN apt-get install -y g++-13 clang-tidy-16 clang-format-16 cmake make libssl-dev
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 10
-RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 10
+RUN apk add --no-cache python3 g++ clang16-extra-tools cmake make openssl-dev include-what-you-use
 
 WORKDIR /build
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/sh"]

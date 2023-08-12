@@ -1,8 +1,7 @@
 #include "SpeedController.hpp"
 
-#include <algorithm>
-#include <limits>
-#include <ranges>
+#include <compare>
+#include <ratio>
 
 #include "ISpeedControllerState.hpp"
 

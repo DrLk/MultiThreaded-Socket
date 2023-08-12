@@ -1,13 +1,13 @@
 #pragma once
 
-#include <list>
-#include <memory>
+#include <stdexcept>
+#include <utility>
 
 #include "Connection.hpp"
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
-class Packet;
 
 enum ConnectionState {
     WAIT_SYNACK,

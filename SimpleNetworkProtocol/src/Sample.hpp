@@ -1,9 +1,12 @@
 #pragma once
 
 #include <chrono>
+#include <stddef.h>
 #include <unordered_map>
 #include <unordered_set>
 
+#include "HeaderTypes.hpp"
+#include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
 #include "TimeRangedStats.hpp"
 

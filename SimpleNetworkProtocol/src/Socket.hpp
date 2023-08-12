@@ -51,7 +51,7 @@ public:
             throw std::runtime_error("socket");
         }
 
-        u_long mode = 1; // 1 to enable non-blocking socket
+        unsigned long mode = 1; // 1 to enable non-blocking socket
 #ifdef WIN32
         ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
 #elif __APPLE__
@@ -77,15 +77,17 @@ public:
         }
     }
 
-    [[nodiscard]] int SendTo(std::span<const unsigned char> buffer, const sockaddr_storage& addr) const
+    [[nodiscard]] int SendTo(std::span<const unsigned char> buffer, const ConnectionAddr& addr) const
     {
-        return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr), sizeof(sockaddr_in)); // NOLINT
+        return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
     }
 
-    int RecvFrom(std::span<unsigned char> buffer, sockaddr_storage& addr) const
+    int RecvFrom(std::span<unsigned char> buffer, ConnectionAddr& connectionAddr) const
     {
         socklen_t len = sizeof(sockaddr_storage);
+        sockaddr_storage addr {};
         int receivedBytes = recvfrom(_socket, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&addr), &len); // NOLINT
+        connectionAddr = ConnectionAddr(addr);
         return receivedBytes;
     }
 

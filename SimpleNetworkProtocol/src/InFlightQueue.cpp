@@ -1,5 +1,8 @@
 #include "InFlightQueue.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <unordered_map>
 #include <utility>
 
 using namespace std::chrono_literals;

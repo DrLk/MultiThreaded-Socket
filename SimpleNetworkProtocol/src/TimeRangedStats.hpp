@@ -1,7 +1,7 @@
 #pragma once
 
-#include <algorithm>
 #include <chrono>
+#include <stddef.h>
 #include <vector>
 
 #include "SampleStats.hpp"

@@ -1,8 +1,14 @@
 #include "IConnectionState.hpp"
 
+#include <list>
+#include <memory>
+
+#include "ConnectionKey.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
+#include "LockedList.hpp"
 #include "Logger.hpp"
+#include "OutgoingPacket.hpp"
 
 #define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection._destinationID << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 

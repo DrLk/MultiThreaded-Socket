@@ -1,7 +1,13 @@
 #include "SendThreadQueue.hpp"
 
-#include <thread>
+#include <memory>
+#include <utility>
+#include <vector>
 
+#include "ConnectionAddr.hpp"
+#include "IPacket.hpp"
+#include "LockedList.hpp"
+#include "OutgoingPacket.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
 #include "UDPQueue.hpp"
@@ -53,7 +59,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
             }
 
             while (true) {
-                const int result = socket.SendTo(data, sockaddr.GetAddr());
+                const int result = socket.SendTo(data, sockaddr);
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {
                     break;

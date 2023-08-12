@@ -1,5 +1,8 @@
 #include "Queue.hpp"
 
+#include <memory>
+#include <utility>
+
 #include "httplib.hpp"
 
 namespace TaskQueue {

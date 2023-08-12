@@ -1,10 +1,14 @@
 #include "UDPQueue.hpp"
 
 #include <algorithm>
-#include <exception>
+#include <chrono>
+#include <functional>
 #include <memory>
+#include <utility>
 
 #include "Packet.hpp"
+#include "RecvThreadQueue.hpp"
+#include "SendThreadQueue.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
 
@@ -117,15 +121,14 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
 
         for (auto it = recvQueue.begin(); it != recvQueue.end();) {
             IPacket::Ptr& packet = *it;
-            sockaddr_storage sockAddr {};
-            const int result = socket.RecvFrom(packet->GetElement(), sockAddr);
+            ConnectionAddr connectionAddr;
+            const int result = socket.RecvFrom(packet->GetElement(), connectionAddr);
             // WSAEWOULDBLOCK
             if (result <= 0) {
                 break;
             }
 
             packet->GetElement().resize(result);
-            ConnectionAddr connectionAddr(sockAddr);
             connectionAddr.SetPort(connectionAddr.GetPort() - index);
             packet->SetAddr(connectionAddr);
 

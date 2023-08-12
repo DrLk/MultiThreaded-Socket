@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstring>
 #include <list>
-#include <memory>
 #include <span>
+#include <stdint.h>
+#include <string_view>
 #include <vector>
 
-#include "ConnectionAddr.hpp"
 #include "HeaderTypes.hpp"
 
 namespace FastTransport::Protocol {

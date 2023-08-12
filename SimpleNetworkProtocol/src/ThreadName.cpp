@@ -1,12 +1,12 @@
 #include "ThreadName.hpp"
 
 #include <cassert>
-#include <stdexcept>
 #include <string_view>
 
 #ifdef WIN32
 #include "windows.h"
 #include <processthreadsapi.h>
+#include <stdexcept>
 #else
 #include <pthread.h>
 #endif

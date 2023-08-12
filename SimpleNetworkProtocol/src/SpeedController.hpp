@@ -1,17 +1,18 @@
 #pragma once
 
 #include <chrono>
-#include <functional>
 #include <map>
 #include <memory>
+#include <stddef.h>
+#include <stdint.h>
 
+#include "ISpeedControllerState.hpp"
 #include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
 
-class ISpeedControllerState;
-
 class SpeedController {
+
     using clock = std::chrono::steady_clock;
 
     enum class SpeedState : int16_t {

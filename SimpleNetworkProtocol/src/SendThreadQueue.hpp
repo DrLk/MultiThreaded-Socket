@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <stddef.h>
 #include <stop_token>
 
 namespace FastTransport::Protocol {

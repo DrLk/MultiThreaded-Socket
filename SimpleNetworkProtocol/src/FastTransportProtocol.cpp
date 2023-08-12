@@ -1,9 +1,21 @@
 #include "FastTransportProtocol.hpp"
 
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <stdexcept>
+#include <utility>
+
+#include "IConnectionState.hpp"
 #include "Logger.hpp"
-#include "Packet.hpp"
-#include "PeriodicExecutor.hpp"
+#include "MultiList.hpp"
 #include "ThreadName.hpp"
+
+namespace FastTransport {
+namespace Protocol {
+    class ConnectionAddr;
+} // namespace Protocol
+} // namespace FastTransport
 
 #define TRACER() LOGGER() << "[" << connection->GetConnectionKey() << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 

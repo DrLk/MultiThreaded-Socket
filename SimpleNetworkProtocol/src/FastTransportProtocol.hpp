@@ -1,16 +1,22 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <shared_mutex>
+#include <stop_token>
 #include <thread>
 #include <unordered_map>
 
 #include "Connection.hpp"
 #include "ConnectionKey.hpp"
-#include "IConnectionState.hpp"
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
+#include "LockedList.hpp"
+#include "OutgoingPacket.hpp"
 #include "UDPQueue.hpp"
+
+namespace FastTransport::Protocol {
+class ConnectionAddr;
+} // namespace Protocol::FastTransport
 
 namespace FastTransport::Protocol {
 

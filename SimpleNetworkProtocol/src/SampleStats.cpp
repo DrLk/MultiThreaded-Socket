@@ -1,4 +1,9 @@
-#include "Sample.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <ratio>
+
+#include "SampleStats.hpp"
 
 using namespace std::chrono_literals;
 

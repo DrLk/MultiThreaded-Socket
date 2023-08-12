@@ -1,7 +1,10 @@
 #include "TimeRangedStats.hpp"
 
+#include <algorithm>
+#include <compare>
+#include <functional>
 #include <numeric>
-#include <ranges>
+#include <ratio>
 
 using namespace std::chrono_literals;
 

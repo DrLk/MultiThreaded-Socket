@@ -1,7 +1,10 @@
 #include "PeriodicExecutor.hpp"
 
 #include <chrono>
+#include <compare>
+#include <ratio>
 #include <thread>
+#include <utility>
 
 namespace FastTransport::Protocol {
 using namespace std::chrono_literals;

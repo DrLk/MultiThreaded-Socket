@@ -1,11 +1,12 @@
 #pragma once
 
-#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <future>
+#include <stop_token>
 
 #include "LockedList.hpp"
+#include "MultiList.hpp"
 
 namespace TaskQueue {
 
