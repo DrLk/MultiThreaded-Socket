@@ -45,10 +45,7 @@ int64_t substract(int64_t lhs, int64_t rhs)
     // HTTPS
     httplib::Client cli("https://habr.com");
 
-    auto res = cli.Get("/ru/all/");
-    res->status;
-    res->body;
-
+    cli.Get("/ru/all/");
 
     return lhs - rhs;
 }

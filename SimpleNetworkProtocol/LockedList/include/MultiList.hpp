@@ -214,13 +214,13 @@ template <class T>
 }
 
 template <class T>
-MultiList<T>::Iterator MultiList<T>::begin()
+typename MultiList<T>::Iterator MultiList<T>::begin()
 {
     return Iterator(this);
 }
 
 template <class T>
-MultiList<T>::Iterator MultiList<T>::end()
+typename MultiList<T>::Iterator MultiList<T>::end()
 {
     return Iterator(this, _lists.end());
 }
