@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <stddef.h>
+#include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
 

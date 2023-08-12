@@ -1,3 +1,5 @@
 [
-    { include: ["<bits/chrono.h>", "private", "<chrono>", "public"] }
+    { include: ["<bits/chrono.h>", "private", "<chrono>", "public"] },
+    { include: ["<stddef.h>", "private", "<cstddef>", "public"] },
+    { include: ["<stdint.h>", "private", "<cstddef>", "public"] }
 ]

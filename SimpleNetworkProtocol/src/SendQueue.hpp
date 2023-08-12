@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <stddef.h>
+#include <cstddef>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <stddef.h>
-#include <stdint.h>
 
 #include "ISpeedControllerState.hpp"
 #include "TimeRangedStats.hpp"

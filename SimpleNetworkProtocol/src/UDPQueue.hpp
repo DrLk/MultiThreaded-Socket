@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
-#include <stddef.h>
 #include <stop_token>
 #include <thread>
 #include <vector>

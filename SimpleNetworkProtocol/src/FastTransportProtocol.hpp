@@ -16,7 +16,7 @@
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;
-} // namespace Protocol::FastTransport
+} // namespace FastTransport::Protocol
 
 namespace FastTransport::Protocol {
 

@@ -11,11 +11,9 @@
 #include "MultiList.hpp"
 #include "ThreadName.hpp"
 
-namespace FastTransport {
-namespace Protocol {
-    class ConnectionAddr;
-} // namespace Protocol
-} // namespace FastTransport
+namespace FastTransport::Protocol {
+class ConnectionAddr;
+} // namespace FastTransport::Protocol
 
 #define TRACER() LOGGER() << "[" << connection->GetConnectionKey() << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 

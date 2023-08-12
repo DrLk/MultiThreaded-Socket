@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
-#include <stddef.h>
-#include <stdint.h>
 
 #include "ConnectionAddr.hpp"
 #include "HeaderTypes.hpp"

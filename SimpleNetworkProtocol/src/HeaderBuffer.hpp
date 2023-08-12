@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <cstring>
 #include <list>
 #include <span>
-#include <stdint.h>
 #include <string_view>
 #include <vector>
 

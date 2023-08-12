@@ -1,7 +1,7 @@
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <span>
-#include <stdint.h>
 #include <string>
 #include <thread>
 

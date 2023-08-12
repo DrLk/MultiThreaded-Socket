@@ -51,7 +51,7 @@ public:
             throw std::runtime_error("socket");
         }
 
-        unsigned long mode = 1; // 1 to enable non-blocking socket
+        uint32_t mode = 1; // 1 to enable non-blocking socket
 #ifdef WIN32
         ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
 #elif __APPLE__

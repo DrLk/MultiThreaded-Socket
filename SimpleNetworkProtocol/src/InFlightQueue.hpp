@@ -1,10 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <list>
 #include <mutex>
 #include <span>
-#include <stddef.h>
 #include <unordered_set>
 #include <utility>
 
