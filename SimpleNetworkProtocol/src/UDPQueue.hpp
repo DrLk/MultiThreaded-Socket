@@ -11,12 +11,10 @@
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
 
-namespace FastTransport {
-namespace Protocol {
-    class RecvThreadQueue;
-    class SendThreadQueue;
-} // namespace Protocol
-} // namespace FastTransport
+namespace FastTransport::Protocol {
+class RecvThreadQueue;
+class SendThreadQueue;
+} // namespace FastTransport::Protocol
 
 namespace FastTransport::Protocol {
 

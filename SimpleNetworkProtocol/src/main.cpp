@@ -49,7 +49,6 @@ int main(int argc, char** argv)
     const int sendBufferSize = std::stoi(args[4]);
     const int recvBufferSize = std::stoi(args[5]);
 
-    const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[6]));
     const std::string dstIP = args[7];
     UDPQueue socket(address, threadCount, sendBufferSize, recvBufferSize);
 
