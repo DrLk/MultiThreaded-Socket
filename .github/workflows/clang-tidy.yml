@@ -19,7 +19,7 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - name: clang-tidy
-              shell: bash
+              shell: sh
               run: |
                 cmake --version
                 cd ./SimpleNetworkProtocol/build
