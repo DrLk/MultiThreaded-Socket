@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <span>
+#include <utility>
 
 #include "HeaderTypes.hpp"
+#include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
 
 namespace FastTransport::Protocol {

@@ -4,15 +4,16 @@
 #include <WS2tcpip.h>
 #include <WinSock2.h>
 #else
-#include <arpa/inet.h>
+#include <cstdint>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
 #endif
-#include <cstring> //memset
 #include <span>
 #include <stdexcept>
 
@@ -52,12 +53,13 @@ public:
             throw std::runtime_error("socket");
         }
 
-        uint32_t mode = 1; // 1 to enable non-blocking socket
 #ifdef WIN32
+        u_long mode = 1; // 1 to enable non-blocking socket
         ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
 #elif __APPLE__
         fcntl(_socket, F_SETFL, O_NONBLOCK); // NOLINT
 #else
+        uint32_t mode = 1; // 1 to enable non-blocking socket
         ioctl(_socket, FIONBIO, &mode); // NOLINT
 #endif
 

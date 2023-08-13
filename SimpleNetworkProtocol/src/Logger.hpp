@@ -5,7 +5,12 @@
 #include <format>
 #include <iostream>
 #include <memory_resource>
+#include <string>
 #include <syncstream>
+
+namespace FastTransport::Logger {
+class LogHelper;
+} // namespace FastTransport::Logger
 
 #define LOGGER \
     if (2 > 1) \

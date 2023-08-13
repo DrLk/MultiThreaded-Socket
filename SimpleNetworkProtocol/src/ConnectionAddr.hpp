@@ -5,7 +5,9 @@
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #endif
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <string>

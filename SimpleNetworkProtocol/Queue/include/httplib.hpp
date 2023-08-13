@@ -179,7 +179,6 @@ using socket_t = SOCKET;
 #define NI_MAXHOST 1025
 #endif
 #endif
-#include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #ifdef __linux__
@@ -190,7 +189,7 @@ using socket_t = SOCKET;
 #include <poll.h>
 #endif
 #include <csignal>
-#include <pthread.h>
+#include <strings.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -207,29 +206,50 @@ using socket_t = int;
 #include <atomic>
 #include <cassert>
 #include <cctype>
+#include <chrono>
 #include <climits>
 #include <condition_variable>
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <errno.h>
+#include <exception>
 #include <fcntl.h>
 #include <fstream>
 #include <functional>
 #include <iomanip>
-#include <iostream>
+#include <iterator>
+#include <limits>
 #include <list>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <openssl/asn1.h>
+#include <openssl/bio.h>
+#include <openssl/crypto.h>
+#include <openssl/obj_mac.h>
+#include <openssl/opensslv.h>
+#include <openssl/pem.h>
+#include <openssl/prov_ssl.h>
+#include <openssl/safestack.h>
+#include <openssl/ssl.h>
+#include <openssl/types.h>
+#include <openssl/x509.h>
 #include <random>
 #include <regex>
 #include <set>
-#include <sstream>
+#include <stdexcept>
+#include <stdio.h>
 #include <string>
 #include <sys/stat.h>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
+
+struct timeval;
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 #ifdef _WIN32
@@ -254,17 +274,12 @@ using socket_t = int;
 #endif // TARGET_OS_OSX
 #endif // _WIN32
 
-#include <openssl/err.h>
 #include <openssl/evp.h>
-#include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
 #if defined(_WIN32) && defined(OPENSSL_USE_APPLINK)
 #include <openssl/applink.c>
 #endif
-
-#include <iostream>
-#include <sstream>
 
 #if OPENSSL_VERSION_NUMBER < 0x1010100fL
 #error Sorry, OpenSSL versions prior to 1.1.1 are not supported
@@ -369,6 +384,7 @@ using Match = std::smatch;
 using Progress = std::function<bool(uint64_t current, uint64_t total)>;
 
 struct Response;
+
 using ResponseHandler = std::function<bool(const Response& response)>;
 
 struct MultipartFormData {

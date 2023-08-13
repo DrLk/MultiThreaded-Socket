@@ -2,8 +2,13 @@
 
 #include <list>
 
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
+
+namespace FastTransport::Containers {
+template <class T>
+class LockedList;
+} // namespace FastTransport::Containers
 
 namespace FastTransport::Protocol {
 

@@ -1,3 +1,6 @@
 [
-    { include: ["<bits/chrono.h>", "private", "<chrono>", "public"] }
+    { include: ["<bits/chrono.h>", "private", "<chrono>", "public"] },
+    { include: ["<bits/chrono_io.h>", "private", "<chrono>", "public"] },
+    { include: ["<bits/memory_resource.h>", "private", "<memory_resource>", "public"] },
+    { include: ["<openssl/ssl3.h>", "private", "<openssl/ssl.h>", "public"] }
 ]

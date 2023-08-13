@@ -6,8 +6,11 @@
 #include <map>
 #include <memory>
 
-#include "ISpeedControllerState.hpp"
 #include "TimeRangedStats.hpp"
+
+namespace FastTransport::Protocol {
+class ISpeedControllerState;
+} // namespace FastTransport::Protocol
 
 namespace FastTransport::Protocol {
 

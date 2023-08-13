@@ -5,9 +5,12 @@
 #include <span>
 #include <vector>
 
-#include "ConnectionAddr.hpp"
 #include "HeaderTypes.hpp"
 #include "MultiList.hpp"
+
+namespace FastTransport::Protocol {
+class ConnectionAddr;
+} // namespace FastTransport::Protocol
 
 namespace FastTransport::Protocol {
 class IPacket {

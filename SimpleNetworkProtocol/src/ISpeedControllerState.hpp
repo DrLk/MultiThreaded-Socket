@@ -1,17 +1,20 @@
 #pragma once
 
 #include <algorithm>
+#include <compare>
+#include <cstddef>
+#include <functional>
 #include <map>
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include "SampleStats.hpp"
 
 namespace FastTransport::Protocol {
 
-class SampleStats;
 struct SpeedControllerState {
     int realSpeed;
 };
