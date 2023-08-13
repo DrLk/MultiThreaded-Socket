@@ -3,6 +3,8 @@
 #ifdef WIN32
 #include <WS2tcpip.h>
 #include <WinSock2.h>
+
+#define SOCK_CLOEXEC (0)
 #else
 #include <cstdint>
 #include <netinet/in.h>
@@ -48,7 +50,7 @@ public:
     void Init()
     {
         // create a UDP socket
-        _socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        _socket = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP);
         if (_socket == INVALID_SOCKET) {
             throw std::runtime_error("socket");
         }
