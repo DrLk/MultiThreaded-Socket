@@ -6,7 +6,6 @@
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "ISendQueue.hpp"
-#include "MultiList.hpp"
 #include "OutgoingPacket.hpp"
 
 namespace FastTransport::Protocol {

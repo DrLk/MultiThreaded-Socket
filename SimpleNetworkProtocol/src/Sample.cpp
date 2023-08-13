@@ -27,7 +27,7 @@ IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
             const SampleStats::clock::duration rtt = now - packet->second._sendTime;
             _timeRangedStats.AddPacket(false, packet->second._sendTime, rtt);
 
-            freePackets.push_back(std::move(packet->second._packet));
+            freePackets.push_back(std::move(packet->second.GetPacket()));
             _packets.erase(packet);
             ack = acks.erase(ack);
 
@@ -81,7 +81,7 @@ IPacket::List Sample::FreePackets()
     IPacket::List freePackets;
 
     for (auto& [seqNumber, outgoingPacket] : _packets) {
-        freePackets.push_back(std::move(outgoingPacket._packet));
+        freePackets.push_back(std::move(outgoingPacket.GetPacket()));
     }
 
     _packets.clear();

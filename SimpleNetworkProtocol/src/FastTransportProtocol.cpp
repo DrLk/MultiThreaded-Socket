@@ -8,7 +8,6 @@
 
 #include "IConnectionState.hpp"
 #include "Logger.hpp"
-#include "MultiList.hpp"
 #include "ThreadName.hpp"
 
 namespace FastTransport::Protocol {
@@ -145,7 +144,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
 
     std::unordered_map<ConnectionKey, OutgoingPacket::List, ConnectionKey::HashFunction> connectionOutgoingPackets;
     for (auto& outgoingPacket : inFlightPackets) {
-        auto& packet = outgoingPacket._packet;
+        auto& packet = outgoingPacket.GetPacket();
         const ConnectionKey key(packet->GetDstAddr(), packet->GetSrcConnectionID());
 
         connectionOutgoingPackets[key].push_back(std::move(outgoingPacket));
@@ -159,7 +158,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
             connection->second->ProcessSentPackets(std::move(outgoingPackets));
         } else {
             for (OutgoingPacket& packet : outgoingPackets) {
-                _freeSendPackets.push_back(std::move(packet._packet));
+                _freeSendPackets.push_back(std::move(packet.GetPacket()));
             };
         }
     }

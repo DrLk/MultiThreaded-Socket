@@ -1,7 +1,6 @@
 #include "InFlightQueue.hpp"
 
 #include <cstddef>
-#include <memory>
 #include <unordered_map>
 #include <utility>
 
@@ -24,18 +23,18 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     size_t doubleSentPacketNumber = 0;
     for (auto& packet : packets) {
         if (packet._needAck) {
-            const SeqNumberType packetNumber = packet._packet->GetSeqNumber();
+            const SeqNumberType packetNumber = packet.GetPacket()->GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
             if (ack == receivedAcks.end()) {
                 queue[packetNumber] = std::move(packet);
             } else {
                 doubleSentPacketNumber++;
                 receivedAcks.erase(ack);
-                freePackets.push_back(std::move(packet._packet));
+                freePackets.push_back(std::move(packet.GetPacket()));
             }
         } else {
             servicePacketNumber++;
-            freeInternalPackets.push_back(std::move(packet._packet));
+            freeInternalPackets.push_back(std::move(packet.GetPacket()));
         }
     }
 

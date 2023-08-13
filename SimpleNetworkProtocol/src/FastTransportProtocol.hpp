@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <shared_mutex>
 #include <stop_token>
 #include <thread>

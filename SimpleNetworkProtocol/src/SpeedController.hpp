@@ -6,14 +6,10 @@
 #include <map>
 #include <memory>
 
+#include "ISpeedControllerState.hpp"
 #include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
-class ISpeedControllerState;
-} // namespace FastTransport::Protocol
-
-namespace FastTransport::Protocol {
-
 class SpeedController {
 
     using clock = std::chrono::steady_clock;
@@ -30,7 +26,7 @@ public:
     SpeedController(SpeedController&& that) = delete;
     SpeedController& operator=(const SpeedController& that) = delete;
     SpeedController& operator=(SpeedController&& that) = delete;
-    ~SpeedController();
+    ~SpeedController() = default;
 
     size_t GetNumberPacketToSend();
     void UpdateStats(const TimeRangedStats& stats);

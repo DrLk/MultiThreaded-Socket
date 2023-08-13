@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
-#include <memory>
 #include <random>
 #include <ratio>
 #include <stdexcept>
@@ -26,7 +25,6 @@
 #include "ISpeedControllerState.hpp"
 #include "LockedList.hpp"
 #include "Logger.hpp"
-#include "MultiList.hpp"
 #include "Packet.hpp"
 #include "PeriodicExecutor.hpp"
 #include "RecvQueue.hpp"

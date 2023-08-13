@@ -1,12 +1,12 @@
 #pragma once
 
 #include <list>
-#include <memory>
+#include <memory> // IWYU pragma: export
 #include <span>
 #include <vector>
 
 #include "HeaderTypes.hpp"
-#include "MultiList.hpp"
+#include "MultiList.hpp" // IWYU pragma: export
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;

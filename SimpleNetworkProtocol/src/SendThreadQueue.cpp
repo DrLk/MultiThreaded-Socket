@@ -1,6 +1,5 @@
 #include "SendThreadQueue.hpp"
 
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -50,8 +49,8 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
 
         for (auto& packet : sendQueue) {
             packet._sendTime = clock::now();
-            const auto& data = packet._packet->GetElement();
-            ConnectionAddr sockaddr = packet._packet->GetDstAddr();
+            const auto& data = packet.GetPacket()->GetElement();
+            ConnectionAddr sockaddr = packet.GetPacket()->GetDstAddr();
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             if (!socket.WaitWrite()) {

@@ -3,8 +3,6 @@
 #include <compare>
 #include <ratio>
 
-#include "ISpeedControllerState.hpp"
-
 namespace FastTransport::Protocol {
 using namespace std::chrono_literals;
 
@@ -18,8 +16,6 @@ SpeedController::SpeedController()
     _states.emplace(SpeedState::BBQ, std::make_unique<BBQState>());
     _states.emplace(SpeedState::STABLE, std::make_unique<StableState>());
 }
-
-SpeedController::~SpeedController() = default;
 
 size_t SpeedController::GetNumberPacketToSend()
 {

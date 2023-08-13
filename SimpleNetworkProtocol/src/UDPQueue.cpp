@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
-#include <memory>
 #include <utility>
 
 #include "Packet.hpp"

@@ -1,7 +1,6 @@
 #include "RecvQueue.hpp"
 
 #include <limits>
-#include <memory>
 #include <stdexcept>
 #include <utility>
 

@@ -1,7 +1,6 @@
 #include "SendQueue.hpp"
 
 #include <limits>
-#include <memory>
 #include <utility>
 
 #include "IPacket.hpp"
@@ -55,6 +54,6 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 
 bool SendQueue::OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right)
 {
-    return left._packet->GetSeqNumber() < right._packet->GetSeqNumber();
+    return left.GetPacket()->GetSeqNumber() < right.GetPacket()->GetSeqNumber();
 };
 } // namespace FastTransport::Protocol

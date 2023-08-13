@@ -1,7 +1,6 @@
 #include "IConnectionState.hpp"
 
 #include <list>
-#include <memory>
 
 #include "ConnectionKey.hpp"
 #include "IPacket.hpp"
