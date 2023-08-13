@@ -22,7 +22,7 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     size_t servicePacketNumber = 0;
     size_t doubleSentPacketNumber = 0;
     for (auto& packet : packets) {
-        if (packet._needAck) {
+        if (packet.NeedAck()) {
             const SeqNumberType packetNumber = packet.GetPacket()->GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
             if (ack == receivedAcks.end()) {

@@ -21,12 +21,15 @@ public:
     OutgoingPacket& operator=(OutgoingPacket&&) = default;
     ~OutgoingPacket() = default;
 
-    const IPacket::Ptr& GetPacket() const;
+    [[nodiscard]] const IPacket::Ptr& GetPacket() const;
     IPacket::Ptr& GetPacket();
+    [[nodiscard]] bool NeedAck() const;
+    [[nodiscard]] clock::time_point GetSendTime() const;
+    void SetSendTime(clock::time_point sendTime);
 
-    clock::time_point _sendTime; // NOLINT
-    bool _needAck {}; // NOLINT
 private:
     IPacket::Ptr _packet;
+    clock::time_point _sendTime;
+    bool _needAck {};
 };
 } // namespace FastTransport::Protocol

@@ -24,8 +24,8 @@ IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
         const auto packet = _packets.find(*ack);
         if (packet != _packets.end()) {
 
-            const SampleStats::clock::duration rtt = now - packet->second._sendTime;
-            _timeRangedStats.AddPacket(false, packet->second._sendTime, rtt);
+            const SampleStats::clock::duration rtt = now - packet->second.GetSendTime();
+            _timeRangedStats.AddPacket(false, packet->second.GetSendTime(), rtt);
 
             freePackets.push_back(std::move(packet->second.GetPacket()));
             _packets.erase(packet);
@@ -50,9 +50,9 @@ OutgoingPacket::List Sample::CheckTimeouts(clock::duration timeout)
     const clock::time_point now = clock::now();
     for (auto it = _packets.begin(); it != _packets.end();) {
         OutgoingPacket&& packet = std::move(it->second);
-        if ((now - packet._sendTime) > timeout) {
+        if ((now - packet.GetSendTime()) > timeout) {
 
-            _timeRangedStats.AddPacket(true, packet._sendTime, 0ms);
+            _timeRangedStats.AddPacket(true, packet.GetSendTime(), 0ms);
 
             needToSend.push_back(std::move(packet));
             it = _packets.erase(it);
