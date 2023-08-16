@@ -18,6 +18,8 @@ include_directories(${INCLUDE_DIRS})
 
 add_executable(SimpleNetworkProtocol ${SRC_FILES})
 
+target_precompile_headers(SimpleNetworkProtocol PRIVATE src/pch.hpp)
+
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocol wsock32 ws2_32 Queue LockedList)
 else()

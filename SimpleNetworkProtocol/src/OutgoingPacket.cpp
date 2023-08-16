@@ -1,3 +1,4 @@
+#include "pch.hpp"
 #include "OutgoingPacket.hpp"
 
 #include <utility>

@@ -1,3 +1,4 @@
+#include "pch.hpp"
 #include "Sample.hpp"
 
 #include <compare>

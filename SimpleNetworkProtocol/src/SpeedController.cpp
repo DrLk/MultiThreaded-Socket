@@ -1,3 +1,4 @@
+#include "pch.hpp"
 #include "SpeedController.hpp"
 
 #include <compare>
