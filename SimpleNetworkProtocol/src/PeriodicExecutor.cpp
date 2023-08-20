@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "PeriodicExecutor.hpp"
 
 #include <chrono>

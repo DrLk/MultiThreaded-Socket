@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "SendQueue.hpp"
 
 #include <limits>
@@ -47,7 +46,7 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
     size -= result.size();
 
     if (size != 0U) {
-        result.splice(std::move(_needToSend.TryGenerate(size)));
+        result.splice(_needToSend.TryGenerate(size));
     }
 
     return result;

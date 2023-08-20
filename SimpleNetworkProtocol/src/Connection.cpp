@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "Connection.hpp"
 
 #include <compare>
@@ -26,7 +25,6 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     , _inFlightQueue(std::make_unique<InFlightQueue>())
     , _recvQueue(std::make_unique<RecvQueue>())
     , _sendQueue(std::make_unique<SendQueue>())
-    , _connected(false)
     , _closed(false)
     , _cleanRecvBuffers(false)
     , _cleanSendBuffers(false)
@@ -74,7 +72,7 @@ IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets
     IPacket::List result;
     {
         LockedList<IPacket::Ptr>& userData = _recvQueue->GetUserData();
-        if (userData.Wait(stop, [this, &userData]() { return IsClosed(); })) {
+        if (userData.Wait(stop, [this]() { return IsClosed(); })) {
             userData.LockedSwap(result);
         }
     }

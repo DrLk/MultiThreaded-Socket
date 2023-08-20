@@ -29,7 +29,7 @@ private:
     clock::time_point _end;
     clock::duration _rtt;
 
-    double _lost;
+    double _lost { 0 };
 
     void CalcStats();
 };

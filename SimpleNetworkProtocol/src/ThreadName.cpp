@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "ThreadName.hpp"
 
 #include <cassert>

@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "Counter.hpp"
 
 #include <utility>

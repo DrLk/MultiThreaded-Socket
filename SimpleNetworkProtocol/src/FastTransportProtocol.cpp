@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "FastTransportProtocol.hpp"
 
 #include <atomic>
@@ -15,7 +14,7 @@ namespace FastTransport::Protocol {
 class ConnectionAddr;
 } // namespace FastTransport::Protocol
 
-#define TRACER() LOGGER() << "[" << connection->GetConnectionKey() << "]: " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[" << connection->GetConnectionKey() << "]: " // NOLINT(cppcoreguidelines-macro-usage, hicpp-no-array-decay)
 
 namespace FastTransport::Protocol {
 

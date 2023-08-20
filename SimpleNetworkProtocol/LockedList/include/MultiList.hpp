@@ -20,10 +20,10 @@ public:
         T& operator*(); // NOLINT(fuchsia-overloaded-operator)
 
     private:
+        const MultiList<T>* _container;
+
         typename std::list<std::list<T>>::iterator _it1;
         typename std::list<T>::iterator _it2;
-
-        const MultiList<T>* _container;
     };
 
     MultiList() = default;
@@ -73,13 +73,13 @@ MultiList<T>::Iterator::Iterator(MultiList* container, const typename std::list<
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++()
+typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++() // NOLINT(fuchsia-overloaded-operator)
 {
     _it2++;
     if (_it2 == _it1->end()) {
         _it1++;
         if (_it1 == _container->_lists.end()) {
-            typename std::list<T>::iterator defaultIterator {};
+            const typename std::list<T>::iterator defaultIterator {};
             _it2 = defaultIterator;
         } else {
             _it2 = _it1->begin();
@@ -90,19 +90,19 @@ typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++()
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-bool MultiList<T>::Iterator::operator==(const Iterator& other) const
+bool MultiList<T>::Iterator::operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
 {
     return _it1 == other._it1 && _it2 == other._it2;
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-bool MultiList<T>::Iterator::operator!=(const Iterator& other) const
+bool MultiList<T>::Iterator::operator!=(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
 {
     return !(*this == other);
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-T& MultiList<T>::Iterator::operator*()
+T& MultiList<T>::Iterator::operator*() // NOLINT(fuchsia-overloaded-operator)
 {
     return *_it2;
 }
@@ -131,20 +131,18 @@ MultiList<T> MultiList<T>::TryGenerate(std::size_t size)
         if (frontSize > size) {
             list._lists.emplace_back(0);
 
-            auto it = front.begin();
-            while (size--) {
-                it++;
+            auto iterator = front.begin();
+            while (size-- != 0) {
+                iterator++;
             }
-            list._lists.back().splice(list._lists.back().end(), front, front.begin(), it);
+            list._lists.back().splice(list._lists.back().end(), front, front.begin(), iterator);
             break;
-
-        } else {
-
-            list._lists.push_back(std::move(front));
-            _lists.pop_front();
-
-            size -= frontSize;
         }
+
+        list._lists.push_back(std::move(front));
+        _lists.pop_front();
+
+        size -= frontSize;
     }
 
     return list;

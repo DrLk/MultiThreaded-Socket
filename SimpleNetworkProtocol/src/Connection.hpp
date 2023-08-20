@@ -115,7 +115,7 @@ private:
 
     LockedList<IPacket::Ptr> _freeUserSendPackets;
 
-    bool _connected;
+    bool _connected { false };
     std::atomic<bool> _closed;
     std::atomic<bool> _cleanRecvBuffers;
     std::atomic<bool> _cleanSendBuffers;

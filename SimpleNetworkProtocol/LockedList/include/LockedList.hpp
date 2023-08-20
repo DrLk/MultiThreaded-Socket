@@ -123,10 +123,11 @@ MultiList<T> LockedList<T>::LockedTryGenerate(size_t size)
     MultiList<T> result;
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    if (size < MultiList<T>::size())
+    if (size < MultiList<T>::size()) {
         result = MultiList<T>::TryGenerate(size);
-    else
+    } else {
         MultiList<T>::swap(result);
+    }
 
     return result;
 }

@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "SampleStats.hpp"
 
 #include <algorithm>
@@ -14,7 +13,6 @@ SampleStats::SampleStats(int allPackets, int lostPackets, clock::time_point star
     , _start(start)
     , _end(end)
     , _rtt(rtt)
-    , _lost(0)
 {
     if (allPackets > MinPacketsCount) {
         CalcStats();

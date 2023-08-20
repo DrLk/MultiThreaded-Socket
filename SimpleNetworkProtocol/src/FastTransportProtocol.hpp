@@ -31,7 +31,7 @@ public:
     IPacket::List OnReceive(IPacket::List&& packet);
 
     IConnection::Ptr Accept(std::stop_token stop);
-    IConnection::Ptr Connect(const ConnectionAddr&);
+    IConnection::Ptr Connect(const ConnectionAddr& dstAddr);
 
 private:
     IPacket::List _freeRecvPackets;

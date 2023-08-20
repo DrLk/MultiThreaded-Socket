@@ -42,7 +42,7 @@ public:
     template <class T>
     LogHelper& operator<<(T&& value) // NOLINT(fuchsia-overloaded-operator)
     {
-        _osyncstream << value;
+        _osyncstream << value; // NOLINT(hicpp-no-array-decay, cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         return *this;
     }
 

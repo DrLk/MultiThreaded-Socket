@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "ConnectionKey.hpp"
 
 #include <ostream>

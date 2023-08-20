@@ -9,7 +9,7 @@ class PeriodicExecutor {
     using clock = std::chrono::steady_clock;
 
 public:
-    PeriodicExecutor(std::function<void()>, const std::chrono::microseconds& interval);
+    PeriodicExecutor(std::function<void()> /*function*/, const std::chrono::microseconds& interval);
 
     void Run();
 

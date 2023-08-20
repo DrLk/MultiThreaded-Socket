@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "TimeRangedStats.hpp"
 
 #include <algorithm>
@@ -13,7 +12,7 @@ namespace FastTransport::Protocol {
 TimeRangedStats::TimeRangedStats()
 {
     auto now = SampleStats::clock::time_point(std::chrono::duration_cast<std::chrono::seconds>(SampleStats::clock::now().time_since_epoch()));
-    for (int i = 0; i < Size; i++) {
+    for (size_t i = 0; i < Size; i++) {
         _stats.emplace_back(0, 0, now, now + Interval, 0ms);
         now += Interval;
     }

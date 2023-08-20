@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #define INVALID_SOCKET (-1)
-#define SOCKET_ERROR (-1)
+#define SOCKET_ERROR (-1) // NOLINT(modernize-macro-to-enum)
 #endif
 #include <span>
 #include <stdexcept>

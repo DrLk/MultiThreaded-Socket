@@ -1,4 +1,3 @@
-#include "pch.hpp"
 #include "SpeedController.hpp"
 
 #include <compare>
@@ -10,8 +9,6 @@ using namespace std::chrono_literals;
 SpeedController::SpeedController()
     : _lastSend(clock::now())
     , _packetPerSecond(MinSpeed)
-    , _up(true)
-    , _speedIncrement(1)
 {
     _states.emplace(SpeedState::FAST, std::make_unique<FastAccelerationState>());
     _states.emplace(SpeedState::BBQ, std::make_unique<BBQState>());

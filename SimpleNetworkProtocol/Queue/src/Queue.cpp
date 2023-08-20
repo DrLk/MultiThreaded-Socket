@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 
-#include "httplib.hpp"
 
 namespace TaskQueue {
 
@@ -42,14 +41,6 @@ int64_t add(int64_t lhs, int64_t rhs)
 
 int64_t substract(int64_t lhs, int64_t rhs)
 {
-    // HTTP
-    //httplib::Client cli("http://www.columbia.edu");
-
-    // HTTPS
-    httplib::Client cli("https://habr.com");
-
-    cli.Get("/ru/all/");
-
     return lhs - rhs;
 }
 

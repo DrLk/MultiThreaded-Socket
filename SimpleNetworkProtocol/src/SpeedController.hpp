@@ -44,7 +44,7 @@ private:
     std::map<SpeedState, std::unique_ptr<ISpeedControllerState>> _states;
     SpeedState _currentState = SpeedState::STABLE;
 
-    bool _up;
-    int64_t _speedIncrement;
+    bool _up { true };
+    int64_t _speedIncrement { 1 };
 };
 } // namespace FastTransport::Protocol
