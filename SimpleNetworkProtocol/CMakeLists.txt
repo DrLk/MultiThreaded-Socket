@@ -40,7 +40,7 @@ target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
 # Unit Tests
 ##############
 
-add_subdirectory(external/googletest EXCLUDE_FROM_ALL)
+add_subdirectory(external/googletest EXCLUDE_FROM_ALL SYSTEM)
 
 enable_testing()
 
@@ -57,6 +57,7 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+target_link_libraries(SimpleNetworkProtocol PRIVATE  GTest::gtest_main)
 target_precompile_headers(SimpleNetworkProtocolTest PRIVATE include/pch.hpp)
 
 include(GoogleTest)
