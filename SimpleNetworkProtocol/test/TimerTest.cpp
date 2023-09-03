@@ -1,12 +1,15 @@
 #include "gtest/gtest.h"
 
 #include <chrono>
+#include <compare>
 #include <iostream>
+#include <memory>
+#include <ratio>
+#include <stdint.h>
 
 using namespace std::chrono_literals;
 
 TEST(TimerTest, BasicTimerTest)
-//void m3()
 {
     uint64_t counter = 0;
     using clock = std::chrono::steady_clock;

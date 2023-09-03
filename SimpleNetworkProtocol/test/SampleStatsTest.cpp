@@ -1,9 +1,8 @@
 #include "SampleStats.hpp"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <algorithm>
 #include <chrono>
-#include <ratio>
+#include <memory>
 
 using namespace std::chrono_literals;
 
@@ -76,4 +75,4 @@ TEST(SampleStatsTest, GetLost)
 
     EXPECT_EQ(stats.GetLost(), 50.0);
 }
-}
+} // namespace FastTransport::Protocol

@@ -5,6 +5,10 @@ project(SimpleNetworkProtocol)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if(MSVC)
+  add_compile_options(/MP)
+endif()
+
 add_subdirectory(Queue)
 if (NOT TARGET LockedList)
   add_subdirectory(LockedList)
@@ -17,26 +21,26 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib Queue LockedList)
+target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList)
 
 if(WIN32)
-  target_link_libraries(SimpleNetworkProtocolLib wsock32 ws2_32 )
+  target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )
 else()
-  target_link_libraries(SimpleNetworkProtocolLib pthread)
+  target_link_libraries(SimpleNetworkProtocolLib PRIVATE pthread)
 endif()
 
 target_precompile_headers(SimpleNetworkProtocolLib PRIVATE include/pch.hpp)
 
 add_executable(SimpleNetworkProtocol main.cpp)
 
-target_link_libraries(SimpleNetworkProtocol SimpleNetworkProtocolLib)
+target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
 
 
 ##############
 # Unit Tests
 ##############
 
-add_subdirectory(googletest)
+add_subdirectory(external/googletest EXCLUDE_FROM_ALL)
 
 enable_testing()
 
@@ -48,9 +52,12 @@ add_executable(
 )
 target_link_libraries(
   SimpleNetworkProtocolTest
+  PRIVATE
   SimpleNetworkProtocolLib
   GTest::gtest_main
 )
+
+target_precompile_headers(SimpleNetworkProtocolTest PRIVATE include/pch.hpp)
 
 include(GoogleTest)
 gtest_discover_tests(SimpleNetworkProtocolTest)

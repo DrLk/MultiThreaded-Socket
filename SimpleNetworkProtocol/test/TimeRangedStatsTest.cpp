@@ -1,11 +1,15 @@
 #include "TimeRangedStats.hpp"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 #include <algorithm>
+#include <chrono>
 #include <compare>
-#include <functional>
 #include <numeric>
 #include <ratio>
+#include <stddef.h>
+#include <vector>
+
+#include "SampleStats.hpp"
 
 using namespace std::chrono_literals;
 
@@ -21,8 +25,10 @@ TEST(TimeRangedStatsTest, TimeRangedStats)
     for (size_t i = 0; i < TimeRangedStats::Size; i++) {
         EXPECT_EQ(samples[i].GetAllPackets(), 0);
         EXPECT_EQ(samples[i].GetLostPackets(), 0);
-        EXPECT_EQ(samples[i].GetStart() - samples[0].GetStart(), i * TimeRangedStats::Interval);
-        EXPECT_EQ(samples[i].GetEnd() - samples[0].GetStart(), (i + 1) * TimeRangedStats::Interval);
+        EXPECT_EQ(samples[i].GetStart() - samples[0].GetStart(),
+            i * TimeRangedStats::Interval);
+        EXPECT_EQ(samples[i].GetEnd() - samples[0].GetStart(),
+            (i + 1) * TimeRangedStats::Interval);
         EXPECT_EQ(samples[i].GetLost(), 0.0);
         EXPECT_EQ(samples[i].GetRtt(), 0ms);
     }
@@ -37,9 +43,10 @@ TEST(TimeRangedStatsTest, AddPacket)
 
     const std::vector<SampleStats>& samples = stats.GetSamplesStats();
 
-    auto sample = std::find_if(samples.begin(), samples.end(), [now](const SampleStats& sample) {
-        return sample.GetStart() <= now && sample.GetEnd() >= now;
-    });
+    auto sample = std::find_if(
+        samples.begin(), samples.end(), [now](const SampleStats& sample) {
+            return sample.GetStart() <= now && sample.GetEnd() >= now;
+        });
 
     EXPECT_EQ(sample->GetAllPackets(), 1);
     EXPECT_EQ(sample->GetLostPackets(), 0);
@@ -61,9 +68,10 @@ TEST(TimeRangedStatsTest, AddPacket2)
 
     const std::vector<SampleStats>& samples = stats.GetSamplesStats();
 
-    auto sample = std::find_if(samples.begin(), samples.end(), [now](const SampleStats& sample) {
-        return sample.GetStart() <= now && sample.GetEnd() >= now;
-    });
+    auto sample = std::find_if(
+        samples.begin(), samples.end(), [now](const SampleStats& sample) {
+            return sample.GetStart() <= now && sample.GetEnd() >= now;
+        });
 
     EXPECT_EQ(sample->GetAllPackets(), 1);
     EXPECT_EQ(sample->GetLostPackets(), 0);
@@ -132,9 +140,10 @@ TEST(TimeRangedStatsTest, UpdateStats1)
 
     const std::vector<SampleStats>& samples = stats1.GetSamplesStats();
 
-    int result = std::accumulate(samples.begin(), samples.end(), 0, [](int accumulator, const SampleStats& sample) {
-        return accumulator + sample.GetAllPackets();
-    });
+    int result = std::accumulate(samples.begin(), samples.end(), 0,
+        [](int accumulator, const SampleStats& sample) {
+            return accumulator + sample.GetAllPackets();
+        });
 
     EXPECT_EQ(result, 1);
     EXPECT_EQ(stats1.GetAverageRtt(), TimeRangedStats::DefaultRTT);
@@ -157,13 +166,15 @@ TEST(TimeRangedStatsTest, UpdateStats2)
 
     const std::vector<SampleStats>& samples = finalStats.GetSamplesStats();
 
-    int result = std::accumulate(samples.begin(), samples.end(), 0, [](int accumulator, const SampleStats& sample) {
-        return accumulator + sample.GetAllPackets();
-    });
+    int result = std::accumulate(samples.begin(), samples.end(), 0,
+        [](int accumulator, const SampleStats& sample) {
+            return accumulator + sample.GetAllPackets();
+        });
 
-    auto sample = std::find_if(samples.begin(), samples.end(), [packetCount](const SampleStats& sample) {
-        return sample.GetAllPackets() == packetCount;
-    });
+    auto sample = std::find_if(samples.begin(), samples.end(),
+        [packetCount](const SampleStats& sample) {
+            return sample.GetAllPackets() == packetCount;
+        });
 
     EXPECT_EQ(result, packetCount);
     EXPECT_EQ(sample->GetAllPackets(), packetCount);
@@ -172,4 +183,4 @@ TEST(TimeRangedStatsTest, UpdateStats2)
     EXPECT_EQ(finalStats.GetAverageRtt(), 500ms);
 }
 
-}
+} // namespace FastTransport::Protocol

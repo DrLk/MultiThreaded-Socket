@@ -17,8 +17,10 @@ jobs:
                username: drlk
                password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
         steps:
-            - uses: actions/checkout@v2
             - name: clang-tidy
+            - uses: actions/checkout@v3
+              with:
+                submodules: recursive
               shell: sh
               run: |
                 cmake --version
