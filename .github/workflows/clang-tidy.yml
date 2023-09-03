@@ -17,9 +17,10 @@ jobs:
                username: drlk
                password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
         steps:
-            - uses: actions/checkout@v3
+            - name: Checkout
+              uses: actions/checkout@v3
               with:
-                submodules: recursive
+                submodules: true
             - name: clang-tidy
               shell: sh
               run: |

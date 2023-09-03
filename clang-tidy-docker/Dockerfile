@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.source https://github.com/DrLk/MultiThreaded-Sock
 RUN apk update
 RUN apk upgrade
 
-RUN apk add --no-cache python3 g++ clang16-extra-tools cmake make ninja openssl-dev include-what-you-use
+RUN apk add --no-cache python3 git g++ clang16-extra-tools cmake make ninja openssl-dev include-what-you-use
 
 WORKDIR /build
 ENTRYPOINT ["/bin/sh"]
