@@ -39,6 +39,7 @@ public:
     void push_back(T&& element);
     void splice(MultiList<T>&& that);
     [[nodiscard]] bool empty() const noexcept;
+    T& front();
     T& back();
     void pop_back();
     [[nodiscard]] std::size_t size() const noexcept;
@@ -183,6 +184,12 @@ template <class T>
 [[nodiscard]] bool MultiList<T>::empty() const noexcept
 {
     return _lists.empty();
+}
+
+template <class T>
+T& MultiList<T>::front()
+{
+    return _lists.front().front();
 }
 
 template <class T>

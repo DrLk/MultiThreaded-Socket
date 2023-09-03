@@ -45,7 +45,7 @@ size_t SpeedController::GetNumberPacketToSend()
 
 void SpeedController::UpdateStats(const TimeRangedStats& stats)
 {
-    _stats.UpdateStats(stats.GetSamplesStats());
+    _stats.UpdateStats(stats);
 }
 
 SpeedController::clock::duration SpeedController::GetTimeout() const

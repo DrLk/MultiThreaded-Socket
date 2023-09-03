@@ -15,13 +15,11 @@ void Test()
 {
     TestConnection();
     // TestCloseConnection();
-    // TestLogger();
     // TestBBQState();
     // TestTimeRangedStats();
     // TestMultiList();
     // TestSocket();
     // TestRecvQueue();
-    // TestTimer();
     // TestSleep();
     // TestPeriodicExecutor();
 

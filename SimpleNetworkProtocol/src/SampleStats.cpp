@@ -14,7 +14,7 @@ SampleStats::SampleStats(int allPackets, int lostPackets, clock::time_point star
     , _end(end)
     , _rtt(rtt)
 {
-    if (allPackets > MinPacketsCount) {
+    if (allPackets >= MinPacketsCount) {
         CalcStats();
     }
 }
@@ -33,7 +33,7 @@ void SampleStats::Merge(const SampleStats& that)
     _allPackets += that._allPackets;
     _lostPackets += that._lostPackets;
 
-    if (_allPackets > MinPacketsCount) {
+    if (_allPackets >= MinPacketsCount) {
         CalcStats();
     }
 }

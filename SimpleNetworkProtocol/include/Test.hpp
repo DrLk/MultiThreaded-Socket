@@ -149,26 +149,6 @@ void TestCloseConnection()
     sendThread.join();
 }
 
-void TestTimer()
-{
-    uint64_t counter = 0;
-    using clock = std::chrono::steady_clock;
-    auto start = clock::now();
-    // Some computation here
-    while (true) {
-        counter++;
-        auto end = clock::now();
-
-        auto elapsed_seconds = end - start;
-
-        if (elapsed_seconds > 5000ms) {
-            break;
-        }
-    }
-
-    std::cout << "counter: " << counter << std::endl;
-}
-
 /*
  * Linux rpi4 aarch64 manjaro 13.12.2021 counter about 12k per second per thread.
  * 10 threads perform over 110k counter per seconds
@@ -318,17 +298,6 @@ void TestBBQState()
     }
 
     state.Run(stats, speedState);
-}
-
-void TestLogger()
-{
-    using clock = std::chrono::steady_clock;
-    auto start = clock::now();
-    for (int i = 0; i < 10000; i++) {
-        LOGGER() << i << " " << 123 << "fdsfsd";
-    }
-
-    std::cout << clock::now() - start << std::endl;
 }
 
 } // namespace FastTransport::Protocol

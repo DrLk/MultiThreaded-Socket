@@ -15,14 +15,14 @@ namespace FastTransport::Containers {
 using namespace std::chrono_literals;
 
 template <class T>
-class LockedList final : private FastTransport::Containers::MultiList<T> {
+class LockedList {
 public:
     LockedList();
     LockedList(const LockedList& that) = delete;
     LockedList(LockedList&& that) noexcept;
     LockedList& operator=(const LockedList& that) = delete;
     LockedList& operator=(LockedList&& that) noexcept; // NOLINT(fuchsia-overloaded-operator)
-    ~LockedList() override;
+    ~LockedList();
 
     bool Wait(std::stop_token stop);
     template <class Predicate>
@@ -39,6 +39,8 @@ public:
     T LockedGetBack();
 
 private:
+    MultiList<T> _list;
+
     using Mutex = FastTransport::Protocol::SpinLock;
 
     Mutex _mutex;
@@ -50,14 +52,14 @@ LockedList<T>::LockedList() = default;
 
 template <class T>
 LockedList<T>::LockedList(LockedList&& that) noexcept
-    : FastTransport::Containers::MultiList<T>(std::move(that))
+    : _list(std::move(that._list))
 {
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
 LockedList<T>& LockedList<T>::operator=(LockedList&& that) noexcept
 {
-    FastTransport::Containers::MultiList<T>::operator=(std::move(that));
+    _list = (std::move(that._list));
     return *this;
 }
 
@@ -68,14 +70,14 @@ template <class T>
 bool LockedList<T>::Wait(std::stop_token stop)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    return _condition.wait(lock, stop, [this]() { return !MultiList<T>::empty(); });
+    return _condition.wait(lock, stop, [this]() { return !_list.empty(); });
 }
 
 template <class T>
 template <class Predicate>
 bool LockedList<T>::Wait(std::stop_token stop, Predicate&& predicate)
 {
-    auto fullPredicate = [this, &predicate]() { return !MultiList<T>::empty() || predicate(); };
+    auto fullPredicate = [this, &predicate]() { return !_list.empty() || predicate(); };
     std::unique_lock<Mutex> lock(_mutex);
     return _condition.wait(lock, stop, std::move(fullPredicate));
 }
@@ -84,7 +86,7 @@ template <class T>
 bool LockedList<T>::WaitFor(std::stop_token stop)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    return _condition.wait_for(lock, stop, 50ms, [this]() { return !MultiList<T>::empty(); });
+    return _condition.wait_for(lock, stop, 50ms, [this]() { return !_list.empty(); });
 }
 
 template <class T>
@@ -106,7 +108,7 @@ void LockedList<T>::LockedSplice(MultiList<T>&& list)
 {
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    MultiList<T>::splice(std::move(list));
+    _list.splice(std::move(list));
 }
 
 template <class T>
@@ -114,7 +116,7 @@ void LockedList<T>::LockedSwap(MultiList<T>& list)
 {
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    MultiList<T>::swap(list);
+    _list.swap(list);
 }
 
 template <class T>
@@ -123,10 +125,10 @@ MultiList<T> LockedList<T>::LockedTryGenerate(size_t size)
     MultiList<T> result;
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    if (size < MultiList<T>::size()) {
-        result = MultiList<T>::TryGenerate(size);
+    if (size < _list.size()) {
+        result = _list.TryGenerate(size);
     } else {
-        MultiList<T>::swap(result);
+        _list.swap(result);
     }
 
     return result;
@@ -137,7 +139,7 @@ void LockedList<T>::LockedPushBack(T&& element)
 {
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    MultiList<T>::push_back(std::move(element));
+    _list.push_back(std::move(element));
 }
 
 template <class T>
@@ -145,8 +147,8 @@ T LockedList<T>::LockedGetBack()
 {
     const std::scoped_lock<Mutex> lock(_mutex);
 
-    T result = std::move(MultiList<T>::back());
-    MultiList<T>::pop_back();
+    T result = std::move(_list.back());
+    _list.pop_back();
     return result;
 }
 } // namespace FastTransport::Containers

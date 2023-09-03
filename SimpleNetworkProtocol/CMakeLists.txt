@@ -10,18 +10,47 @@ if (NOT TARGET LockedList)
   add_subdirectory(LockedList)
 endif()
 
-set(INCLUDE_DIRS ${PROJECT_ROOT})
+set(COMMON_INCLUDES include)
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp)
+file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 
-include_directories(${INCLUDE_DIRS})
+include_directories(${COMMON_INCLUDES})
 
-add_executable(SimpleNetworkProtocol ${SRC_FILES})
-
-target_precompile_headers(SimpleNetworkProtocol PRIVATE src/pch.hpp)
+add_library(SimpleNetworkProtocolLib ${SRC_FILES})
+target_link_libraries(SimpleNetworkProtocolLib Queue LockedList)
 
 if(WIN32)
-  target_link_libraries(SimpleNetworkProtocol wsock32 ws2_32 Queue LockedList)
+  target_link_libraries(SimpleNetworkProtocolLib wsock32 ws2_32 )
 else()
-  target_link_libraries(SimpleNetworkProtocol pthread Queue LockedList)
+  target_link_libraries(SimpleNetworkProtocolLib pthread)
 endif()
+
+target_precompile_headers(SimpleNetworkProtocolLib PRIVATE include/pch.hpp)
+
+add_executable(SimpleNetworkProtocol main.cpp)
+
+target_link_libraries(SimpleNetworkProtocol SimpleNetworkProtocolLib)
+
+
+##############
+# Unit Tests
+##############
+
+add_subdirectory(googletest)
+
+enable_testing()
+
+file(GLOB_RECURSE TEST_SRC_FILES test/*.cpp )
+
+add_executable(
+  SimpleNetworkProtocolTest
+  ${TEST_SRC_FILES}
+)
+target_link_libraries(
+  SimpleNetworkProtocolTest
+  SimpleNetworkProtocolLib
+  GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(SimpleNetworkProtocolTest)
