@@ -7,12 +7,13 @@
 
 #include "MultiList.hpp"
 
-using namespace FastTransport::Containers;
+using FastTransport::Containers::LockedList;
+using FastTransport::Containers::MultiList;
 
 TEST(LockedListTest, Wait)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     list.LockedPushBack(1);
 
@@ -22,11 +23,11 @@ TEST(LockedListTest, Wait)
 TEST(LockedListTest, WaitWithPredicate)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     list.LockedPushBack(1);
 
-    bool result = list.Wait(token, [] { return false; });
+    const bool result = list.Wait(token, [] { return false; });
 
     EXPECT_TRUE(result);
 }
@@ -34,7 +35,7 @@ TEST(LockedListTest, WaitWithPredicate)
 TEST(LockedListTest, WaitForTrue)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     list.LockedPushBack(1);
 
@@ -44,7 +45,7 @@ TEST(LockedListTest, WaitForTrue)
 TEST(LockedListTest, WaitForFalse)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     EXPECT_FALSE(list.WaitFor(token));
 }
@@ -52,11 +53,11 @@ TEST(LockedListTest, WaitForFalse)
 TEST(LockedListTest, WaitForWithPredicate)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     list.LockedPushBack(1);
 
-    bool result = list.WaitFor(token, [] { return false; });
+    const bool result = list.WaitFor(token, [] { return false; });
 
     EXPECT_FALSE(result);
 }
@@ -64,7 +65,7 @@ TEST(LockedListTest, WaitForWithPredicate)
 TEST(LockedListTest, NotifyAll)
 {
     LockedList<int> list;
-    std::stop_token token;
+    const std::stop_token token;
 
     list.NotifyAll();
 
@@ -147,9 +148,9 @@ TEST(LockedListTest, LockedGetBack)
 
     list.LockedPushBack(1);
 
-    int result = list.LockedGetBack();
+    const int result = list.LockedGetBack();
 
-    MultiList<int> resultList = list.LockedTryGenerate(2);
+    const MultiList<int> resultList = list.LockedTryGenerate(2);
 
     EXPECT_EQ(result, 1);
     EXPECT_TRUE(resultList.empty());

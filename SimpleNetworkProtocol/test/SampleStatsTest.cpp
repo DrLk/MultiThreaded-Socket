@@ -10,7 +10,7 @@ namespace FastTransport::Protocol {
 TEST(SampleStatsTest, SampleStats)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(100, 50, now, now + 100ms, 20ms);
+    const SampleStats stats(100, 50, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetAllPackets(), 100);
     EXPECT_EQ(stats.GetLostPackets(), 50);
@@ -24,7 +24,7 @@ TEST(SampleStatsTest, Merge)
 {
     auto now = std::chrono::steady_clock::now();
     SampleStats stats1(100, 50, now, now + 100ms, 20ms);
-    SampleStats stats2(300, 150, now + 50ms, now + 200ms, 10ms);
+    const SampleStats stats2(300, 150, now + 50ms, now + 200ms, 10ms);
 
     stats1.Merge(stats2);
 
@@ -39,7 +39,7 @@ TEST(SampleStatsTest, Merge)
 TEST(SampleStatsTest, GetAllPackets)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(100, 50, now, now + 100ms, 20ms);
+    const SampleStats stats(100, 50, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetAllPackets(), 100);
 }
@@ -47,7 +47,7 @@ TEST(SampleStatsTest, GetAllPackets)
 TEST(SampleStatsTest, GetLostPackets)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(100, 50, now, now + 100ms, 20ms);
+    const SampleStats stats(100, 50, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetLostPackets(), 50);
 }
@@ -55,7 +55,7 @@ TEST(SampleStatsTest, GetLostPackets)
 TEST(SampleStatsTest, GetStart)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(100, 50, now, now + 100ms, 20ms);
+    const SampleStats stats(100, 50, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetStart(), now);
 }
@@ -63,7 +63,7 @@ TEST(SampleStatsTest, GetStart)
 TEST(SampleStatsTest, GetEnd)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(100, 50, now, now + 100ms, 20ms);
+    const SampleStats stats(100, 50, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetEnd(), now + 100ms);
 }
@@ -71,7 +71,7 @@ TEST(SampleStatsTest, GetEnd)
 TEST(SampleStatsTest, GetLost)
 {
     auto now = std::chrono::steady_clock::now();
-    SampleStats stats(200, 100, now, now + 100ms, 20ms);
+    const SampleStats stats(200, 100, now, now + 100ms, 20ms);
 
     EXPECT_EQ(stats.GetLost(), 50.0);
 }

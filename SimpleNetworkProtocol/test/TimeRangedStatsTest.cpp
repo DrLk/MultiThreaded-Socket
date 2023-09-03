@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <chrono>
 #include <compare>
+#include <cstddef>
 #include <numeric>
 #include <ratio>
-#include <stddef.h>
 #include <vector>
 
 #include "SampleStats.hpp"
@@ -16,7 +16,7 @@ using namespace std::chrono_literals;
 namespace FastTransport::Protocol {
 TEST(TimeRangedStatsTest, TimeRangedStats)
 {
-    TimeRangedStats stats;
+    const TimeRangedStats stats;
 
     const std::vector<SampleStats>& samples = stats.GetSamplesStats();
     EXPECT_EQ(samples.size(), TimeRangedStats::Size);
@@ -140,7 +140,7 @@ TEST(TimeRangedStatsTest, UpdateStats1)
 
     const std::vector<SampleStats>& samples = stats1.GetSamplesStats();
 
-    int result = std::accumulate(samples.begin(), samples.end(), 0,
+    const int result = std::accumulate(samples.begin(), samples.end(), 0,
         [](int accumulator, const SampleStats& sample) {
             return accumulator + sample.GetAllPackets();
         });
@@ -166,7 +166,7 @@ TEST(TimeRangedStatsTest, UpdateStats2)
 
     const std::vector<SampleStats>& samples = finalStats.GetSamplesStats();
 
-    int result = std::accumulate(samples.begin(), samples.end(), 0,
+    const int result = std::accumulate(samples.begin(), samples.end(), 0,
         [](int accumulator, const SampleStats& sample) {
             return accumulator + sample.GetAllPackets();
         });

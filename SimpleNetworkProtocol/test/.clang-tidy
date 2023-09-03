@@ -17,3 +17,5 @@ WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes
       value: std::stop_token
+    - key:   readability-function-cognitive-complexity.IgnoreMacros
+      value: true

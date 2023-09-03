@@ -2,10 +2,10 @@
 
 #include <chrono>
 #include <compare>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <ratio>
-#include <stdint.h>
 
 using namespace std::chrono_literals;
 
