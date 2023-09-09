@@ -61,5 +61,7 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "semaphore": "cpp"
-    }
+    },
+    "editor.fontFamily": "'FiraCode Nerd Font'",
+    "editor.fontSize": 15
 }
