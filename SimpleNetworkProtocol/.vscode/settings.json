@@ -60,8 +60,20 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeinfo": "cpp",
-        "semaphore": "cpp"
-    },
-    "editor.fontFamily": "'FiraCode Nerd Font'",
-    "editor.fontSize": 15
+        "semaphore": "cpp",
+        "any": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "csignal": "cpp",
+        "forward_list": "cpp",
+        "regex": "cpp",
+        "fstream": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp",
+        "shared_mutex": "cpp",
+        "syncstream": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp",
+        "format": "cpp"
+    }
 }

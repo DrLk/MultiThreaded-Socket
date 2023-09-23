@@ -3,7 +3,7 @@
 #include <array>
 #include <chrono>
 #include <format>
-#include <iostream>
+#include <iostream> // IWYU pragma: export
 #include <memory_resource>
 #include <string>
 #include <syncstream>
