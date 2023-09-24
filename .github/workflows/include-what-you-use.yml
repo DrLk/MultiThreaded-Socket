@@ -1,0 +1,33 @@
+# Action name
+name: Include what you use
+
+# Here, this action will be enabled on all pushes.
+# Modify this to fit your needs.
+on:
+    push
+
+# Jobs section
+jobs:
+    # The job that will use the container image you just pushed to ghcr.io
+    clang-tidy-job:
+        runs-on: ubuntu-22.04
+        container:
+            image: ghcr.io/drlk/clang-tidy-image:v16
+            credentials:
+               username: drlk
+               password: ${{  secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+              with:
+                submodules: true
+            - name: clang-tidy
+              shell: sh
+              run: |
+                cmake --version
+                include-what-you-use --version
+                g++ --version
+                clang++ --version
+                cd ./SimpleNetworkProtocol/build
+                time cmake -G "Ninja" -DENABLE_PRECOMPILE_HEADERS=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++  -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE="include-what-you-use;-Xiwyu;--mapping_file=../mapping.impl" ..
+                time cmake --build .
