@@ -16,9 +16,9 @@
 #include "Logger.hpp"
 #include <chrono>
 
-using namespace std::chrono_literals;
-
 namespace FastTransport::Protocol {
+
+using namespace std::chrono_literals;
 
 struct SpeedControllerState {
     int realSpeed;
@@ -44,6 +44,7 @@ protected:
     static auto GetSlides(const std::vector<SampleStats>& stats, int width)
     {
         std::vector<std::ranges::take_view<std::ranges::drop_view<std::ranges::ref_view<const std::vector<FastTransport::Protocol::SampleStats>>>>> slides;
+        slides.reserve(stats.size() - width);
         for (int i = 0; i < stats.size() - width; i++) {
             slides.push_back(std::views::drop(stats, i) | std::views::take(width));
         }
