@@ -24,8 +24,9 @@ public:
     void UpdateStats(const TimeRangedStats& stats);
 
     [[nodiscard]] clock::duration GetAverageRtt() const;
+    [[nodiscard]] clock::duration GetMaxRtt() const;
 
-    static constexpr std::chrono::milliseconds Interval = std::chrono::milliseconds(50);
+    static constexpr std::chrono::milliseconds Interval = 50ms;
 
 private:
     std::vector<SampleStats> _stats;

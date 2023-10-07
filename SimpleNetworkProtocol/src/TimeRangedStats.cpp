@@ -54,6 +54,24 @@ TimeRangedStats::clock::duration TimeRangedStats::GetAverageRtt() const
     return averageRtt;
 }
 
+TimeRangedStats::clock::duration TimeRangedStats::GetMaxRtt() const
+{
+    auto countStats = std::ranges::count_if(_stats, [](const SampleStats& sample) {
+        return sample.GetRtt() > 0ms;
+    });
+
+    if (countStats < 20) {
+        return DefaultRTT;
+    }
+
+    auto maxRtt = std::ranges::max_element(_stats,
+        [](const SampleStats& left, const SampleStats& right) {
+            return left.GetRtt() < right.GetRtt();
+        });
+
+    return maxRtt->GetRtt();
+}
+
 void TimeRangedStats::UpdateStats(const SampleStats& stats)
 {
     if (stats.GetAllPackets() == 0) {
@@ -76,7 +94,7 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
 
         auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size + 1);
         auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
-        for (size_t i = _startIndex; i <= newStartIndex && i < _startIndex + Size; i++) {
+        for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
             _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
             startInterval += Interval;
         }

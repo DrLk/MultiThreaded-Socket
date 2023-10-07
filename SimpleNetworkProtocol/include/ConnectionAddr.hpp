@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
-#include <string>
+#include <string_view>
 
 namespace FastTransport::Protocol {
 
@@ -24,13 +24,13 @@ public:
     explicit ConnectionAddr(const sockaddr_storage& addr)
         : _storage(addr) {};
 
-    ConnectionAddr(const std::string& addr, uint16_t port)
+    ConnectionAddr(std::string_view addr, uint16_t port)
     {
         std::memset(&_storage, 0, sizeof(_storage));
-        if (inet_pton(AF_INET, addr.c_str(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        if (inet_pton(AF_INET, addr.data(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET;
             (reinterpret_cast<sockaddr_in*>(&_storage))->sin_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        } else if (inet_pton(AF_INET6, addr.c_str(), &(reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        } else if (inet_pton(AF_INET6, addr.data(), &(reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET6;
             (reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         }

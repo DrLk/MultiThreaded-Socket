@@ -50,7 +50,7 @@ void SpeedController::UpdateStats(const TimeRangedStats& stats)
 
 SpeedController::clock::duration SpeedController::GetTimeout() const
 {
-    auto timeout = _stats.GetAverageRtt();
+    auto timeout = _stats.GetMaxRtt();
     return timeout + 50ms;
 }
 

@@ -7,6 +7,15 @@
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
+SampleStats::SampleStats()
+    : _allPackets(0)
+    , _lostPackets(0)
+    , _start(clock::time_point::max())
+    , _end(clock::time_point::min())
+    , _rtt(0)
+{
+}
+
 SampleStats::SampleStats(int allPackets, int lostPackets, clock::time_point start, clock::time_point end, clock::duration rtt)
     : _allPackets(allPackets)
     , _lostPackets(lostPackets)

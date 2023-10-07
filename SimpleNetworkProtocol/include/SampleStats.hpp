@@ -9,6 +9,7 @@ struct alignas(64) SampleStats {
 
     static constexpr int MinPacketsCount = 100;
 
+    SampleStats();
     SampleStats(int allPackets, int lostPackets, clock::time_point start, clock::time_point end, clock::duration rtt);
 
     void Merge(const SampleStats& that);
