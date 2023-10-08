@@ -33,6 +33,7 @@ IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
         if (_incomingConnections.Wait(stop)) {
 
             connection = _incomingConnections.LockedGetBack();
+            connection->SetConnected(true);
         } else {
             return connection;
         }

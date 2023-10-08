@@ -47,6 +47,16 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     return freePackets;
 }
 
+bool Connection::IsConnected() const
+{
+    return _connected;
+}
+
+void Connection::SetConnected(bool connected)
+{
+    _connected = connected;
+}
+
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 {
     {

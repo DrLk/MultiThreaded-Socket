@@ -101,6 +101,7 @@ IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connectio
     switch (packet->GetPacketType()) {
     case PacketType::SYN_ACK: {
         connection._destinationID = packet->GetSrcConnectionID();
+        connection.SetConnected(true);
         connection._state = new DataState();
         freePackets.push_back(std::move(packet));
         break;

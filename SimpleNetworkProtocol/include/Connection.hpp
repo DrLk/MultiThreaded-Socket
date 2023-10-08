@@ -37,8 +37,10 @@ public:
     IConnection& operator=(IConnection&&) = default;
     virtual ~IConnection() = default;
 
-    virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
-    virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
+    [[nodiscard]] virtual bool IsConnected() const = 0;
+
+    [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
+    [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
 
     virtual void Close() = 0;
     [[nodiscard]] virtual bool IsClosed() const = 0;
@@ -56,6 +58,9 @@ public:
     Connection& operator=(const Connection& that) = delete;
     Connection& operator=(Connection&& that) = delete;
     ~Connection() override;
+
+    [[nodiscard]] bool IsConnected() const override;
+    void SetConnected(bool connected);
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
@@ -103,7 +108,7 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    static constexpr std::chrono::microseconds DefaultTimeOut = 30s;
+    static constexpr std::chrono::microseconds DefaultTimeOut = 3s;
 
     LockedList<std::vector<char>> _recvUserData;
 
@@ -115,7 +120,7 @@ private:
 
     LockedList<IPacket::Ptr> _freeUserSendPackets;
 
-    bool _connected { false };
+    std::atomic<bool> _connected { false };
     std::atomic<bool> _closed;
     std::atomic<bool> _cleanRecvBuffers;
     std::atomic<bool> _cleanSendBuffers;

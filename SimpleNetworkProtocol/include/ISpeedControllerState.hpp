@@ -55,16 +55,18 @@ protected:
     template <class Range>
     static auto GetStatsPer(const Range& stats, int width)
     {
-        auto slides = GetSlides(stats, width);
+        const auto& slides = GetSlides(stats, width); // local variables: problem
 
-        return slides | std::views::transform([](const auto& samples) {
-            SampleStats stat = std::accumulate(samples.begin(), samples.end(), SampleStats(), [](SampleStats stat, const SampleStats& sample) {
+        auto result = slides | std::views::transform([](const auto& samples) {
+            SampleStats stat = std::accumulate(samples.begin(), samples.end(), SampleStats(), [](SampleStats&& stat, const SampleStats& sample) {
                 stat.Merge(sample);
                 return stat;
             });
 
             return stat;
         });
+
+        return std::vector<SampleStats>(result.begin(), result.end());
     }
 
     static std::optional<int> GetMaxRealSpeed(const std::vector<SampleStats>& stats)
