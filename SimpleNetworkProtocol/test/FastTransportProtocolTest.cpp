@@ -15,7 +15,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst)
 
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
         const IConnection::Ptr dstConnection = dst.Accept(stop);
         if (dstConnection == nullptr) {
@@ -83,7 +82,6 @@ TEST(FastTransportProtocolTest, ConnectSourceFirst)
 
     std::jthread recvThread([&sendThread](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
         const IConnection::Ptr dstConnection = dst.Accept(stop);
         if (dstConnection == nullptr) {
@@ -105,4 +103,4 @@ TEST(FastTransportProtocolTest, ConnectSourceFirst)
     recvThread.join();
 }
 
-}
+} // namespace FastTransport::Protocol
