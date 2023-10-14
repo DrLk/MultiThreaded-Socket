@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
-#include <random>
 #include <ratio>
 #include <stdexcept>
 #include <stop_token>
@@ -282,18 +281,14 @@ void TestBBQState()
     BBQState state;
 
     SpeedControllerState speedState {};
-    std::vector<SampleStats> stats;
+    TimeRangedStats stats;
     auto startInterval = std::chrono::steady_clock::now();
 
     state.Run(stats, speedState);
 
-    std::random_device device;
-    std::mt19937 mt19937(device());
-    std::uniform_int_distribution<int> distribution(0, 100);
-
     for (int i = 0; i < 100; i++) {
         const SampleStats::clock::duration rtt = 100ms;
-        stats.emplace_back(distribution(mt19937), 0, startInterval, startInterval + 50ms, rtt);
+        stats.AddPacket(false , startInterval, rtt);
         startInterval += 50ms;
     }
 

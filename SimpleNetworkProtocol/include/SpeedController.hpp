@@ -38,6 +38,7 @@ private:
     static constexpr size_t MinSpeed = 1000;
     static constexpr size_t MaxSpeed = 10000;
     static constexpr std::chrono::seconds QueueTimeInterval = std::chrono::seconds(10);
+    static constexpr std::chrono::milliseconds Interval = TimeRangedStats::Interval / 2;
 
     TimeRangedStats _stats;
 

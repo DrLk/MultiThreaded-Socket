@@ -20,13 +20,13 @@ size_t SpeedController::GetNumberPacketToSend()
     auto now = clock::now();
     auto diff = now - _lastSend;
 
-    if (diff < (TimeRangedStats::Interval / 2)) {
+    if (diff < Interval) {
         return 0;
     }
 
     const auto& state = _states[_currentState];
     static SpeedControllerState speedState;
-    state->Run(_stats.GetSamplesStats(), speedState);
+    state->Run(_stats, speedState);
 
     const size_t coeficient = 100s / diff;
     if (coeficient != 0) {

@@ -11,10 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "SampleStats.hpp"
-
-#include "Logger.hpp"
-#include <chrono>
+#include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -33,7 +30,7 @@ public:
     ISpeedControllerState& operator=(ISpeedControllerState&&) = default;
     virtual ~ISpeedControllerState() = default;
 
-    virtual ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) = 0;
+    virtual ISpeedControllerState* Run(const TimeRangedStats& stats, SpeedControllerState& state) = 0;
 
 protected:
     static constexpr size_t MinSpeed = 100;
@@ -143,44 +140,31 @@ public:
     BBQState() = default;
 
     using clock = std::chrono::steady_clock;
-    ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
+    ISpeedControllerState* Run(const TimeRangedStats& stats, SpeedControllerState& state) override
     {
-        static int speed = MinSpeed;
-        static clock::time_point startTime = clock::now();
+        int statsWidth = stats.GetMaxRtt() / TimeRangedStats::Interval + 1;
+        auto statsBySpeed = GroupByAllPackets(GetStatsPer(stats.GetSamplesStats(), statsWidth));
 
-        auto now = clock::now();
-        if (now - startTime > 1000ms) {
-            startTime = now;
+        auto maxRealSpeedIterator = std::ranges::max_element(statsBySpeed, [](const auto& left, const auto& right) {
+            return GetMetric(left.second) < GetMetric(right.second);
+        });
 
-            auto statsBySpeed = GroupByAllPackets(GetStatsPer(stats, 3));
+        if (maxRealSpeedIterator == statsBySpeed.end()) {
+            state.realSpeed = ISpeedControllerState::MinSpeed;
+            return this;
+        }
 
-            auto maxRealSpeedIterator = std::ranges::max_element(statsBySpeed, [](const auto& left, const auto& right) {
-                return GetMetric(left.second) < GetMetric(right.second);
+        const int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
+            [](int accumulator, const SampleStats& stat) {
+                accumulator += stat.GetAllPackets() - stat.GetLostPackets();
+                return accumulator;
             });
 
-            if (maxRealSpeedIterator == statsBySpeed.end()) {
-                state.realSpeed = ISpeedControllerState::MinSpeed;
-                speed = state.realSpeed;
-                return this;
-            }
-
-            const int totalPackets = std::accumulate(maxRealSpeedIterator->second.begin(), maxRealSpeedIterator->second.end(), 0,
-                [](int accumulator, const SampleStats& stat) {
-                    accumulator += stat.GetAllPackets() - stat.GetLostPackets();
-                    return accumulator;
-                });
-
-            if (totalPackets != 0) {
-                state.realSpeed = totalPackets / static_cast<int>(maxRealSpeedIterator->second.size());
-                state.realSpeed = static_cast<int>(state.realSpeed * SpeedIncreaseRatio);
-            } else {
-                state.realSpeed = ISpeedControllerState::MinSpeed;
-            }
-
-            LOGGER() << "Speed: " << state.realSpeed * 20;
-            speed = state.realSpeed;
+        if (totalPackets != 0) {
+            state.realSpeed = totalPackets / static_cast<int>(maxRealSpeedIterator->second.size());
+            state.realSpeed = static_cast<int>(state.realSpeed * SpeedIncreaseRatio / statsWidth);
         } else {
-            state.realSpeed = speed;
+            state.realSpeed = ISpeedControllerState::MinSpeed;
         }
 
         return this;
@@ -252,12 +236,12 @@ class FastAccelerationState final : public ISpeedControllerState {
 public:
     FastAccelerationState() = default;
 
-    ISpeedControllerState* Run(const std::vector<SampleStats>& stats, SpeedControllerState& state) override
+    ISpeedControllerState* Run(const TimeRangedStats& stats, SpeedControllerState& state) override
     {
         int newSpeed = state.realSpeed;
 
-        std::optional<int> const minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats);
-        std::optional<int> const maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats);
+        std::optional<int> const minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats.GetSamplesStats());
+        std::optional<int> const maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats.GetSamplesStats());
 
         if (!minLostSpeed.has_value()) {
             if (_up) {
@@ -313,7 +297,7 @@ class StableState final : public ISpeedControllerState {
 public:
     StableState() = default;
 
-    ISpeedControllerState* Run(const std::vector<SampleStats>& /*stats*/, SpeedControllerState& state) override
+    ISpeedControllerState* Run(const TimeRangedStats& /*stats*/, SpeedControllerState& state) override
     {
         // state.realSpeed = MinSpeed;
         state.realSpeed = 10000;
