@@ -142,7 +142,7 @@ public:
     using clock = std::chrono::steady_clock;
     ISpeedControllerState* Run(const TimeRangedStats& stats, SpeedControllerState& state) override
     {
-        const uint64_t statsWidth = stats.GetMaxRtt() / TimeRangedStats::Interval + 1;
+        const uint32_t statsWidth = stats.GetMaxRtt() / TimeRangedStats::Interval + 1;
         auto statsBySpeed = GroupByAllPackets(GetStatsPer(stats.GetSamplesStats(), statsWidth));
 
         auto maxRealSpeedIterator = std::ranges::max_element(statsBySpeed, [](const auto& left, const auto& right) {
