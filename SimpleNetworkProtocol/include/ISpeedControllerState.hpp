@@ -38,11 +38,11 @@ protected:
 
     static constexpr float MaxPacketLost = 5.0;
 
-    static auto GetSlides(const std::vector<SampleStats>& stats, int width)
+    static auto GetSlides(const std::vector<SampleStats>& stats, uint32_t width)
     {
         std::vector<std::ranges::take_view<std::ranges::drop_view<std::ranges::ref_view<const std::vector<FastTransport::Protocol::SampleStats>>>>> slides;
         slides.reserve(stats.size() - width);
-        for (int i = 0; i < stats.size() - width; i++) {
+        for (std::size_t i = 0; i < stats.size() - width; i++) {
             slides.push_back(std::views::drop(stats, i) | std::views::take(width));
         }
 
@@ -50,7 +50,7 @@ protected:
     }
 
     template <class Range>
-    static auto GetStatsPer(const Range& stats, int width)
+    static auto GetStatsPer(const Range& stats, uint32_t width)
     {
         const auto& slides = GetSlides(stats, width); // local variables: problem
 
