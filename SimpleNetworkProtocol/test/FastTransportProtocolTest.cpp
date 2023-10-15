@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <exception>
+#include <future>
 #include <thread>
 
 namespace FastTransport::Protocol {
@@ -11,49 +12,101 @@ using namespace std::chrono_literals;
 
 TEST(FastTransportProtocolTest, ConnectDestinationFirst)
 {
-    static constexpr auto TestTimeout = 10s;
+    std::packaged_task<void(std::stop_token stop)> recvTask([](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11300));
 
-    std::jthread recvThread([](std::stop_token stop) {
-        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
-
-        const IConnection::Ptr dstConnection = dst.Accept(stop);
-        if (dstConnection == nullptr) {
-            throw std::runtime_error("Accept return nullptr");
-        }
-
-        auto start = std::chrono::steady_clock::now();
-        while (!stop.stop_requested()) {
-            if (std::chrono::steady_clock::now() - start > TestTimeout) {
-                EXPECT_TRUE(false) << "Timeout waiting - recvThread";
-                return;
+        int connectionCount = 0;
+        static constexpr int ExpectedConnecionCount = 2;
+        while (!stop.stop_requested() && connectionCount < ExpectedConnecionCount) {
+            const IConnection::Ptr dstConnection = dst.Accept(stop);
+            if (dstConnection == nullptr) {
+                throw std::runtime_error("Accept return nullptr");
             }
 
-            std::this_thread::sleep_for(100ms);
+            auto ping = UDPQueue::CreateBuffers(1);
+            ping = dstConnection->Recv(stop, std::move(ping));
+            auto pong = UDPQueue::CreateBuffers(1);
+            pong = dstConnection->Send(stop, std::move(pong));
+
+            connectionCount++;
         }
     });
+
+    auto recvReady = recvTask.get_future();
+    std::jthread recvThread(std::move(recvTask));
 
     std::this_thread::sleep_for(500ms);
 
-    std::jthread sendThread([&recvThread](std::stop_token stop) {
+    std::packaged_task<void(std::stop_token stop)> sendTask1([](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
-        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+        const ConnectionAddr dstAddr("127.0.0.1", 11300);
 
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
-        auto start = std::chrono::steady_clock::now();
         while (!srcConnection->IsConnected() && !stop.stop_requested()) {
-            if (std::chrono::steady_clock::now() - start > TestTimeout) {
-                EXPECT_TRUE(false) << "Timeout waiting - sendThread";
-                return;
-            }
-
             std::this_thread::sleep_for(100ms);
         }
 
-        recvThread.request_stop();
+        auto ping = UDPQueue::CreateBuffers(1);
+        ping = srcConnection->Send(stop, std::move(ping));
+
+        auto pong = UDPQueue::CreateBuffers(1);
+        while (!stop.stop_requested()) {
+            pong = srcConnection->Recv(stop, std::move(pong));
+            if (!pong.empty()) {
+                break;
+            }
+        }
     });
 
-    sendThread.join();
+    auto sendReady1 = sendTask1.get_future();
+    std::jthread sendThread1(std::move(sendTask1));
+
+    std::packaged_task<void(std::stop_token stop)> sendTask2([](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 11200));
+        const ConnectionAddr dstAddr("127.0.0.1", 11300);
+
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        while (!srcConnection->IsConnected() && !stop.stop_requested()) {
+            std::this_thread::sleep_for(100ms);
+        }
+        auto ping = UDPQueue::CreateBuffers(1);
+        ping = srcConnection->Send(stop, std::move(ping));
+
+        auto pong = UDPQueue::CreateBuffers(1);
+        while (!stop.stop_requested()) {
+            pong = srcConnection->Recv(stop, std::move(pong));
+            if (!pong.empty()) {
+                break;
+            }
+        }
+    });
+
+    auto sendReady2 = sendTask2.get_future();
+    std::jthread sendThread2(std::move(sendTask2));
+
+    static constexpr auto TestTimeout = 10s;
+    auto start = std::chrono::steady_clock::now();
+
+    auto running = [&recvReady, &sendReady1, &sendReady2] {
+        return recvReady.wait_for(100ms) != std::future_status::ready || sendReady2.wait_for(100ms) != std::future_status::ready || sendReady1.wait_for(100ms) != std::future_status::ready;
+    };
+
+    while (running()) {
+        if (std::chrono::steady_clock::now() - start > TestTimeout) {
+            EXPECT_TRUE(!running()) << "Timeout";
+            sendThread1.request_stop();
+            sendThread2.request_stop();
+            recvThread.request_stop();
+            break;
+        }
+
+        std::this_thread::sleep_for(100ms);
+    }
+
+    sendThread1.join();
+    sendThread2.join();
     recvThread.join();
 }
 
