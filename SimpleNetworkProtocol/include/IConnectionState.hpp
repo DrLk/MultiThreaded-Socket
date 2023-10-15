@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdexcept>
+#include <chrono>
 #include <utility>
 
 #include "Connection.hpp"
@@ -26,17 +26,16 @@ public:
     virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
     virtual IConnectionState* SendPackets(Connection& connection) = 0;
     virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
+    virtual std::chrono::milliseconds GetTimeout() const = 0;
     virtual void ProcessInflightPackets(Connection& connection) = 0;
 };
 
 class BasicConnectionState : public IConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override
-    {
-        throw std::runtime_error("Not implemented");
-    }
-    IConnectionState* SendPackets(Connection& /*connection*/) override { return this; }
-    IConnectionState* OnTimeOut(Connection& /*connection*/) override { return this; }
+    IPacket::List OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override;
+    IConnectionState* SendPackets(Connection& /*connection*/) override;
+    IConnectionState* OnTimeOut(Connection& /*connection*/) override;
+    std::chrono::milliseconds GetTimeout() const override;
     void ProcessInflightPackets(Connection& connection) override;
 };
 
@@ -70,6 +69,7 @@ public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* SendPackets(Connection& connection) override;
     IConnectionState* OnTimeOut(Connection& connection) override;
+    std::chrono::milliseconds GetTimeout() const override;
 };
 
 class ClosingState final : public BasicConnectionState {

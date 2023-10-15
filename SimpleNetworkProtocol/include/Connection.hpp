@@ -108,8 +108,6 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
-    static constexpr std::chrono::microseconds DefaultTimeOut = 3s;
-
     LockedList<std::vector<char>> _recvUserData;
 
     clock::time_point _lastPacketReceive;

@@ -65,7 +65,7 @@ IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 
     IPacket::List result;
     {
-        if (_freeUserSendPackets.Wait(stop, [this]() { return IsClosed(); })) {
+        if (_freeUserSendPackets.WaitFor(stop, [this]() { return IsClosed(); })) {
             _freeUserSendPackets.LockedSwap(result);
         }
     }
@@ -210,7 +210,7 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 
 void Connection::Run()
 {
-    if (clock::now() - _lastPacketReceive > DefaultTimeOut) {
+    if (clock::now() - _lastPacketReceive > _state->GetTimeout()) {
         _state = _state->OnTimeOut(*this);
         _lastPacketReceive = clock::now();
     } else {

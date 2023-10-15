@@ -1,6 +1,7 @@
 #include "IConnectionState.hpp"
 
 #include <list>
+#include <stdexcept>
 
 #include "ConnectionKey.hpp"
 #include "IPacket.hpp"
@@ -13,6 +14,8 @@
 
 namespace FastTransport::Protocol {
 
+using namespace std::chrono_literals;
+
 std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
 {
     if (packet->GetPacketType() == PacketType::SYN) {
@@ -22,6 +25,26 @@ std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& pac
     }
 
     return { nullptr, IPacket::List() };
+}
+
+IPacket::List BasicConnectionState::OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/)
+{
+    throw std::runtime_error("Not implemented");
+}
+
+IConnectionState* BasicConnectionState::SendPackets(Connection& /*connection*/)
+{
+    return this;
+}
+
+IConnectionState* BasicConnectionState::OnTimeOut(Connection& /*connection*/)
+{
+    return this;
+}
+
+std::chrono::milliseconds BasicConnectionState::GetTimeout() const
+{
+    return 3s;
 }
 
 void BasicConnectionState::ProcessInflightPackets(Connection& connection)
@@ -219,6 +242,11 @@ IConnectionState* DataState::OnTimeOut(Connection& connection)
 
     connection.Close();
     return this;
+}
+
+std::chrono::milliseconds DataState::GetTimeout() const
+{
+    return 30s;
 }
 
 } // namespace FastTransport::Protocol

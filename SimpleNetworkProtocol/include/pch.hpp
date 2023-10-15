@@ -10,6 +10,7 @@
 #include <cstring>
 #include <format>
 #include <functional>
+#include <future>
 #include <iosfwd>
 #include <iostream>
 #include <list>

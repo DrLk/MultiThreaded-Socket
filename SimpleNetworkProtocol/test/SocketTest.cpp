@@ -9,8 +9,8 @@
 namespace FastTransport::Protocol {
 TEST(SocketTest, Socket)
 {
-    Socket src(ConnectionAddr("0.0.0.0", 10100));
-    Socket dst(ConnectionAddr("0.0.0.0", 10200));
+    Socket src(ConnectionAddr("0.0.0.0", 13100));
+    Socket dst(ConnectionAddr("0.0.0.0", 13200));
 
     src.Init();
     dst.Init();
@@ -21,7 +21,7 @@ TEST(SocketTest, Socket)
         data[i] = static_cast<unsigned char>(i % 256);
     }
 
-    const ConnectionAddr dstAddr("192.0.0.1", 10200);
+    const ConnectionAddr dstAddr("127.0.0.1", 13200);
     auto result = src.SendTo(data, dstAddr);
     EXPECT_EQ(result, PacketSize);
 

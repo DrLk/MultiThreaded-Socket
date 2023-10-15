@@ -30,6 +30,8 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst)
 
             connectionCount++;
         }
+
+        std::this_thread::sleep_for(1s);
     });
 
     auto recvReady = recvTask.get_future();
@@ -57,6 +59,8 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst)
                 break;
             }
         }
+
+        std::this_thread::sleep_for(1s);
     });
 
     auto sendReady1 = sendTask1.get_future();
@@ -81,6 +85,8 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst)
                 break;
             }
         }
+
+        std::this_thread::sleep_for(1s);
     });
 
     auto sendReady2 = sendTask2.get_future();
@@ -115,8 +121,8 @@ TEST(FastTransportProtocolTest, ConnectSourceFirst)
     static constexpr auto TestTimeout = 10s;
 
     std::jthread sendThread([](std::stop_token stop) {
-        FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
-        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 21100));
+        const ConnectionAddr dstAddr("127.0.0.1", 21200);
 
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
@@ -134,7 +140,7 @@ TEST(FastTransportProtocolTest, ConnectSourceFirst)
     std::this_thread::sleep_for(500ms);
 
     std::jthread recvThread([&sendThread](std::stop_token stop) {
-        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 21200));
 
         const IConnection::Ptr dstConnection = dst.Accept(stop);
         if (dstConnection == nullptr) {
