@@ -1,9 +1,8 @@
+#include "Logger.hpp"
 #include "gtest/gtest.h"
 
 #include <chrono>
 #include <memory>
-
-#include "Logger.hpp"
 
 TEST(LoggerTest, BasicLoggerTest)
 {

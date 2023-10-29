@@ -165,17 +165,16 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         packet->SetAckNumber(connection.GetRecvQueue().GetLastAck());
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
-        std::list<SeqNumberType> packetAcks;
-        auto end = acks.begin();
+        std::vector<SeqNumberType> packetAcks;
+        packetAcks.reserve(MaxAcksSize);
 
-        if (acks.size() > MaxAcks) {
-            for (unsigned int i = 0; i < MaxAcks; i++) {
-                end++;
+        for (auto ack = acks.begin(); ack != acks.end();) {
+            if (packetAcks.size() > MaxAcksSize) {
+                break;
             }
-            packetAcks.splice(packetAcks.end(), acks, acks.begin(), end);
-        } else {
 
-            packetAcks.swap(acks);
+            packetAcks.push_back(*ack);
+            acks.erase(ack++);
         }
 
         packet->SetAcks(packetAcks);

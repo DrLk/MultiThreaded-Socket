@@ -1,5 +1,7 @@
 #include "Packet.hpp"
 
+#include <algorithm>
+
 #include "HeaderBuffer.hpp"
 
 namespace FastTransport::Protocol {
@@ -15,7 +17,7 @@ std::span<SeqNumberType> Packet::GetAcks()
     return SelectiveAckBuffer::Acks(_element.data(), _element.size()).GetAcks();
 }
 
-void Packet::SetAcks(const std::list<SeqNumberType>& acks)
+void Packet::SetAcks(std::span<const SeqNumberType> acks)
 {
     SelectiveAckBuffer::Acks(_element.data(), _element.size()).SetAcks(acks);
 }
@@ -78,6 +80,16 @@ void Packet::SetMagic()
 bool Packet::IsValid() const
 {
     return Header(_element.data(), _element.size()).IsValid();
+}
+
+std::span<IPacket::ElementType> Packet::GetPayload()
+{
+    return PayloadBuffer::Payload(_element.data(), _element.size()).GetPayload();
+}
+
+void Packet::SetPayload(std::span<IPacket::ElementType> payload)
+{
+    PayloadBuffer::Payload(_element.data(), _element.size()).SetPayload(payload);
 }
 
 } // namespace FastTransport::Protocol

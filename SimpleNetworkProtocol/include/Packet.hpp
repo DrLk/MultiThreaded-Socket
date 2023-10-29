@@ -1,9 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 #include <span>
-#include <stdexcept>
 #include <vector>
 
 #include "ConnectionAddr.hpp"
@@ -25,7 +23,7 @@ public:
     ~Packet() override = default;
 
     [[nodiscard]] std::span<SeqNumberType> GetAcks() override;
-    void SetAcks(const std::list<SeqNumberType>& acks) override;
+    void SetAcks(std::span<const SeqNumberType> acks) override;
 
     [[nodiscard]] PacketType GetPacketType() const override;
     void SetPacketType(PacketType type) override;
@@ -40,10 +38,8 @@ public:
     void SetMagic() override;
     [[nodiscard]] bool IsValid() const override;
 
-    std::span<ElementType> GetPayload() override
-    {
-        throw std::runtime_error("Not implemented");
-    }
+    std::span<ElementType> GetPayload() override;
+    void SetPayload(std::span<ElementType> payload) override;
 
     [[nodiscard]] const ConnectionAddr& GetDstAddr() const override
     {

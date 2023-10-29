@@ -288,7 +288,7 @@ void TestBBQState()
 
     for (int i = 0; i < 100; i++) {
         const SampleStats::clock::duration rtt = 100ms;
-        stats.AddPacket(false , startInterval, rtt);
+        stats.AddPacket(false, startInterval, rtt);
         startInterval += 50ms;
     }
 

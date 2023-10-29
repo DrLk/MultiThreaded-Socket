@@ -93,11 +93,11 @@ public:
     public:
         Acks(unsigned char* start, size_t size)
         {
-            const size_t ackPacketStart = Header::Size + sizeof(MaxAcks);
+            const size_t ackPacketStart = Header::Size + sizeof(MaxAcksSize);
             if (size >= ackPacketStart) {
                 _size = *reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
-            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxAcks) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxAcksSize) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 _start = reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             } else {
                 _size = 0;
@@ -106,19 +106,14 @@ public:
 
         [[nodiscard]] std::span<SeqNumberType> GetAcks() const
         {
-            return { _start + 1, _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            return { _start + sizeof(SeqNumberType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
 
-        void SetAcks(const std::list<SeqNumberType>& numbers)
+        void SetAcks(std::span<const SeqNumberType> acks)
         {
-            // TODO: check size
-            _size = 0;
-            const std::span<SeqNumberType> acks(_start, MaxAcks + 1);
-            acks[0] = static_cast<SeqNumberType>(numbers.size());
-            for (auto number : numbers) {
-                _size++;
-                acks[_size] = number;
-            }
+            _size = acks.size();
+            *reinterpret_cast<SeqNumberType*>(_start) = static_cast<PayloadSizeType>(_size);
+            std::copy(acks.begin(), acks.end(), _start + sizeof(PayloadSizeType));
         }
 
         [[nodiscard]] bool IsValid() const
@@ -142,34 +137,32 @@ private:
 
 class PayloadBuffer {
 public:
-    using PayloadType = unsigned char;
-    class Payload : public std::basic_string_view<PayloadType> {
+    class Payload {
     public:
-        static const SeqNumberType MaxPayload = 1300;
         Payload(PayloadType* start, size_t size)
 
         {
-            const size_t ackPacketStart = Header::Size + sizeof(MaxPayload);
-            if (size >= ackPacketStart) {
-                _size = *reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const size_t payloadStart = Header::Size + sizeof(PayloadSizeType);
+            if (size >= payloadStart) {
+                _size = *reinterpret_cast<PayloadSizeType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
-            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxPayload) + _size)) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(PayloadSizeType) + _size)) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 _start = reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             } else {
                 _size = 0;
             }
         }
 
-        [[nodiscard]] std::basic_string_view<PayloadType> GetPayload() const
+        [[nodiscard]] std::span<PayloadType> GetPayload() const
         {
-            return { _start, _size };
+            return { _start + sizeof(PayloadSizeType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
 
-        void SetPayload(const std::vector<PayloadType>& payload)
+        void SetPayload(std::span<PayloadType> payload)
         {
-            // TODO: check size
             _size = payload.size();
-            std::memcpy(_start + sizeof(_size), payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            *reinterpret_cast<PayloadSizeType*>(_start) = static_cast<PayloadSizeType>(_size);
+            std::memcpy(_start + sizeof(PayloadSizeType), payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
 
     private:

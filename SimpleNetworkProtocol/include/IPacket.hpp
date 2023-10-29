@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <memory> // IWYU pragma: export
 #include <span>
 #include <vector>
@@ -29,7 +28,7 @@ public:
     virtual ~IPacket() = default;
 
     [[nodiscard]] virtual std::span<SeqNumberType> GetAcks() = 0;
-    virtual void SetAcks(const std::list<SeqNumberType>& acks) = 0;
+    virtual void SetAcks(std::span<const SeqNumberType> acks) = 0;
     [[nodiscard]] virtual PacketType GetPacketType() const = 0;
     virtual void SetPacketType(PacketType type) = 0;
     [[nodiscard]] virtual ConnectionID GetSrcConnectionID() const = 0;
@@ -47,6 +46,7 @@ public:
     virtual void SetAddr(const ConnectionAddr& addr) = 0;
 
     virtual std::span<ElementType> GetPayload() = 0;
+    virtual void SetPayload(std::span<ElementType> payload) = 0;
 
     virtual void Copy(const IPacket& packet) = 0;
 

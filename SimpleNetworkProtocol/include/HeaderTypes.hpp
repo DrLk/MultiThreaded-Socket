@@ -17,6 +17,9 @@ enum class PacketType : int16_t {
 
 using ConnectionID = uint16_t;
 using SeqNumberType = unsigned int;
+using PayloadType = unsigned char;
+using PayloadSizeType = unsigned int;
 
-static constexpr SeqNumberType MaxAcks = 300;
+static constexpr SeqNumberType MaxAcksSize = 300;
+static constexpr SeqNumberType MaxPayloadSize = 1300;
 } // namespace FastTransport::Protocol
