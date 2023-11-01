@@ -9,10 +9,10 @@
 namespace FastTransport::Protocol {
 
 const MagicNumber Magic_Number = 0x12345678;
-class Header : protected std::span<unsigned char> {
+class Header : protected std::span<std::byte> {
 public:
-    Header(unsigned char* start, size_t size)
-        : std::span<unsigned char>(start, size)
+    Header(std::byte* start, size_t size)
+        : std::span<std::byte>(start, size)
     {
     }
 
@@ -93,7 +93,7 @@ public:
 
 class Acks {
 public:
-    Acks(unsigned char* start, std::uint16_t size)
+    Acks(std::byte* start, std::uint16_t size)
         : _start(start)
         , _size(size)
     {
@@ -116,13 +116,13 @@ public:
     }
 
 private:
-    unsigned char* _start;
+    std::byte* _start;
     PayloadSizeType _size;
 };
 
 class Payload {
 public:
-    Payload(unsigned char* start, size_t size)
+    Payload(std::byte* start, size_t size)
         : _start(start)
         , _size(size)
 
@@ -141,7 +141,7 @@ public:
     }
 
 private:
-    unsigned char* _start;
+    std::byte* _start;
     PayloadSizeType _size;
 };
 

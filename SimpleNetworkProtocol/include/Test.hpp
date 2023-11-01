@@ -237,12 +237,12 @@ void TestSocket()
     src.Init();
     dst.Init();
 
-    std::vector<unsigned char> data(1400);
+    std::vector<std::byte> data(1400);
     const ConnectionAddr dstAddr("192.0.0.1", 10200);
     auto result = src.SendTo(data, dstAddr);
 
     ConnectionAddr addr;
-    std::vector<unsigned char> data2(1400);
+    std::vector<std::byte> data2(1400);
     while (!dst.WaitRead()) { }
     auto result2 = dst.RecvFrom(data2, addr);
     std::cout << result << " " << result2;

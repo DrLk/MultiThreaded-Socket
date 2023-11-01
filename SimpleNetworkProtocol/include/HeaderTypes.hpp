@@ -18,11 +18,11 @@ enum class PacketType : int16_t {
 using MagicNumber = int;
 using ConnectionID = std::uint16_t;
 using SeqNumberType = std::uint32_t;
-using PayloadType = unsigned char;
+using PayloadType = std::byte;
 using PayloadSizeType = std::uint16_t;
 
 static constexpr SeqNumberType MaxAcksSize = 300;
-static constexpr SeqNumberType MaxPayloadSize = 1300;
+static constexpr std::size_t MaxPayloadSize = 1300;
 
 static constexpr size_t HeaderSize = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType) + sizeof(PayloadSizeType);
 } // namespace FastTransport::Protocol

@@ -16,9 +16,9 @@ TEST(SocketTest, Socket)
     dst.Init();
 
     constexpr int PacketSize = 1400;
-    std::vector<unsigned char> data(PacketSize);
+    std::vector<std::byte> data(PacketSize);
     for (int i = 0; i < PacketSize; ++i) {
-        data[i] = static_cast<unsigned char>(i % 256);
+        data[i] = static_cast<std::byte>(i % 256);
     }
 
     const ConnectionAddr dstAddr("127.0.0.1", 13200);
@@ -26,7 +26,7 @@ TEST(SocketTest, Socket)
     EXPECT_EQ(result, PacketSize);
 
     ConnectionAddr addr;
-    std::vector<unsigned char> data2(PacketSize);
+    std::vector<std::byte> data2(PacketSize);
     while (!dst.WaitRead()) { }
     result = dst.RecvFrom(data2, addr);
     EXPECT_EQ(result, PacketSize);

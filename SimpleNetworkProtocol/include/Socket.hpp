@@ -82,12 +82,12 @@ public:
         }
     }
 
-    [[nodiscard]] int SendTo(std::span<const unsigned char> buffer, const ConnectionAddr& addr) const
+    [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const
     {
         return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
     }
 
-    int RecvFrom(std::span<unsigned char> buffer, ConnectionAddr& connectionAddr) const
+    int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const
     {
         socklen_t len = sizeof(sockaddr_storage);
         sockaddr_storage addr {};

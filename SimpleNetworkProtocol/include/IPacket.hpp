@@ -18,7 +18,7 @@ public:
     using Ptr = std::unique_ptr<IPacket>;
     using List = Containers::MultiList<Ptr>;
 
-    using ElementType = unsigned char;
+    using ElementType = std::byte;
 
     IPacket() = default;
     IPacket(const IPacket& that) = default;
