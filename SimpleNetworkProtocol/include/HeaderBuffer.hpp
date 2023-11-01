@@ -20,7 +20,7 @@ public:
     {
     }
 
-    static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType);
+    static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType) + sizeof(PayloadSizeType);
 
     [[nodiscard]] bool IsValid() const
     {
@@ -56,6 +56,11 @@ public:
         return *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
+    [[nodiscard]] PayloadSizeType GetPayloadSize() const
+    {
+        return *reinterpret_cast<PayloadSizeType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+
     void SetMagic()
     {
         *reinterpret_cast<MagicNumber*>(data()) = Magic_Number; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -85,19 +90,24 @@ public:
     {
         *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)) = ack; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+
+    void SetPayloadSize(PayloadSizeType payloadSize)
+    {
+        *reinterpret_cast<PayloadSizeType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)) = payloadSize; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
 };
 
 class SelectiveAckBuffer {
 public:
     class Acks {
     public:
-        Acks(unsigned char* start, size_t size)
+        Acks(unsigned char* start, std::uint16_t size)
         {
-            const size_t ackPacketStart = Header::Size + sizeof(MaxAcksSize);
+            const size_t ackPacketStart = Header::Size + sizeof(PayloadSizeType);
             if (size >= ackPacketStart) {
-                _size = *reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                _size = *reinterpret_cast<PayloadSizeType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
-            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(MaxAcksSize) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(PayloadSizeType) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 _start = reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             } else {
                 _size = 0;
@@ -106,7 +116,7 @@ public:
 
         [[nodiscard]] std::span<SeqNumberType> GetAcks() const
         {
-            return { _start + sizeof(SeqNumberType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            return { _start + sizeof(PayloadSizeType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
 
         void SetAcks(std::span<const SeqNumberType> acks)

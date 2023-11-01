@@ -67,6 +67,8 @@ public:
         return _element;
     }
 
+    std::span<ElementType> GetBuffer() override;
+
     void Copy(const IPacket& packet) override
     {
         const auto& that = dynamic_cast<const Packet&>(packet);

@@ -15,10 +15,10 @@ enum class PacketType : int16_t {
     CLOSE = 32
 };
 
-using ConnectionID = uint16_t;
-using SeqNumberType = unsigned int;
+using ConnectionID = std::uint16_t;
+using SeqNumberType = std::uint32_t;
 using PayloadType = unsigned char;
-using PayloadSizeType = unsigned int;
+using PayloadSizeType = std::uint16_t;
 
 static constexpr SeqNumberType MaxAcksSize = 300;
 static constexpr SeqNumberType MaxPayloadSize = 1300;

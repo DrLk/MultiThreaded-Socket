@@ -51,5 +51,6 @@ public:
     virtual void Copy(const IPacket& packet) = 0;
 
     virtual std::vector<ElementType>& GetElement() = 0;
+    virtual std::span<ElementType> GetBuffer() = 0;
 };
 } // namespace FastTransport::Protocol
