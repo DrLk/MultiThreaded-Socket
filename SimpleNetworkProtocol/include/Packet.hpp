@@ -69,16 +69,6 @@ public:
 
     std::span<ElementType> GetBuffer() override;
 
-    void Copy(const IPacket& packet) override
-    {
-        const auto& that = dynamic_cast<const Packet&>(packet);
-
-        _srcAddr = that._srcAddr;
-        _dstAddr = that._dstAddr;
-        _time = that._time;
-        _element = that._element;
-    }
-
 private:
     mutable std::vector<ElementType> _element;
 
