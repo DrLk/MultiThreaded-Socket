@@ -42,7 +42,7 @@ protected:
     {
         std::vector<std::ranges::take_view<std::ranges::drop_view<std::ranges::ref_view<const std::vector<FastTransport::Protocol::SampleStats>>>>> slides;
         slides.reserve(stats.size() - width);
-        for (std::size_t i = 0; i < stats.size() - width; i++) {
+        for (int i = 0; i < stats.size() - width; i++) {
             slides.push_back(std::views::drop(stats, i) | std::views::take(width));
         }
 

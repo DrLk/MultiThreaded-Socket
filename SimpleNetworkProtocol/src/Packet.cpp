@@ -14,12 +14,12 @@ Packet::Packet(int size)
 
 std::span<SeqNumberType> Packet::GetAcks()
 {
-    return SelectiveAckBuffer::Acks(_element.data(), _element.size()).GetAcks();
+    return Acks(_element.data(), _element.size()).GetAcks();
 }
 
 void Packet::SetAcks(std::span<const SeqNumberType> acks)
 {
-    SelectiveAckBuffer::Acks(_element.data(), _element.size()).SetAcks(acks);
+    Acks(_element.data(), _element.size()).SetAcks(acks);
 }
 
 PacketType Packet::GetPacketType() const
@@ -84,18 +84,18 @@ bool Packet::IsValid() const
 
 std::span<IPacket::ElementType> Packet::GetPayload()
 {
-    return PayloadBuffer::Payload(_element.data(), _element.size()).GetPayload();
+    return Payload(_element.data(), _element.size()).GetPayload();
 }
 
 void Packet::SetPayload(std::span<IPacket::ElementType> payload)
 {
-    PayloadBuffer::Payload(_element.data(), _element.size()).SetPayload(payload);
+    Payload(_element.data(), _element.size()).SetPayload(payload);
 }
 
 std::span<IPacket::ElementType> Packet::GetBuffer()
 {
-    PayloadSizeType pyaloadSize = Header(_element.data(), _element.size()).GetPayloadSize();
-    return std::span<ElementType>(_element.data(), Header::Size + sizeof(PayloadSizeType) + pyaloadSize);
+    const PayloadSizeType pyaloadSize = Header(_element.data(), _element.size()).GetPayloadSize();
+    return { _element.data(), HeaderSize + pyaloadSize };
 }
 
 } // namespace FastTransport::Protocol

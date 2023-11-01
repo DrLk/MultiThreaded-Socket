@@ -2,15 +2,11 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <span>
-#include <string_view>
-#include <vector>
 
 #include "HeaderTypes.hpp"
 
 namespace FastTransport::Protocol {
-using MagicNumber = int;
 
 const MagicNumber Magic_Number = 0x12345678;
 class Header : protected std::span<unsigned char> {
@@ -20,11 +16,9 @@ public:
     {
     }
 
-    static const int Size = sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType) + sizeof(PayloadSizeType);
-
     [[nodiscard]] bool IsValid() const
     {
-        if (size() < Size) {
+        if (size() < HeaderSize) {
             return false;
         }
 
@@ -97,96 +91,58 @@ public:
     }
 };
 
-class SelectiveAckBuffer {
+class Acks {
 public:
-    class Acks {
-    public:
-        Acks(unsigned char* start, std::uint16_t size)
-        {
-            const size_t ackPacketStart = Header::Size + sizeof(PayloadSizeType);
-            if (size >= ackPacketStart) {
-                _size = *reinterpret_cast<PayloadSizeType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            }
-            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(PayloadSizeType) + _size * sizeof(SeqNumberType))) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-                _start = reinterpret_cast<SeqNumberType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            } else {
-                _size = 0;
-            }
-        }
-
-        [[nodiscard]] std::span<SeqNumberType> GetAcks() const
-        {
-            return { _start + sizeof(PayloadSizeType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        }
-
-        void SetAcks(std::span<const SeqNumberType> acks)
-        {
-            _size = acks.size();
-            *reinterpret_cast<SeqNumberType*>(_start) = static_cast<PayloadSizeType>(_size);
-            std::copy(acks.begin(), acks.end(), _start + sizeof(PayloadSizeType));
-        }
-
-        [[nodiscard]] bool IsValid() const
-        {
-            return _size > 0;
-        }
-
-    private:
-        SeqNumberType* _start { nullptr };
-        size_t _size { 0 };
-    };
-
-    explicit SelectiveAckBuffer(const Acks& acks)
-        : _acks(acks)
+    Acks(unsigned char* start, std::uint16_t size)
+        : _start(start)
+        , _size(size)
     {
     }
 
+    [[nodiscard]] std::span<SeqNumberType> GetAcks() const
+    {
+        return { reinterpret_cast<SeqNumberType*>(_start + HeaderSize), Header(_start, _size).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+
+    void SetAcks(std::span<const SeqNumberType> acks)
+    {
+        Header(_start, _size).SetPayloadSize(acks.size());
+        std::copy(acks.begin(), acks.end(), reinterpret_cast<SeqNumberType*>(_start + HeaderSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+
+    [[nodiscard]] bool IsValid() const
+    {
+        return _size > 0;
+    }
+
 private:
-    Acks _acks;
+    unsigned char* _start;
+    PayloadSizeType _size;
 };
 
-class PayloadBuffer {
+class Payload {
 public:
-    class Payload {
-    public:
-        Payload(PayloadType* start, size_t size)
+    Payload(unsigned char* start, size_t size)
+        : _start(start)
+        , _size(size)
 
-        {
-            const size_t payloadStart = Header::Size + sizeof(PayloadSizeType);
-            if (size >= payloadStart) {
-                _size = *reinterpret_cast<PayloadSizeType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            }
-            if (static_cast<uint64_t>(size) >= (Header::Size + sizeof(PayloadSizeType) + _size)) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-                _start = reinterpret_cast<PayloadType*>(start + Header::Size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            } else {
-                _size = 0;
-            }
-        }
-
-        [[nodiscard]] std::span<PayloadType> GetPayload() const
-        {
-            return { _start + sizeof(PayloadSizeType), _size }; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        }
-
-        void SetPayload(std::span<PayloadType> payload)
-        {
-            _size = payload.size();
-            *reinterpret_cast<PayloadSizeType*>(_start) = static_cast<PayloadSizeType>(_size);
-            std::memcpy(_start + sizeof(PayloadSizeType), payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        }
-
-    private:
-        PayloadType* _start { nullptr };
-        size_t _size { 0 };
-    };
-
-    PayloadBuffer(PayloadType* start, int count)
-        : _payload(start, count)
     {
     }
 
+    [[nodiscard]] std::span<PayloadType> GetPayload() const
+    {
+        return { reinterpret_cast<PayloadType*>(_start + HeaderSize), Header(_start, HeaderSize).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+
+    void SetPayload(std::span<PayloadType> payload)
+    {
+        Header(_start, _size).SetPayloadSize(payload.size());
+        std::memcpy(_start + HeaderSize, payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+
 private:
-    Payload _payload;
+    unsigned char* _start;
+    PayloadSizeType _size;
 };
 
 } // namespace FastTransport::Protocol

@@ -26,7 +26,7 @@ public:
     virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
     virtual IConnectionState* SendPackets(Connection& connection) = 0;
     virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
-    virtual std::chrono::milliseconds GetTimeout() const = 0;
+    [[nodiscard]] virtual std::chrono::milliseconds GetTimeout() const = 0;
     virtual void ProcessInflightPackets(Connection& connection) = 0;
 };
 
@@ -35,7 +35,7 @@ public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override;
     IConnectionState* SendPackets(Connection& /*connection*/) override;
     IConnectionState* OnTimeOut(Connection& /*connection*/) override;
-    std::chrono::milliseconds GetTimeout() const override;
+    [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
     void ProcessInflightPackets(Connection& connection) override;
 };
 
@@ -68,8 +68,8 @@ class DataState final : public BasicConnectionState {
 public:
     IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
     IConnectionState* SendPackets(Connection& connection) override;
-    IConnectionState* OnTimeOut(Connection& connection) override;
-    std::chrono::milliseconds GetTimeout() const override;
+    [[nodiscard]] IConnectionState* OnTimeOut(Connection& connection) override;
+    [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
 };
 
 class ClosingState final : public BasicConnectionState {

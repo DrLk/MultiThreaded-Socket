@@ -10,7 +10,7 @@ namespace FastTransport::Protocol {
 
 using namespace std::chrono_literals;
 
-TEST(FastTransportProtocolTest, ConnectDestinationFirst)
+TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-function-cognitive-complexity)
 {
     std::packaged_task<void(std::stop_token stop)> recvTask([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11300));
