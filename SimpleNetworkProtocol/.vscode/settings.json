@@ -74,7 +74,8 @@
         "syncstream": "cpp",
         "cinttypes": "cpp",
         "variant": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "barrier": "cpp"
     },
     "cmake.configureOnOpen": false
 }
