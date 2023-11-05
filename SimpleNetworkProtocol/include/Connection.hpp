@@ -87,6 +87,7 @@ public:
     [[nodiscard]] IPacket::List ProcessAcks();
     [[nodiscard]] OutgoingPacket::List CheckTimeouts();
     void AddAcks(std::span<SeqNumberType> acks);
+    void SetLastAck(SeqNumberType acks);
 
     IRecvQueue& GetRecvQueue();
 

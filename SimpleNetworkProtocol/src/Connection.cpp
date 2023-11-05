@@ -170,6 +170,11 @@ void Connection::AddAcks(std::span<SeqNumberType> acks)
     return _inFlightQueue->AddAcks(acks);
 }
 
+void Connection::SetLastAck(SeqNumberType acks)
+{
+    return _inFlightQueue->SetLastAck(acks);
+}
+
 IRecvQueue& Connection::GetRecvQueue()
 {
     return *_recvQueue;

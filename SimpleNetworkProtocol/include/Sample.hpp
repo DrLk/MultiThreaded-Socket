@@ -16,7 +16,7 @@ class Sample {
 
 public:
     explicit Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets, size_t servicePacketNumber, size_t doubleSentPacketNumber);
-    IPacket::List ProcessAcks(std::unordered_set<SeqNumberType>& acks);
+    IPacket::List ProcessAcks(std::unordered_set<SeqNumberType>& acks, SeqNumberType lastAckNumber);
     OutgoingPacket::List CheckTimeouts(clock::duration timeout);
 
     bool IsDead() const;

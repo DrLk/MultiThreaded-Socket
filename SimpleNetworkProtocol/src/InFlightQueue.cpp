@@ -1,5 +1,6 @@
 #include "InFlightQueue.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <unordered_map>
 #include <utility>
@@ -48,6 +49,11 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
     return { std::move(freeInternalPackets), std::move(freePackets) };
 }
 
+void InFlightQueue::SetLastAck(SeqNumberType lastAck)
+{
+    _lastAckNumber = std::max<SeqNumberType>(_lastAckNumber, lastAck);
+}
+
 void InFlightQueue::AddAcks(std::span<SeqNumberType> acks)
 {
     std::unordered_set<SeqNumberType> receivedAcks(acks.begin(), acks.end());
@@ -72,7 +78,7 @@ IPacket::List InFlightQueue::ProcessAcks()
     }
 
     for (auto& sample : _samples) {
-        freePackets.splice(sample.ProcessAcks(receivedAcks));
+        freePackets.splice(sample.ProcessAcks(receivedAcks, _lastAckNumber));
     }
 
     {

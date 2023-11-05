@@ -215,6 +215,7 @@ IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connec
         break;
     }
     case PacketType::SACK: {
+        connection.SetLastAck(packet->GetAckNumber());
         connection.AddAcks(packet->GetAcks());
         // send free;
         freePackets.push_back(std::move(packet));
@@ -222,6 +223,7 @@ IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connec
         break;
     }
     case PacketType::DATA: {
+        connection.SetLastAck(packet->GetAckNumber());
         auto freePacket = connection.GetRecvQueue().AddPacket(std::move(packet));
         if (freePacket) {
             freePackets.push_back(std::move(freePacket));

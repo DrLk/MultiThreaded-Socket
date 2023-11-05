@@ -1,5 +1,6 @@
 #include "Sample.hpp"
 
+#include <algorithm>
 #include <compare>
 #include <utility>
 
@@ -16,11 +17,29 @@ Sample::Sample(std::unordered_map<SeqNumberType, OutgoingPacket>&& packets, size
 {
 }
 
-IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks)
+IPacket::List Sample::ProcessAcks(std::unordered_set<SeqNumberType>& acks, SeqNumberType lastAckNumber)
 {
-    IPacket::List freePackets;
     auto now = SampleStats::clock::now();
+    IPacket::List freePackets;
+    for (auto packet = _packets.begin(); packet != _packets.end();) {
+        if (packet->first <= lastAckNumber) {
+
+            const SampleStats::clock::duration rtt = now - packet->second.GetSendTime();
+            _timeRangedStats.AddPacket(false, packet->second.GetSendTime(), rtt);
+
+            freePackets.push_back(std::move(packet->second.GetPacket()));
+            packet = _packets.erase(packet);
+        } else {
+            ++packet;
+        }
+    }
+
     for (auto ack = acks.begin(); ack != acks.end();) {
+        if (*ack <= lastAckNumber) {
+            ack = acks.erase(ack);
+            continue;
+        }
+
         const auto packet = _packets.find(*ack);
         if (packet != _packets.end()) {
 
