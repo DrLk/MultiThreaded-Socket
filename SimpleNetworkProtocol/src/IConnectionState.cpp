@@ -63,6 +63,7 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
     synPacket->SetPacketType(PacketType::SYN);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
+    synPacket->SetPayload(std::span<IPacket::ElementType>());
 
     connection._state = new WaitingSynAckState();
     connection.SendPacket(std::move(synPacket), false);
@@ -102,6 +103,7 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
     synPacket->SetDstConnectionID(connection._destinationID);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
+    synPacket->SetPayload(std::span<IPacket::ElementType>());
 
     connection._state = new DataState();
     connection.SendPacket(std::move(synPacket), false);
@@ -197,6 +199,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->SetDstConnectionID(connection._destinationID);
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
+        packet->SetPayload(std::span<IPacket::ElementType>());
 
         // packet->GetPayload().SetPayload(data);
         connection.SendPacket(std::move(packet), true);

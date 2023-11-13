@@ -70,6 +70,11 @@ TEST(PacketTest, PacketBuffer)
     packet->SetPayload(writeBytes3);
     auto buffer3 = packet->GetBuffer();
     EXPECT_TRUE(std::equal(buffer3.begin() + HeaderSize, buffer3.end(), writeBytes3.begin(), writeBytes3.end()));
+
+    std::vector<SeqNumberType> writeBytes4(MaxAcksSize, 300);
+    packet->SetAcks(writeBytes4);
+    auto readBytes3 = packet->GetBuffer();
+    EXPECT_TRUE(readBytes3.size() == writeBytes4.size() * sizeof(SeqNumberType) + HeaderSize);
 }
 
 } // namespace FastTransport::Protocol

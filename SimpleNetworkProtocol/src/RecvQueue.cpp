@@ -19,10 +19,6 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
         throw std::runtime_error("Wrong packet number");
     }
 
-    if (packetNumber - _beginFullRecievedAck >= QueueSize) {
-        return std::move(packet); // drop packet. queue is full
-    }
-
     if (packetNumber < _beginFullRecievedAck) {
         {
             const std::scoped_lock lock(_selectiveAcksMutex);
@@ -30,6 +26,10 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
         }
 
         return std::move(packet);
+    }
+
+    if (packetNumber - _beginFullRecievedAck >= QueueSize) {
+        return std::move(packet); // drop packet. queue is full
     }
 
     {

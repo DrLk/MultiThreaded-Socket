@@ -101,12 +101,12 @@ public:
 
     [[nodiscard]] std::span<SeqNumberType> GetAcks() const
     {
-        return { reinterpret_cast<SeqNumberType*>(_start + HeaderSize), Header(_start, _size).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        return { reinterpret_cast<SeqNumberType*>(_start + HeaderSize), Header(_start, _size).GetPayloadSize() / sizeof(SeqNumberType) }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     void SetAcks(std::span<const SeqNumberType> acks)
     {
-        Header(_start, _size).SetPayloadSize(acks.size());
+        Header(_start, _size).SetPayloadSize(acks.size() * sizeof(SeqNumberType));
         std::copy(acks.begin(), acks.end(), reinterpret_cast<SeqNumberType*>(_start + HeaderSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 

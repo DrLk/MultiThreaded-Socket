@@ -127,7 +127,6 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
                 break;
             }
 
-            packet->GetElement().resize(result);
             connectionAddr.SetPort(connectionAddr.GetPort() - index);
             packet->SetAddr(connectionAddr);
 
