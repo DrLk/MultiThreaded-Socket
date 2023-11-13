@@ -199,7 +199,6 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->SetDstConnectionID(connection._destinationID);
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
-        packet->SetPayload(std::span<IPacket::ElementType>());
 
         // packet->GetPayload().SetPayload(data);
         connection.SendPacket(std::move(packet), true);

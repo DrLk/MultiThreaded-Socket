@@ -85,7 +85,7 @@ std::list<SeqNumberType> RecvQueue::GetSelectiveAcks()
 
 [[nodiscard]] SeqNumberType RecvQueue::GetLastAck() const
 {
-    return _beginFullRecievedAck;
+    return _beginFullRecievedAck - 1;
 }
 
 } // namespace FastTransport::Protocol

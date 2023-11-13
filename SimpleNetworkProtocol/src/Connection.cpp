@@ -65,7 +65,7 @@ IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 
     IPacket::List result;
     {
-        if (_freeUserSendPackets.WaitFor(stop, [this]() { return IsClosed(); })) {
+        if (_freeUserSendPackets.Wait(stop, [this]() { return IsClosed(); })) {
             _freeUserSendPackets.LockedSwap(result);
         }
     }
