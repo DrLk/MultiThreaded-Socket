@@ -11,10 +11,13 @@ if(MSVC)
   add_compile_options(/MP)
 endif()
 
+add_subdirectory(Logger)
+add_subdirectory(Memory)
 add_subdirectory(Queue)
 if (NOT TARGET LockedList)
   add_subdirectory(LockedList)
 endif()
+
 
 set(COMMON_INCLUDES include)
 
@@ -23,7 +26,7 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList)
+target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList Logger Memory)
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )

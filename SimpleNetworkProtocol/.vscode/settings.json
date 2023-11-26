@@ -75,7 +75,9 @@
         "cinttypes": "cpp",
         "variant": "cpp",
         "format": "cpp",
-        "barrier": "cpp"
+        "barrier": "cpp",
+        "localpoolallocator": "cpp"
     },
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }

@@ -41,7 +41,7 @@ public:
 private:
     MultiList<T> _list;
 
-    using Mutex = FastTransport::Protocol::SpinLock;
+    using Mutex = FastTransport::Thread::SpinLock;
 
     Mutex _mutex;
     std::condition_variable_any _condition {};

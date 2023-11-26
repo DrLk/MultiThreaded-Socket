@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <thread>
 
-namespace FastTransport::Protocol {
+namespace FastTransport::Thread {
 
 class SpinLock {
 public:
@@ -31,4 +31,4 @@ public:
 private:
     std::atomic<uint32_t> _flag;
 };
-} // namespace FastTransport::Protocol
+} // namespace FastTransport::Thread

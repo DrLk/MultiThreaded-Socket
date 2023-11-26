@@ -67,17 +67,17 @@ OutgoingPacket::List Sample::CheckTimeouts(clock::duration timeout)
     }
 
     const clock::time_point now = clock::now();
-    for (auto it = _packets.begin(); it != _packets.end();) {
-        OutgoingPacket&& packet = std::move(it->second);
+    for (auto iterator = _packets.begin(); iterator != _packets.end();) {
+        OutgoingPacket&& packet = std::move(iterator->second);
         if ((now - packet.GetSendTime()) > timeout) {
 
             _timeRangedStats.AddPacket(true, packet.GetSendTime(), 0ms);
 
             needToSend.push_back(std::move(packet));
-            it = _packets.erase(it);
+            iterator = _packets.erase(iterator);
 
         } else {
-            it++;
+            iterator++;
         }
     }
 

@@ -167,10 +167,10 @@ TEST(FastTransportProtocolTest, PayloadTest)
 {
     static constexpr auto TestTimeout = 10s;
 
-    std::array<IPacket::ElementType, 100> data;
+    std::array<IPacket::ElementType, 100> data {};
 
     for (int i = 0; i < 100; i++) {
-        data[i] = std::byte(i);
+        data.at(i) = static_cast<std::byte>(i);
     }
 
     std::packaged_task<void(std::stop_token stop)> pingTask([&data](std::stop_token stop) {
@@ -193,7 +193,6 @@ TEST(FastTransportProtocolTest, PayloadTest)
         ping.front()->SetPayload(data);
         ping = srcConnection->Send(stop, std::move(ping));
 
-
         auto pong = UDPQueue::CreateBuffers(1);
         start = std::chrono::steady_clock::now();
         while (!stop.stop_requested()) {
@@ -214,7 +213,7 @@ TEST(FastTransportProtocolTest, PayloadTest)
     });
 
     auto ready = pingTask.get_future();
-    std::jthread pingThread(std::move(pingTask));
+    const std::jthread pingThread(std::move(pingTask));
 
     std::jthread pongThread([&ready, &data](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 21200));
