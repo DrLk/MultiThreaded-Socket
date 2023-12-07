@@ -1,11 +1,8 @@
 #include "gtest/gtest.h"
 
 #include <chrono>
-#include <compare>
 #include <cstdint>
 #include <iostream>
-#include <memory>
-#include <ratio>
 
 using namespace std::chrono_literals;
 

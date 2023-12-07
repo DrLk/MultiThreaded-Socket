@@ -3,10 +3,8 @@
 
 #include <algorithm>
 #include <chrono>
-#include <compare>
 #include <cstddef>
 #include <numeric>
-#include <ratio>
 #include <vector>
 
 #include "SampleStats.hpp"

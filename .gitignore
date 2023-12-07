@@ -334,3 +334,5 @@ ASALocalRun/
 .mfractor/
 /clang-tidy-docker/env_file
 /clang-tidy-docker/env_file
+
+SimpleNetworkProtocol/.cache

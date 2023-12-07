@@ -1,7 +1,6 @@
 #include "RecvQueue.hpp"
 #include "gtest/gtest.h"
 
-#include <algorithm>
 #include <stop_token>
 #include <utility>
 #include <vector>

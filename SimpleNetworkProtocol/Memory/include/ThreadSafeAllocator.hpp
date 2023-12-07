@@ -1,27 +1,41 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <memory_resource>
-#include <mutex>
 #include <unordered_map>
 
 #include "MemoryKeyHash.hpp"
 #include "SpinLock.hpp"
 
 namespace FastTransport::Memory {
-class ThreadSafeAllocator {
+class ThreadSafeAllocator final {
 public:
-    using AllocationIterator = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>::const_iterator;
-    using AllocationNode = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>::node_type;
+    static constexpr std::size_t MaxFreeSize = 1024;
 
-    AllocationIterator Deallocate(std::pair<AllocationIterator, AllocationIterator> allocations, std::size_t size, std::size_t alignment);
-    AllocationNode Allocate(std::size_t size, std::size_t alignment);
+    using AllocationPool = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>;
+    using AllocationNode = AllocationPool::node_type;
+    using AllocationNodes = std::array<AllocationNode, MaxFreeSize>;
+
+    explicit ThreadSafeAllocator(std::pmr::memory_resource* resource);
+    ThreadSafeAllocator(const ThreadSafeAllocator& that) = delete;
+    ThreadSafeAllocator(ThreadSafeAllocator&& that) = delete;
+    ThreadSafeAllocator& operator=(const ThreadSafeAllocator& that) = delete;
+    ThreadSafeAllocator& operator=(ThreadSafeAllocator&& that) = delete;
+    ~ThreadSafeAllocator();
+
+    void* Allocate(std::size_t size, std::size_t alignment);
+    AllocationNodes Allocate2(std::size_t size, std::size_t alignment);
     void Deallocate(AllocationNode&& allocation);
+    void Deallocate(AllocationPool&& pool);
+    void Deallocate(AllocationNodes&& nodes);
 
 private:
-    std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash> _pool;
+    AllocationPool _pool;
 
     using Mutex = FastTransport::Thread::SpinLock;
     Mutex _mutex;
+
+    std::pmr::memory_resource* _resource;
 };
 } // namespace FastTransport::Memory

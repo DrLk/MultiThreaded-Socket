@@ -1,7 +1,5 @@
 #include "Sample.hpp"
 
-#include <algorithm>
-#include <compare>
 #include <utility>
 
 #include "SampleStats.hpp"

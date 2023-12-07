@@ -4,59 +4,70 @@
 
 namespace FastTransport::Memory {
 
-LocalPoolAllocator::LocalPoolAllocator(const std::shared_ptr<ThreadSafeAllocator>& globalAllocator, std::pmr::memory_resource* resource)
-    : _resource(resource)
-    , _globalAllocator(globalAllocator)
+LocalPoolAllocator::LocalPoolAllocator(const std::shared_ptr<ThreadSafeAllocator>& globalAllocator)
+    : _globalAllocator(globalAllocator)
 {
 }
 
-LocalPoolAllocator::~LocalPoolAllocator() = default;
+LocalPoolAllocator::~LocalPoolAllocator()
+{
+    _globalAllocator->Deallocate(std::move(_pool));
+}
 
 void* LocalPoolAllocator::Allocate(std::size_t size, std::size_t alignment)
 {
+    auto& backetSize = _backetSize[{ size, alignment }];
     auto free = _pool.find({ size, alignment });
     if (free != _pool.end()) {
         void* allocation = free->second;
         _pool.erase(free);
+        backetSize--;
         return allocation;
     }
 
     std::size_t count = MaxFreeSize;
-    for (; count != 0; count--) {
-        auto allocation = _globalAllocator->Allocate(size, alignment);
-        if (allocation.empty()) {
+    auto nodes = _globalAllocator->Allocate2(size, alignment);
+
+    backetSize = 0;
+    for (auto&& node : nodes) {
+        if (node.empty()) {
             break;
         }
 
-        _pool.insert({ std::move(allocation) });
-    }
-
-    auto allocation = _globalAllocator->Allocate(size, alignment);
-    if (!allocation.empty()) {
-        return allocation.mapped();
-    }
-
-    while (count != 0) {
-        void* bytes = _resource->allocate(size, alignment);
-        _pool.insert({ { size, alignment }, bytes });
+        free = _pool.insert({ std::move(node) });
+        backetSize++;
         count--;
     }
 
-    return _resource->allocate(size, alignment);
+    if (free != _pool.end()) {
+
+        void* allocation = free->second;
+        _pool.erase(free);
+        backetSize--;
+        return allocation;
+    }
+
+    return _globalAllocator->Allocate(size, alignment);
 }
 
-void LocalPoolAllocator::Deallocate(void* allocation, std::size_t size, std::size_t alignment)
+void LocalPoolAllocator::Deallocate(void* memory, std::size_t size, std::size_t alignment)
 {
-    auto bucket = _pool.bucket({ size, alignment });
-    std::size_t bucketSize = _pool.bucket_size(bucket);
-    if (bucketSize < MaxFreeSize * 2) {
-        _pool.insert({ { size, alignment }, allocation });
-    } else {
-        for (int i = 0; i < MaxFreeSize; i++) {
-            AllocationNode allocation = _pool.extract({ size, alignment });
-            _globalAllocator->Deallocate(std::move(allocation));
+    auto& bucketSize = _backetSize[{ size, alignment }];
+
+    if (bucketSize > MaxFreeSize * 2) {
+        ThreadSafeAllocator::AllocationNodes nodes;
+        auto [begin, end] = _pool.equal_range({ size, alignment });
+        auto node = nodes.begin();
+        for (auto iterator = begin; iterator != end && node != nodes.end(); ++node) {
+            *node = _pool.extract(iterator++);
+            bucketSize--;
         }
+
+        _globalAllocator->Deallocate(std::move(nodes));
     }
+
+    bucketSize++;
+    _pool.insert({ { size, alignment }, memory });
 }
 
 } // namespace FastTransport::Memory

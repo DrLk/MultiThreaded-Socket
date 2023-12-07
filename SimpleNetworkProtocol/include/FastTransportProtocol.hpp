@@ -9,7 +9,6 @@
 #include "ConnectionKey.hpp"
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
 #include "UDPQueue.hpp"
 

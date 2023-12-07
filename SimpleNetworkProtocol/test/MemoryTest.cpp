@@ -5,8 +5,8 @@
 #include <memory_resource>
 #include <thread>
 
-#include "Logger.hpp"
 #include "PoolAllocator.hpp"
+#include "MemoryLogger.hpp"
 
 namespace FastTransport::Memory {
 
@@ -40,37 +40,52 @@ TEST(MemoryTest, List)
 
 TEST(MemoryTest, MemoryAllocator)
 {
-    PoolAllocator allocator;
+    auto memoryLogger = std::make_unique<MemoryLogger>(std::pmr::new_delete_resource());
+    PoolAllocator allocator(memoryLogger.get());
 
     std::jthread thread1([&allocator]() {
         void* address = allocator.allocate(100);
     });
 
     thread1.join();
+    EXPECT_TRUE(memoryLogger->GetAllocatedSize() == 100);
+
+    std::jthread thread2([&allocator]() {
+        void* address = allocator.allocate(100);
+    });
+
+    thread2.join();
+    EXPECT_TRUE(memoryLogger->GetAllocatedSize() == 100);
 }
 
 TEST(MemoryTest, PoolList)
 {
-    PoolAllocator allocator;
+    auto memoryLogger = std::make_unique<MemoryLogger>(std::pmr::new_delete_resource());
+    PoolAllocator allocator(memoryLogger.get());
 
     std::pmr::list<int> list(&allocator);
 
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 1000000; i++) {
         list.push_back(i);
     }
 
-    for (int i = 0; i < 100000; i++) {
+    auto allocatedSize = memoryLogger->GetAllocatedSize();
+
+    for (int i = 0; i < 1000000; i++) {
         list.pop_back();
     }
+    EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
-    for (int i = 0; i < 50000; i++) {
+    for (int i = 0; i < 1000000; i++) {
         list.push_back(i);
     }
+    EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
     for (int i = 0; i < 1000000; i++) {
         list.pop_back();
         list.push_back(i);
     }
+    EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 }
 
 } // namespace FastTransport::Memory

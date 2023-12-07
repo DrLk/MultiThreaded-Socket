@@ -13,10 +13,11 @@ class ThreadSafeAllocator;
 class LocalPoolAllocator final {
 public:
     static constexpr std::size_t MaxFreeSize = 1024;
-    using AllocationIterator = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>::const_iterator;
-    using AllocationNode = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>::node_type;
+    using AllocationPool = std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash>;
+    using AllocationIterator = AllocationPool::const_iterator;
+    using AllocationNode = AllocationPool::node_type;
 
-    LocalPoolAllocator(const std::shared_ptr<ThreadSafeAllocator>& globalAllocator, std::pmr::memory_resource* resource);
+    explicit LocalPoolAllocator(const std::shared_ptr<ThreadSafeAllocator>& globalAllocator);
     LocalPoolAllocator(const LocalPoolAllocator& that) = delete;
     LocalPoolAllocator(LocalPoolAllocator&& that) = delete;
     LocalPoolAllocator& operator=(const LocalPoolAllocator& that) = delete;
@@ -27,9 +28,9 @@ public:
     void Deallocate(void* memory, std::size_t size, std::size_t alignment);
 
 private:
-    std::pmr::memory_resource* _resource;
     std::shared_ptr<ThreadSafeAllocator> _globalAllocator;
-    std::unordered_multimap<std::pair<std::size_t, std::size_t>, void*, MemoryKeyHash> _pool;
+    AllocationPool _pool;
+    std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, MemoryKeyHash> _backetSize;
 };
 
 } // namespace FastTransport::Memory

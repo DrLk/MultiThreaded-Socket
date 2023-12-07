@@ -1,7 +1,6 @@
 #include "UDPQueue.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <functional>
 #include <utility>
 

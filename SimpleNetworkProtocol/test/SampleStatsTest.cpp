@@ -2,7 +2,6 @@
 #include "gtest/gtest.h"
 
 #include <chrono>
-#include <memory>
 
 using namespace std::chrono_literals;
 

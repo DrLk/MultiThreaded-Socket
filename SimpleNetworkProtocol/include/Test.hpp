@@ -3,12 +3,10 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iostream>
-#include <ratio>
 #include <stdexcept>
 #include <stop_token>
 #include <thread>

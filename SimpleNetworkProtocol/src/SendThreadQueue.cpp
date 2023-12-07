@@ -5,7 +5,6 @@
 
 #include "ConnectionAddr.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
