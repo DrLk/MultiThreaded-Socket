@@ -9,9 +9,10 @@
 
 #include "SampleStats.hpp"
 
+namespace FastTransport::Protocol {
+
 using namespace std::chrono_literals;
 
-namespace FastTransport::Protocol {
 TEST(TimeRangedStatsTest, TimeRangedStats)
 {
     const TimeRangedStats stats;

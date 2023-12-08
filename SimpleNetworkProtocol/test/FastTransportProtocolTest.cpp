@@ -3,8 +3,8 @@
 
 #include <algorithm>
 #include <chrono>
-#include <exception>
 #include <future>
+#include <stdexcept>
 #include <thread>
 
 namespace FastTransport::Protocol {
