@@ -1,10 +1,12 @@
 #include "TimeRangedStats.hpp"
 
 #include <algorithm>
-#include <compare>
-#include <functional>
+#include <chrono>
+#include <cstddef>
 #include <numeric>
-#include <ratio>
+#include <vector>
+
+#include "SampleStats.hpp"
 
 using namespace std::chrono_literals;
 

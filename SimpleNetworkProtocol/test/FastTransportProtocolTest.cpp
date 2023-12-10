@@ -2,14 +2,22 @@
 #include "gtest/gtest.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <future>
 #include <stdexcept>
+#include <stop_token>
 #include <thread>
+#include <utility>
 
-namespace FastTransport::Protocol {
+#include "Connection.hpp"
+#include "IPacket.hpp"
+#include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;
+
+namespace FastTransport::Protocol {
 
 TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-function-cognitive-complexity)
 {

@@ -1,7 +1,12 @@
 #include "SpeedController.hpp"
 
-#include <compare>
-#include <ratio>
+#include <chrono>
+#include <cstddef>
+#include <map>
+#include <memory>
+
+#include "ISpeedControllerState.hpp"
+#include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {
 using namespace std::chrono_literals;

@@ -1,8 +1,12 @@
 #include "Packet.hpp"
 
-#include <algorithm>
+#include <chrono>
+#include <span>
+#include <vector>
 
 #include "HeaderBuffer.hpp"
+#include "HeaderTypes.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 

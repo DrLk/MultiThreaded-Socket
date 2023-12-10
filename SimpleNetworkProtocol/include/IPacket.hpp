@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory> // IWYU pragma: export
 #include <span>
 #include <vector>

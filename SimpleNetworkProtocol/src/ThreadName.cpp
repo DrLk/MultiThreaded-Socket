@@ -14,7 +14,7 @@
 namespace FastTransport::Protocol {
 
 #ifdef WIN32
-std::wstring DecodeStringFrom(const std::string_view& utf8EncodedStr)
+std::wstring DecodeStringFrom(std::string_view utf8EncodedStr)
 {
     int status = 1;
     std::wstring result;
@@ -38,7 +38,7 @@ std::wstring DecodeStringFrom(const std::string_view& utf8EncodedStr)
 
 #endif
 
-void SetThreadName(const std::string_view& name)
+void SetThreadName(std::string_view name)
 {
     assert(name.size() < 16); // posix limitation
 #ifdef WIN32

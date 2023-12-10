@@ -1,9 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <compare>
 #include <cstddef>
-#include <functional>
 #include <map>
 #include <numeric>
 #include <optional>
@@ -55,7 +53,7 @@ protected:
         const auto& slides = GetSlides(stats, width); // local variables: problem
 
         auto result = slides | std::views::transform([](const auto& samples) {
-            SampleStats stat = std::accumulate(samples.begin(), samples.end(), SampleStats(), [](SampleStats&& stat, const SampleStats& sample) {
+            SampleStats stat = std::accumulate(samples.begin(), samples.end(), SampleStats(), [](SampleStats stat, const SampleStats& sample) {
                 stat.Merge(sample);
                 return stat;
             });

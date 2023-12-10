@@ -1,13 +1,13 @@
 #pragma once
 
 #include <list>
-#include <mutex>
 #include <vector>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "LockedList.hpp"
+#include "SpinLock.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -28,7 +28,7 @@ private:
     static constexpr int QueueSize = 250000;
     std::vector<IPacket::Ptr> _queue;
     LockedList<IPacket::Ptr> _data;
-    std::mutex _selectiveAcksMutex;
+    Thread::SpinLock _selectiveAcksMutex;
     std::list<SeqNumberType> _selectiveAcks;
     SeqNumberType _beginFullRecievedAck { 0 };
 };

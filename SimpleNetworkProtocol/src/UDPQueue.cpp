@@ -1,9 +1,15 @@
 #include "UDPQueue.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <functional>
+#include <stop_token>
 #include <utility>
+#include <vector>
 
+#include "ConnectionAddr.hpp"
+#include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
 #include "Packet.hpp"
 #include "RecvThreadQueue.hpp"
 #include "SendThreadQueue.hpp"

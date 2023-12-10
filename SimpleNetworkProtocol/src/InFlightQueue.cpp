@@ -1,14 +1,25 @@
 #include "InFlightQueue.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
+#include <list>
+#include <mutex>
+#include <span>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
+
+#include "HeaderTypes.hpp"
+#include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
+#include "Sample.hpp"
+#include "SpeedController.hpp"
 
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
-std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::List&& packets)
+std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     IPacket::List freePackets;
     IPacket::List freeInternalPackets;
@@ -22,7 +33,7 @@ std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::
 
     size_t servicePacketNumber = 0;
     size_t doubleSentPacketNumber = 0;
-    for (auto& packet : packets) {
+    for (auto&& packet : packets) {
         if (packet.NeedAck()) {
             const SeqNumberType packetNumber = packet.GetPacket()->GetSeqNumber();
             const auto& ack = receivedAcks.find(packetNumber);
@@ -57,8 +68,6 @@ void InFlightQueue::SetLastAck(SeqNumberType lastAck)
 void InFlightQueue::AddAcks(std::span<SeqNumberType> acks)
 {
     std::unordered_set<SeqNumberType> receivedAcks(acks.begin(), acks.end());
-
-    //_speedController.AddrecievedAcks(receivedAcks.size());
 
     {
         const std::scoped_lock lock(_receivedAcksMutex);

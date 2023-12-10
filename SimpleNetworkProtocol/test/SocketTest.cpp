@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 
 #include <compare>
+#include <cstddef>
 #include <vector>
 
 #include "ConnectionAddr.hpp"

@@ -37,7 +37,7 @@ public:
     MultiList TryGenerate(std::size_t size);
 
     void push_back(T&& element);
-    void splice(MultiList<T>&& that);
+    void splice(MultiList<T>&& that); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
     [[nodiscard]] bool empty() const noexcept;
     T& front();
     T& back();
@@ -166,7 +166,7 @@ void MultiList<T>::push_back(T&& element)
 }
 
 template <class T>
-void MultiList<T>::splice(MultiList<T>&& that)
+void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     if (!_lists.empty() && !that._lists.empty()) {
         auto& list = _lists.back();

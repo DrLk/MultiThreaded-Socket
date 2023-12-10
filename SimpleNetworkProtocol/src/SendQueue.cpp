@@ -1,8 +1,11 @@
 #include "SendQueue.hpp"
 
+#include <cstddef>
 #include <limits>
 #include <utility>
 
+
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
 

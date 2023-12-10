@@ -1,12 +1,13 @@
 #include "gtest/gtest.h"
 
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <memory_resource>
 #include <thread>
 
-#include "PoolAllocator.hpp"
 #include "MemoryLogger.hpp"
+#include "PoolAllocator.hpp"
 
 namespace FastTransport::Memory {
 
@@ -45,6 +46,7 @@ TEST(MemoryTest, MemoryAllocator)
 
     std::jthread thread1([&allocator]() {
         void* address = allocator.allocate(100);
+        allocator.deallocate(address, 100);
     });
 
     thread1.join();

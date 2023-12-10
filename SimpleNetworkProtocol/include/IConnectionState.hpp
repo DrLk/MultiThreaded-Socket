@@ -1,18 +1,15 @@
 #pragma once
 
 #include <chrono>
-#include <utility>
+#include <memory>
+#include <tuple>
 
-#include "Connection.hpp"
-#include "HeaderTypes.hpp"
+#include "ConnectionState.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 
-enum ConnectionState {
-    WAIT_SYNACK,
-    CONNECTED,
-};
+class Connection;
 
 class IConnectionState {
 public:
@@ -23,62 +20,61 @@ public:
     IConnectionState& operator=(IConnectionState&&) = default;
     virtual ~IConnectionState() = default;
 
-    virtual IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
-    virtual IConnectionState* SendPackets(Connection& connection) = 0;
-    virtual IConnectionState* OnTimeOut(Connection& connection) = 0;
+    virtual std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
+    virtual ConnectionState SendPackets(Connection& connection) = 0;
+    virtual ConnectionState OnTimeOut(Connection& connection) = 0;
     [[nodiscard]] virtual std::chrono::milliseconds GetTimeout() const = 0;
     virtual void ProcessInflightPackets(Connection& connection) = 0;
 };
 
 class BasicConnectionState : public IConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override;
-    IConnectionState* SendPackets(Connection& /*connection*/) override;
-    IConnectionState* OnTimeOut(Connection& /*connection*/) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override;
+    ConnectionState SendPackets(Connection& /*connection*/) override;
+    ConnectionState OnTimeOut(Connection& /*connection*/) override;
     [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
     void ProcessInflightPackets(Connection& connection) override;
 };
 
 class ListenState {
 public:
-    static std::pair<Connection::Ptr, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
+    static std::pair<std::shared_ptr<Connection>, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
 };
 
 class SendingSynState final : public BasicConnectionState {
 public:
-    IConnectionState* SendPackets(Connection& connection) override;
+    ConnectionState SendPackets(Connection& connection) override;
 };
 
 class WaitingSynState final : public BasicConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
 class WaitingSynAckState final : public BasicConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
-    IConnectionState* OnTimeOut(Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    ConnectionState SendPackets(Connection& connection) override;
+    ConnectionState OnTimeOut(Connection& connection) override;
 };
 
 class SendingSynAckState final : public BasicConnectionState {
-    IConnectionState* SendPackets(Connection& connection) override;
+    ConnectionState SendPackets(Connection& connection) override;
 };
 
 class DataState final : public BasicConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
-    IConnectionState* SendPackets(Connection& connection) override;
-    [[nodiscard]] IConnectionState* OnTimeOut(Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    ConnectionState SendPackets(Connection& connection) override;
+    [[nodiscard]] ConnectionState OnTimeOut(Connection& connection) override;
     [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
 };
 
 class ClosingState final : public BasicConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 
 class ClosedState final : public BasicConnectionState {
 public:
-    IPacket::List OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
 };
 } // namespace FastTransport::Protocol

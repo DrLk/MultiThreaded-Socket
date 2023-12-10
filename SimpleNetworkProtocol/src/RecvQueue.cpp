@@ -1,8 +1,13 @@
 #include "RecvQueue.hpp"
 
 #include <limits>
+#include <list>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
+
+#include "HeaderTypes.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 

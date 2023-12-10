@@ -3,12 +3,23 @@
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <shared_mutex>
 #include <stdexcept>
+#include <stop_token>
+#include <thread>
+#include <unordered_map>
 #include <utility>
 
+#include "Connection.hpp"
+#include "ConnectionKey.hpp"
+#include "ConnectionState.hpp"
+#include "HeaderTypes.hpp"
 #include "IConnectionState.hpp"
+#include "IPacket.hpp"
 #include "Logger.hpp"
+#include "OutgoingPacket.hpp"
 #include "ThreadName.hpp"
+#include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;
@@ -49,7 +60,7 @@ IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
 
 IConnection::Ptr FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 {
-    const Connection::Ptr& connection = std::make_shared<Connection>(new SendingSynState(), dstAddr, GenerateID()); // NOLINT(cppcoreguidelines-owning-memory)
+    const Connection::Ptr& connection = std::make_shared<Connection>(ConnectionState::SendingSynState, dstAddr, GenerateID());
     connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
     {
@@ -65,11 +76,11 @@ void FastTransportContext::InitRecvPackets()
     _freeRecvPackets = UDPQueue::CreateBuffers(_udpQueue.GetRecvQueueSizePerThread() * _udpQueue.GetThreadCount());
 }
 
-IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets)
+IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     IPacket::List freePackets;
 
-    for (auto& packet : packets) {
+    for (auto&& packet : packets) {
         auto packets = OnReceive(std::move(packet));
         freePackets.splice(std::move(packets));
     }

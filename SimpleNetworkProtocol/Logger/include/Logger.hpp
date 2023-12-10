@@ -31,7 +31,7 @@ public:
 
     ~LogHelper()
     {
-        _osyncstream << std::endl;
+        _osyncstream << std::endl; //NOLINT(performance-avoid-endl)
     }
 
     LogHelper(const LogHelper&) = delete;
@@ -42,7 +42,7 @@ public:
     template <class T>
     LogHelper& operator<<(T&& value) // NOLINT(fuchsia-overloaded-operator)
     {
-        _osyncstream << value; // NOLINT(hicpp-no-array-decay, cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        _osyncstream << std::forward<T>(value); // NOLINT(hicpp-no-array-decay, cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         return *this;
     }
 

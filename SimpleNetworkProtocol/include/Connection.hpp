@@ -4,9 +4,11 @@
 #include <chrono>
 #include <span>
 #include <stop_token>
+#include <unordered_map>
 #include <vector>
 
 #include "ConnectionKey.hpp"
+#include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "LockedList.hpp"
@@ -52,7 +54,7 @@ class Connection final : public IConnection {
 public:
     using Ptr = std::shared_ptr<Connection>;
 
-    Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID);
+    Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID);
     Connection(const Connection& that) = delete;
     Connection(Connection&& that) = delete;
     Connection& operator=(const Connection& that) = delete;
@@ -98,17 +100,15 @@ public:
 
     void AddFreeUserSendPackets(IPacket::List&& freePackets);
 
-    IConnectionState* _state; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-
     LockedList<IPacket::Ptr> _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
-    ConnectionKey _key; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
     ConnectionID _destinationID { 0 }; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-
-    LockedList<IPacket::Ptr> _freeRecvPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
+    ConnectionKey _key;
+
+    LockedList<IPacket::Ptr> _freeRecvPackets;
     LockedList<std::vector<char>> _recvUserData;
 
     clock::time_point _lastPacketReceive;
@@ -123,5 +123,8 @@ private:
     std::atomic<bool> _closed;
     std::atomic<bool> _cleanRecvBuffers;
     std::atomic<bool> _cleanSendBuffers;
+
+    ConnectionState _connectionState;
+    std::unordered_map<ConnectionState, std::unique_ptr<IConnectionState>> _states;
 };
 } // namespace FastTransport::Protocol

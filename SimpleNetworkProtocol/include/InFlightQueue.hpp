@@ -4,7 +4,6 @@
 #include <chrono>
 #include <cstddef>
 #include <list>
-#include <mutex>
 #include <span>
 #include <unordered_set>
 #include <utility>
@@ -15,6 +14,7 @@
 #include "OutgoingPacket.hpp"
 #include "Sample.hpp"
 #include "SpeedController.hpp"
+#include "SpinLock.hpp"
 
 namespace FastTransport::Protocol {
 class InFlightQueue final : public IInFlightQueue {
@@ -30,7 +30,7 @@ public:
 private:
     using clock = std::chrono::steady_clock;
 
-    std::mutex _receivedAcksMutex;
+    Thread::SpinLock _receivedAcksMutex;
     std::unordered_set<SeqNumberType> _receivedAcks;
     SpeedController _speedController;
     std::list<Sample> _samples;

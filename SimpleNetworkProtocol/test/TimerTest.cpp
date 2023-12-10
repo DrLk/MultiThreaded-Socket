@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <iostream>
 
 using namespace std::chrono_literals;
 
@@ -22,6 +21,4 @@ TEST(TimerTest, BasicTimerTest)
             break;
         }
     }
-
-    std::cout << "counter: " << counter << std::endl;
 }

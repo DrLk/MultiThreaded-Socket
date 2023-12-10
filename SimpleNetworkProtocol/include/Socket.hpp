@@ -6,7 +6,6 @@
 
 #define SOCK_CLOEXEC (0)
 #else
-#include <cstdint>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -16,12 +15,15 @@
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1) // NOLINT(modernize-macro-to-enum)
 #endif
-#include <span>
-#include <stdexcept>
 
 #ifdef __APPLE__
 #include <fcntl.h>
 #endif
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <stdexcept>
 
 #include "ConnectionAddr.hpp"
 

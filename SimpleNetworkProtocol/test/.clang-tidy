@@ -12,7 +12,8 @@ Checks:               '*,
                       -altera-id-dependent-backward-branch,
                       -readability-convert-member-functions-to-static,
                       -bugprone-easily-swappable-parameters,
-                      -google-readability-todo'
+                      -google-readability-todo,
+                      -misc-include-cleaner'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes

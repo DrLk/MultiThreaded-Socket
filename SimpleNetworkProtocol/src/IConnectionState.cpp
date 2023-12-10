@@ -1,25 +1,32 @@
 #include "IConnectionState.hpp"
 
+#include <chrono>
 #include <list>
+#include <span>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
+#include <vector>
 
+#include "Connection.hpp"
 #include "ConnectionKey.hpp"
+#include "ConnectionState.hpp"
+#include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
-#include "LockedList.hpp"
 #include "Logger.hpp"
 #include "OutgoingPacket.hpp"
 
 #define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection._destinationID << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 
-namespace FastTransport::Protocol {
+using namespace std::literals::chrono_literals;
 
-using namespace std::chrono_literals;
+namespace FastTransport::Protocol {
 
 std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
 {
     if (packet->GetPacketType() == PacketType::SYN) {
-        Connection::Ptr connection = std::make_shared<Connection>(new WaitingSynState(), packet->GetDstAddr(), myID); // NOLINT
+        Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID); // NOLINT
         auto freePackets = connection->OnRecvPackets(std::move(packet));
         return { connection, std::move(freePackets) };
     }
@@ -27,19 +34,19 @@ std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& pac
     return { nullptr, IPacket::List() };
 }
 
-IPacket::List BasicConnectionState::OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/)
+std::tuple<ConnectionState, IPacket::List> BasicConnectionState::OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     throw std::runtime_error("Not implemented");
 }
 
-IConnectionState* BasicConnectionState::SendPackets(Connection& /*connection*/)
+ConnectionState BasicConnectionState::SendPackets(Connection& /*connection*/)
 {
-    return this;
+    throw std::runtime_error("Not implemented");
 }
 
-IConnectionState* BasicConnectionState::OnTimeOut(Connection& /*connection*/)
+ConnectionState BasicConnectionState::OnTimeOut(Connection& /*connection*/)
 {
-    return this;
+    throw std::runtime_error("Not implemented");
 }
 
 std::chrono::milliseconds BasicConnectionState::GetTimeout() const
@@ -53,7 +60,7 @@ void BasicConnectionState::ProcessInflightPackets(Connection& connection)
     connection.AddFreeUserSendPackets(std::move(freePackets));
 }
 
-IConnectionState* SendingSynState::SendPackets(Connection& connection)
+ConnectionState SendingSynState::SendPackets(Connection& connection)
 {
     TRACER() << "SendingSynState::SendPackets";
 
@@ -65,34 +72,36 @@ IConnectionState* SendingSynState::SendPackets(Connection& connection)
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
     synPacket->SetPayload(std::span<IPacket::ElementType>());
 
-    connection._state = new WaitingSynAckState();
     connection.SendPacket(std::move(synPacket), false);
 
-    return new WaitingSynAckState();
+    return ConnectionState::WaitingSynAckState;
 }
 
-IPacket::List WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
     TRACER() << "WaitingSynState::OnRecvPackets";
 
-    IPacket::List freePackets;
+    std::tuple<ConnectionState, IPacket::List> result;
+    auto& [connectionState, freePackets] = result;
+
     if (!packet->IsValid()) {
         connection.Close();
         freePackets.push_back(std::move(packet));
-        return freePackets;
+        connectionState = ConnectionState::WaitingSynState;
+        return result;
     }
 
     if (packet->GetPacketType() == PacketType::SYN) {
         connection._destinationID = packet->GetSrcConnectionID();
-        connection._state = new SendingSynAckState();
 
         freePackets.push_back(std::move(packet));
-        return freePackets;
+        connectionState = ConnectionState::SendingSynAckState;
+        return result;
     }
     throw std::runtime_error("Wrong packet type");
 }
 
-IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
+ConnectionState SendingSynAckState::SendPackets(Connection& connection)
 {
     TRACER() << "SendingSynAckState::SendPackets";
 
@@ -105,29 +114,29 @@ IConnectionState* SendingSynAckState::SendPackets(Connection& connection)
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
     synPacket->SetPayload(std::span<IPacket::ElementType>());
 
-    connection._state = new DataState();
     connection.SendPacket(std::move(synPacket), false);
 
-    return new DataState();
+    return ConnectionState::DataState;
 }
 
-IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
     TRACER() << "WaitingSynAckState::OnRecvPackets";
 
-    IPacket::List freePackets;
+    std::tuple<ConnectionState, IPacket::List> result;
+    auto& [connectionState, freePackets] = result;
 
     if (!packet->IsValid()) {
         connection.Close();
         freePackets.push_back(std::move(packet));
-        return freePackets;
+        connectionState = ConnectionState::WaitingSynAckState;
+        return result;
     }
 
     switch (packet->GetPacketType()) {
     case PacketType::SYN_ACK: {
         connection._destinationID = packet->GetSrcConnectionID();
         connection.SetConnected(true);
-        connection._state = new DataState();
         freePackets.push_back(std::move(packet));
         break;
     }
@@ -143,17 +152,23 @@ IPacket::List WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connectio
     }
     }
 
-    return freePackets;
+    connectionState = ConnectionState::DataState;
+    return result;
 }
 
-IConnectionState* WaitingSynAckState::OnTimeOut(Connection& connection)
+ConnectionState WaitingSynAckState::SendPackets(Connection& /*connection*/)
+{
+    return ConnectionState::WaitingSynAckState;
+}
+
+ConnectionState WaitingSynAckState::OnTimeOut(Connection& connection)
 {
     TRACER() << "WaitingSynAckState::OnTimeOut";
 
-    return new SendingSynState();
+    return ConnectionState::SendingSynState;
 }
 
-IConnectionState* DataState::SendPackets(Connection& connection)
+ConnectionState DataState::SendPackets(Connection& connection)
 {
     std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     // TODO: maybe error after std::move second loop
@@ -162,7 +177,7 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         connection._freeInternalSendPackets.pop_back();
 
         packet->SetPacketType(PacketType::SACK);
-        packet->SetSrcConnectionID(connection._key.GetID());
+        packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->SetDstConnectionID(connection._destinationID);
         packet->SetAckNumber(connection.GetRecvQueue().GetLastAck());
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
@@ -204,12 +219,13 @@ IConnectionState* DataState::SendPackets(Connection& connection)
         connection.SendPacket(std::move(packet), true);
     }
 
-    return this;
+    return ConnectionState::DataState;
 }
 
-IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
 {
-    IPacket::List freePackets;
+    std::tuple<ConnectionState, IPacket::List> result;
+    auto& [connectionState, freePackets] = result;
 
     switch (packet->GetPacketType()) {
     case PacketType::SYN_ACK: {
@@ -236,15 +252,16 @@ IPacket::List DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connec
         throw std::runtime_error("Wrong packety type");
     }
     }
-    return freePackets;
+    connectionState = ConnectionState::DataState;
+    return result;
 }
 
-IConnectionState* DataState::OnTimeOut(Connection& connection)
+ConnectionState DataState::OnTimeOut(Connection& connection)
 {
     TRACER() << "DataState::OnTimeOut";
 
     connection.Close();
-    return this;
+    return ConnectionState::DataState;
 }
 
 std::chrono::milliseconds DataState::GetTimeout() const

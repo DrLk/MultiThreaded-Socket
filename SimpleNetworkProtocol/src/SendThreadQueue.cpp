@@ -1,7 +1,9 @@
 #include "SendThreadQueue.hpp"
 
+#include <chrono>
+#include <cstddef>
+#include <stop_token>
 #include <utility>
-#include <vector>
 
 #include "ConnectionAddr.hpp"
 #include "IPacket.hpp"

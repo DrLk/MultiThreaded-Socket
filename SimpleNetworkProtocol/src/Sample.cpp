@@ -1,8 +1,16 @@
 #include "Sample.hpp"
 
+#include <chrono>
+#include <cstddef>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
+#include "HeaderTypes.hpp"
+#include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
 #include "SampleStats.hpp"
+#include "TimeRangedStats.hpp"
 
 using namespace std::chrono_literals;
 

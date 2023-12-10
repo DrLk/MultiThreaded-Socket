@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <ratio>
 
 using namespace std::chrono_literals;
 

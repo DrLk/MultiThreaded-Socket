@@ -1,6 +1,12 @@
 #include "ConnectionKey.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
 #include <ostream>
+
+#include "ConnectionAddr.hpp"
+#include "HeaderTypes.hpp"
 
 namespace FastTransport::Protocol {
 

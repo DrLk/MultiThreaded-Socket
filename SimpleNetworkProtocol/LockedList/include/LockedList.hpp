@@ -25,10 +25,10 @@ public:
 
     bool Wait(std::stop_token stop);
     template <class Predicate>
-    bool Wait(std::stop_token stop, Predicate&& predicate);
+    bool Wait(std::stop_token stop, const Predicate& predicate);
     bool WaitFor(std::stop_token stop);
     template <class Predicate>
-    bool WaitFor(std::stop_token stop, Predicate&& predicate);
+    bool WaitFor(std::stop_token stop, const Predicate& predicate);
     void NotifyAll() noexcept;
     void LockedSplice(LockedList&& list) = delete;
     void LockedSplice(MultiList<T>&& list);
@@ -74,7 +74,7 @@ bool LockedList<T>::Wait(std::stop_token stop)
 
 template <class T>
 template <class Predicate>
-bool LockedList<T>::Wait(std::stop_token stop, Predicate&& predicate)
+bool LockedList<T>::Wait(std::stop_token stop, const Predicate& predicate)
 {
     auto fullPredicate = [this, &predicate]() { return !_list.empty() || predicate(); };
     std::unique_lock<Mutex> lock(_mutex);
@@ -90,10 +90,10 @@ bool LockedList<T>::WaitFor(std::stop_token stop)
 
 template <class T>
 template <class Predicate>
-bool LockedList<T>::WaitFor(std::stop_token stop, Predicate&& predicate)
+bool LockedList<T>::WaitFor(std::stop_token stop, const Predicate& predicate)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    return _condition.wait_for(lock, stop, 50ms, std::forward<Predicate>(predicate));
+    return _condition.wait_for(lock, stop, 50ms, predicate);
 }
 
 template <class T>

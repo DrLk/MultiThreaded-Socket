@@ -1,14 +1,21 @@
 #include "Connection.hpp"
 
-#include <compare>
+#include <atomic>
+#include <chrono>
 #include <cstddef>
+#include <span>
+#include <stop_token>
 #include <utility>
 
+#include "ConnectionKey.hpp"
+#include "HeaderTypes.hpp"
 #include "IConnectionState.hpp"
 #include "IInFlightQueue.hpp"
+#include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "ISendQueue.hpp"
 #include "InFlightQueue.hpp"
+#include "OutgoingPacket.hpp"
 #include "RecvQueue.hpp"
 #include "SendQueue.hpp"
 
@@ -18,9 +25,8 @@ class ConnectionAddr;
 
 namespace FastTransport::Protocol {
 
-Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, ConnectionID myID)
-    : _state(state)
-    , _key(addr, myID)
+Connection::Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID)
+    : _key(addr, myID)
     , _lastPacketReceive(clock::now())
     , _inFlightQueue(std::make_unique<InFlightQueue>())
     , _recvQueue(std::make_unique<RecvQueue>())
@@ -28,7 +34,16 @@ Connection::Connection(IConnectionState* state, const ConnectionAddr& addr, Conn
     , _closed(false)
     , _cleanRecvBuffers(false)
     , _cleanSendBuffers(false)
+    , _connectionState(state)
 {
+
+    _states.emplace(ConnectionState::ClosedState, std::make_unique<ClosedState>());
+    _states.emplace(ConnectionState::ClosingState, std::make_unique<ClosingState>());
+    _states.emplace(ConnectionState::DataState, std::make_unique<DataState>());
+    _states.emplace(ConnectionState::SendingSynAckState, std::make_unique<SendingSynAckState>());
+    _states.emplace(ConnectionState::SendingSynState, std::make_unique<SendingSynState>());
+    _states.emplace(ConnectionState::WaitingSynAckState, std::make_unique<WaitingSynAckState>());
+    _states.emplace(ConnectionState::WaitingSynState, std::make_unique<WaitingSynState>());
 }
 
 Connection ::~Connection() = default;
@@ -36,15 +51,15 @@ Connection ::~Connection() = default;
 IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
     _lastPacketReceive = clock::now();
-    IPacket::List freePackets = _state->OnRecvPackets(std::move(packet), *this);
+    auto [connectionState, freePackets] = _states[_connectionState]->OnRecvPackets(std::move(packet), *this);
 
-    {
-        IPacket::List temp;
-        _freeRecvPackets.LockedSwap(temp);
-        freePackets.splice(std::move(temp));
-    }
+    _connectionState = connectionState;
 
-    return freePackets;
+    IPacket::List temp;
+    _freeRecvPackets.LockedSwap(temp);
+    freePackets.splice(std::move(temp));
+
+    return std::move(freePackets);
 }
 
 bool Connection::IsConnected() const
@@ -215,12 +230,12 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 
 void Connection::Run()
 {
-    if (clock::now() - _lastPacketReceive > _state->GetTimeout()) {
-        _state = _state->OnTimeOut(*this);
+    if (clock::now() - _lastPacketReceive > _states[_connectionState]->GetTimeout()) {
+        _connectionState = _states[_connectionState]->OnTimeOut(*this);
         _lastPacketReceive = clock::now();
     } else {
-        _state = _state->SendPackets(*this);
-        _state->ProcessInflightPackets(*this);
+        _connectionState = _states[_connectionState]->SendPackets(*this);
+        _states[_connectionState]->ProcessInflightPackets(*this);
     }
 }
 } // namespace FastTransport::Protocol

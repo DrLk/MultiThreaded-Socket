@@ -1,6 +1,7 @@
 #include "PeriodicExecutor.hpp"
 
 #include <chrono>
+#include <functional>
 #include <thread>
 #include <utility>
 
