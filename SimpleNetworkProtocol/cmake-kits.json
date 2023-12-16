@@ -1,0 +1,38 @@
+[
+  {
+    "name": "GCC",
+
+    "generator": "Ninja",
+
+    "compilers": {
+      "C": "/usr/bin/gcc",
+      "CXX": "/usr/bin/g++",
+      "Fortran": "/usr/bin/gfortran"
+    },
+    "linker": "/usr/bin/mold",
+    "toochainFile": "xxx"
+  },
+  {
+    "name": "Clang",
+
+    "generator": "Ninja",
+
+    "compilers": {
+      "C": "/usr/bin/clang",
+      "CXX": "/usr/bin/clang++"
+    },
+    "linker": "/usr/bin/mold",
+    "toochainFile": "xxx"
+  },
+  {
+    "name": "VS 17 2022 amd64",
+    "generator": "Visual Studio 17 2022",
+    "host_architecture": "x64",
+    "environmentSetupScript": "& \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\"",
+    "target_architecture": "x64",
+    "compilers": {
+      "C": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe",
+      "CXX": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin//Hostx64/x64/cl.exe"
+    }
+  }
+]
