@@ -1,9 +1,11 @@
 #pragma once
 
 #include <list>
+#include <utility>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
+#include "RecvQueueStatus.hpp"
 
 namespace FastTransport::Containers {
 template <class T>
@@ -23,7 +25,7 @@ public:
     IRecvQueue& operator=(IRecvQueue&&) = default;
     virtual ~IRecvQueue() = default;
 
-    [[nodiscard]] virtual IPacket::Ptr AddPacket(IPacket::Ptr&& packet) = 0;
+    [[nodiscard]] virtual std::pair<RecvQueueStatus, IPacket::Ptr> AddPacket(IPacket::Ptr&& packet) = 0;
     virtual void ProccessUnorderedPackets() = 0;
     virtual LockedList<IPacket::Ptr>& GetUserData() = 0;
 

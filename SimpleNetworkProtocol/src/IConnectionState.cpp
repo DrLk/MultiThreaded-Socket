@@ -141,7 +141,7 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPa
         break;
     }
     case PacketType::DATA: {
-        auto freeRecvPacket = connection.GetRecvQueue().AddPacket(std::move(packet));
+        auto freeRecvPacket = connection.RecvPacket(std::move(packet));
         if (freeRecvPacket) {
             freePackets.push_back(std::move(freeRecvPacket));
         }
@@ -242,7 +242,8 @@ std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr
     }
     case PacketType::DATA: {
         connection.SetLastAck(packet->GetAckNumber());
-        auto freePacket = connection.GetRecvQueue().AddPacket(std::move(packet));
+
+        auto freePacket = connection.RecvPacket(std::move(packet));
         if (freePacket) {
             freePackets.push_back(std::move(freePacket));
         }

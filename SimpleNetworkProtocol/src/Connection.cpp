@@ -17,6 +17,7 @@
 #include "InFlightQueue.hpp"
 #include "OutgoingPacket.hpp"
 #include "RecvQueue.hpp"
+#include "RecvQueueStatus.hpp"
 #include "SendQueue.hpp"
 
 namespace FastTransport::Protocol {
@@ -70,6 +71,16 @@ bool Connection::IsConnected() const
 void Connection::SetConnected(bool connected)
 {
     _connected = connected;
+}
+
+const IStatistica& Connection::GetStatistica() const
+{
+    return _statistica;
+}
+
+Statistica& Connection::GetStatistica()
+{
+    return _statistica;
 }
 
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
@@ -162,11 +173,40 @@ void Connection::ProcessRecvPackets()
 
 void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
+    if (needAck) {
+        _statistica.AddSendPackets();
+    } else {
+        _statistica.AddAckSendPackets();
+    }
     _sendQueue->SendPacket(std::move(packet), needAck);
+}
+
+IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
+{
+    auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
+    switch (status) {
+    case RecvQueueStatus::FULL: {
+        _statistica.AddFullPackets();
+        break;
+    }
+    case RecvQueueStatus::DUPLICATE: {
+        _statistica.AddDuplicatePackets();
+        break;
+    }
+    case RecvQueueStatus::NEW: {
+        _statistica.AddReceivedPackets();
+        break;
+    }
+    default: {
+        throw std::runtime_error("Unknown RecvQueueStatus");
+    }
+    }
+    return std::move(freePacket);
 }
 
 void Connection::ReSendPackets(OutgoingPacket::List&& packets)
 {
+    _statistica.AddLostPackets(packets.size());
     _sendQueue->ReSendPackets(std::move(packets));
 }
 
@@ -182,6 +222,7 @@ OutgoingPacket::List Connection::CheckTimeouts()
 
 void Connection::AddAcks(std::span<SeqNumberType> acks)
 {
+    _statistica.AddAckReceivedPackets(acks.size());
     return _inFlightQueue->AddAcks(acks);
 }
 
@@ -230,12 +271,13 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 
 void Connection::Run()
 {
-    if (clock::now() - _lastPacketReceive > _states[_connectionState]->GetTimeout()) {
-        _connectionState = _states[_connectionState]->OnTimeOut(*this);
+    const auto& connectionState = _states[_connectionState];
+    if (clock::now() - _lastPacketReceive > connectionState->GetTimeout()) {
+        _connectionState = connectionState->OnTimeOut(*this);
         _lastPacketReceive = clock::now();
     } else {
-        _connectionState = _states[_connectionState]->SendPackets(*this);
-        _states[_connectionState]->ProcessInflightPackets(*this);
+        _connectionState = connectionState->SendPackets(*this);
+        connectionState->ProcessInflightPackets(*this);
     }
 }
 } // namespace FastTransport::Protocol

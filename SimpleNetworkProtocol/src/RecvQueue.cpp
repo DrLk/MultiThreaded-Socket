@@ -8,6 +8,7 @@
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
+#include "RecvQueueStatus.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -16,7 +17,7 @@ RecvQueue::RecvQueue()
 {
 }
 
-IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
+std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& packet)
 {
     const SeqNumberType packetNumber = packet->GetSeqNumber();
 
@@ -30,11 +31,11 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
             _selectiveAcks.push_back(packetNumber);
         }
 
-        return std::move(packet);
+        return { RecvQueueStatus::DUPLICATE, std::move(packet) };
     }
 
     if (packetNumber - _beginFullRecievedAck >= QueueSize) {
-        return std::move(packet); // drop packet. queue is full
+        return { RecvQueueStatus::FULL, std::move(packet) };
     }
 
     {
@@ -44,11 +45,11 @@ IPacket::Ptr RecvQueue::AddPacket(IPacket::Ptr&& packet)
 
     auto& queuePacket = _queue[(packetNumber) % QueueSize];
     if (queuePacket) {
-        return std::move(packet);
+        return { RecvQueueStatus::DUPLICATE, std::move(packet) };
     }
 
     queuePacket = std::move(packet);
-    return nullptr;
+    return { RecvQueueStatus::NEW, nullptr };
 }
 
 void RecvQueue::ProccessUnorderedPackets()

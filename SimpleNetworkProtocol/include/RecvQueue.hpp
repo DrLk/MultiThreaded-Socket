@@ -1,12 +1,14 @@
 #pragma once
 
 #include <list>
+#include <utility>
 #include <vector>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "LockedList.hpp"
+#include "RecvQueueStatus.hpp"
 #include "SpinLock.hpp"
 
 namespace FastTransport::Protocol {
@@ -17,7 +19,7 @@ class RecvQueue final : public IRecvQueue {
 public:
     RecvQueue();
 
-    [[nodiscard]] IPacket::Ptr AddPacket(IPacket::Ptr&& packet) override;
+    [[nodiscard]] std::pair<RecvQueueStatus, IPacket::Ptr> AddPacket(IPacket::Ptr&& packet) override;
     void ProccessUnorderedPackets() override;
     LockedList<IPacket::Ptr>& GetUserData() override;
 

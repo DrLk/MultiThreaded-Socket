@@ -211,7 +211,7 @@ void TestRecvQueue()
 
     IPacket::List freePackets;
     for (auto& packet : packets) {
-        auto freePacket = queue->AddPacket(std::move(packet));
+        auto [status, freePacket] = queue->AddPacket(std::move(packet));
         if (freePacket) {
             freePackets.push_back(std::move(freePacket));
         }

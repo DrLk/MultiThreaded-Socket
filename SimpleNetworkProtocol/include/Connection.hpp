@@ -11,8 +11,10 @@
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
+#include "IStatistica.hpp"
 #include "LockedList.hpp"
 #include "OutgoingPacket.hpp"
+#include "Statistica.hpp"
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;
@@ -40,6 +42,7 @@ public:
     virtual ~IConnection() = default;
 
     [[nodiscard]] virtual bool IsConnected() const = 0;
+    [[nodiscard]] virtual const IStatistica& GetStatistica() const = 0;
 
     [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
@@ -63,6 +66,8 @@ public:
 
     [[nodiscard]] bool IsConnected() const override;
     void SetConnected(bool connected);
+    [[nodiscard]] const IStatistica& GetStatistica() const override;
+    [[nodiscard]] Statistica& GetStatistica();
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
@@ -85,6 +90,8 @@ public:
 
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
     void ReSendPackets(OutgoingPacket::List&& packets);
+
+    IPacket::Ptr RecvPacket(IPacket::Ptr&& packet);
 
     [[nodiscard]] IPacket::List ProcessAcks();
     [[nodiscard]] OutgoingPacket::List CheckTimeouts();
@@ -126,5 +133,6 @@ private:
 
     ConnectionState _connectionState;
     std::unordered_map<ConnectionState, std::unique_ptr<IConnectionState>> _states;
+    Statistica _statistica;
 };
 } // namespace FastTransport::Protocol
