@@ -73,14 +73,14 @@ void Connection::SetConnected(bool connected)
     _connected = connected;
 }
 
-const IStatistica& Connection::GetStatistica() const
+const IStatistics& Connection::GetStatistics() const
 {
-    return _statistica;
+    return _statistics;
 }
 
-Statistica& Connection::GetStatistica()
+Statistics& Connection::GetStatistics()
 {
-    return _statistica;
+    return _statistics;
 }
 
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
@@ -174,9 +174,9 @@ void Connection::ProcessRecvPackets()
 void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
     if (needAck) {
-        _statistica.AddSendPackets();
+        _statistics.AddSendPackets();
     } else {
-        _statistica.AddAckSendPackets();
+        _statistics.AddAckSendPackets();
     }
     _sendQueue->SendPacket(std::move(packet), needAck);
 }
@@ -186,15 +186,15 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
     auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
     switch (status) {
     case RecvQueueStatus::FULL: {
-        _statistica.AddOverflowPackets();
+        _statistics.AddOverflowPackets();
         break;
     }
     case RecvQueueStatus::DUPLICATE: {
-        _statistica.AddDuplicatePackets();
+        _statistics.AddDuplicatePackets();
         break;
     }
     case RecvQueueStatus::NEW: {
-        _statistica.AddReceivedPackets();
+        _statistics.AddReceivedPackets();
         break;
     }
     default: {
@@ -206,7 +206,7 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 
 void Connection::ReSendPackets(OutgoingPacket::List&& packets)
 {
-    _statistica.AddLostPackets(packets.size());
+    _statistics.AddLostPackets(packets.size());
     _sendQueue->ReSendPackets(std::move(packets));
 }
 
@@ -222,7 +222,7 @@ OutgoingPacket::List Connection::CheckTimeouts()
 
 void Connection::AddAcks(std::span<SeqNumberType> acks)
 {
-    _statistica.AddAckReceivedPackets();
+    _statistics.AddAckReceivedPackets();
     return _inFlightQueue->AddAcks(acks);
 }
 

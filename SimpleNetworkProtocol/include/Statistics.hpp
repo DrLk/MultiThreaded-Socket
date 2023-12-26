@@ -4,13 +4,13 @@
 #include <atomic>
 #include <cstdint>
 
-#include "IStatistica.hpp"
+#include "IStatistics.hpp"
 
 namespace FastTransport::Protocol {
-class Statistica final : public IStatistica {
+class Statistics final : public IStatistics {
 public:
-    Statistica();
-    ~Statistica() override;
+    Statistics();
+    ~Statistics() override;
 
     void AddLostPackets(uint64_t lostPackets = OnePacket);
     uint64_t GetLostPackets() const override;
