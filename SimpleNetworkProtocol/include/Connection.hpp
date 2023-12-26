@@ -91,7 +91,7 @@ public:
     void SendPacket(IPacket::Ptr&& packet, bool needAck);
     void ReSendPackets(OutgoingPacket::List&& packets);
 
-    IPacket::Ptr RecvPacket(IPacket::Ptr&& packet);
+    [[nodiscard]] IPacket::Ptr RecvPacket(IPacket::Ptr&& packet);
 
     [[nodiscard]] IPacket::List ProcessAcks();
     [[nodiscard]] OutgoingPacket::List CheckTimeouts();

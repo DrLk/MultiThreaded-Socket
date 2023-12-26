@@ -186,7 +186,7 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
     auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
     switch (status) {
     case RecvQueueStatus::FULL: {
-        _statistica.AddFullPackets();
+        _statistica.AddOverflowPackets();
         break;
     }
     case RecvQueueStatus::DUPLICATE: {
@@ -222,7 +222,7 @@ OutgoingPacket::List Connection::CheckTimeouts()
 
 void Connection::AddAcks(std::span<SeqNumberType> acks)
 {
-    _statistica.AddAckReceivedPackets(acks.size());
+    _statistica.AddAckReceivedPackets();
     return _inFlightQueue->AddAcks(acks);
 }
 

@@ -20,8 +20,8 @@ public:
     uint64_t GetReceivedPackets() const override;
     void AddDuplicatePackets(uint64_t duplicatePackets = OnePacket);
     uint64_t GetDuplicatePackets() const override;
-    void AddFullPackets(uint64_t duplicatePackets = OnePacket);
-    uint64_t GetFullPackets() const override;
+    void AddOverflowPackets(uint64_t overflowPackets = OnePacket);
+    uint64_t GetOverflowPackets() const override;
     void AddAckSendPackets(uint64_t ackSendPacket = OnePacket);
     uint64_t GetAckSendPackets() const override;
     void AddAckReceivedPackets(uint64_t ackReceivedPackets = OnePacket);
@@ -34,6 +34,7 @@ private:
     std::atomic<uint64_t> _sendPackets;
     std::atomic<uint64_t> _receivedPackets;
     std::atomic<uint64_t> _duplicatePackets;
+    std::atomic<uint64_t> _overflowPackets;
     std::atomic<uint64_t> _ackSendPackets;
     std::atomic<uint64_t> _ackReceivedPackets;
 };

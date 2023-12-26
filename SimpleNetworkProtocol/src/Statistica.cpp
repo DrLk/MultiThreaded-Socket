@@ -47,14 +47,14 @@ uint64_t Statistica::GetDuplicatePackets() const
     return _duplicatePackets;
 }
 
-void Statistica::AddFullPackets(uint64_t duplicatePackets /* = OnePacket*/)
+void Statistica::AddOverflowPackets(uint64_t overflowPackets /* = OnePacket*/)
 {
-    _duplicatePackets += duplicatePackets;
+    _overflowPackets += overflowPackets;
 }
 
-uint64_t Statistica::GetFullPackets() const
+uint64_t Statistica::GetOverflowPackets() const
 {
-    return _duplicatePackets;
+    return _overflowPackets;
 }
 
 void Statistica::AddAckSendPackets(uint64_t ackSendPackets /*= OnePacket*/)
