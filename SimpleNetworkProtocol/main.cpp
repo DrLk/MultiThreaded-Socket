@@ -6,6 +6,7 @@
 
 #include "ConnectionAddr.hpp"
 #include "IPacket.hpp"
+#include "IStatistics.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
