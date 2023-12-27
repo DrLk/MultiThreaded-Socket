@@ -17,9 +17,9 @@ uint64_t Statistics::GetLostPackets() const
     return _lostPackets;
 }
 
-void Statistics::AddSendPackets(uint64_t sendPackets /*= OnePacket*/)
+void Statistics::AddSendPackets()
 {
-    _sendPackets += sendPackets;
+    _sendPackets += OnePacket;
 }
 
 uint64_t Statistics::GetSendPackets() const
@@ -27,9 +27,9 @@ uint64_t Statistics::GetSendPackets() const
     return _sendPackets;
 }
 
-void Statistics::AddReceivedPackets(uint64_t receivedPackets)
+void Statistics::AddReceivedPackets()
 {
-    _receivedPackets += receivedPackets;
+    _receivedPackets += OnePacket;
 }
 
 uint64_t Statistics::GetReceivedPackets() const
@@ -37,9 +37,9 @@ uint64_t Statistics::GetReceivedPackets() const
     return _receivedPackets;
 }
 
-void Statistics::AddDuplicatePackets(uint64_t duplicatePackets /* = OnePacket*/)
+void Statistics::AddDuplicatePackets()
 {
-    _duplicatePackets += duplicatePackets;
+    _duplicatePackets += OnePacket;
 }
 
 uint64_t Statistics::GetDuplicatePackets() const
@@ -47,9 +47,9 @@ uint64_t Statistics::GetDuplicatePackets() const
     return _duplicatePackets;
 }
 
-void Statistics::AddOverflowPackets(uint64_t overflowPackets /* = OnePacket*/)
+void Statistics::AddOverflowPackets()
 {
-    _overflowPackets += overflowPackets;
+    _overflowPackets += OnePacket;
 }
 
 uint64_t Statistics::GetOverflowPackets() const
@@ -57,9 +57,9 @@ uint64_t Statistics::GetOverflowPackets() const
     return _overflowPackets;
 }
 
-void Statistics::AddAckSendPackets(uint64_t ackSendPackets /*= OnePacket*/)
+void Statistics::AddAckSendPackets()
 {
-    _ackSendPackets += ackSendPackets;
+    _ackSendPackets += OnePacket;
 }
 
 uint64_t Statistics::GetAckSendPackets() const
@@ -67,9 +67,9 @@ uint64_t Statistics::GetAckSendPackets() const
     return _ackSendPackets;
 }
 
-void Statistics::AddAckReceivedPackets(uint64_t ackReceivedPackets /*= OnePacket*/)
+void Statistics::AddAckReceivedPackets()
 {
-    _ackReceivedPackets += ackReceivedPackets;
+    _ackReceivedPackets += OnePacket;
 }
 
 uint64_t Statistics::GetAckReceivedPackets() const

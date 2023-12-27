@@ -41,6 +41,7 @@ void TestConnection()
             throw std::runtime_error("Accept return nullptr");
         }
 
+        auto& statistics = dstConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
         static size_t totalCount = 0;
         while (!stop.stop_requested()) {
@@ -55,6 +56,7 @@ void TestConnection()
             if (duration > 1s) {
                 std::cout << "Recv packets : " << totalCount << std::endl;
                 std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
+                std::cout << "dst: " << statistics << std::endl;
                 countPerSecond = 0;
                 start = std::chrono::steady_clock::now();
             }
@@ -72,8 +74,15 @@ void TestConnection()
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
         IPacket::List userData = UDPQueue::CreateBuffers(200000);
+        auto& statistics = srcConnection->GetStatistics();
+        auto start = std::chrono::steady_clock::now();
         while (!stop.stop_requested()) {
             userData = srcConnection->Send(stop, std::move(userData));
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << "src: " << statistics << std::endl;
+                start = std::chrono::steady_clock::now();
+            }
         }
     });
 

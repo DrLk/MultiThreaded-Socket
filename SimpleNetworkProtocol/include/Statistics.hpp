@@ -12,20 +12,20 @@ public:
     Statistics();
     ~Statistics() override;
 
-    void AddLostPackets(uint64_t lostPackets = OnePacket);
-    uint64_t GetLostPackets() const override;
-    void AddSendPackets(uint64_t sendPackets = OnePacket);
-    uint64_t GetSendPackets() const override;
-    void AddReceivedPackets(uint64_t receivedPackets = OnePacket);
-    uint64_t GetReceivedPackets() const override;
-    void AddDuplicatePackets(uint64_t duplicatePackets = OnePacket);
-    uint64_t GetDuplicatePackets() const override;
-    void AddOverflowPackets(uint64_t overflowPackets = OnePacket);
-    uint64_t GetOverflowPackets() const override;
-    void AddAckSendPackets(uint64_t ackSendPacket = OnePacket);
-    uint64_t GetAckSendPackets() const override;
-    void AddAckReceivedPackets(uint64_t ackReceivedPackets = OnePacket);
-    uint64_t GetAckReceivedPackets() const override;
+    void AddLostPackets(uint64_t lostPackets);
+    [[nodiscard]] uint64_t GetLostPackets() const override;
+    void AddSendPackets();
+    [[nodiscard]] uint64_t GetSendPackets() const override;
+    void AddReceivedPackets();
+    [[nodiscard]] uint64_t GetReceivedPackets() const override;
+    void AddDuplicatePackets();
+    [[nodiscard]] uint64_t GetDuplicatePackets() const override;
+    void AddOverflowPackets();
+    [[nodiscard]] uint64_t GetOverflowPackets() const override;
+    void AddAckSendPackets();
+    [[nodiscard]] uint64_t GetAckSendPackets() const override;
+    void AddAckReceivedPackets();
+    [[nodiscard]] uint64_t GetAckReceivedPackets() const override;
 
 private:
     static constexpr uint64_t OnePacket = 1;
