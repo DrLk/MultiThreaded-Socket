@@ -7,7 +7,12 @@ namespace FastTransport::Protocol {
 
 class IStatistics {
 public:
-    virtual ~IStatistics() = default;
+    IStatistics();
+    IStatistics(const IStatistics&) = default;
+    IStatistics(IStatistics&&) = delete;
+    IStatistics& operator=(const IStatistics&) = default;
+    IStatistics& operator=(IStatistics&&) = delete;
+    virtual ~IStatistics();
     [[nodiscard]] virtual uint64_t GetLostPackets() const = 0;
     [[nodiscard]] virtual uint64_t GetSendPackets() const = 0;
     [[nodiscard]] virtual uint64_t GetReceivedPackets() const = 0;
@@ -19,4 +24,4 @@ public:
 
 std::ostream& operator<<(std::ostream& stream, const IStatistics& statistics); // NOLINT(fuchsia-overloaded-operator)
 
-} // FastTransport::Protocol
+} // namespace FastTransport::Protocol

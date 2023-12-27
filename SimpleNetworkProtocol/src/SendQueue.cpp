@@ -4,7 +4,6 @@
 #include <limits>
 #include <utility>
 
-
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"

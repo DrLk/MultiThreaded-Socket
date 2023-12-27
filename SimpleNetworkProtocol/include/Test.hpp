@@ -41,22 +41,19 @@ void TestConnection()
             throw std::runtime_error("Accept return nullptr");
         }
 
-        auto& statistics = dstConnection->GetStatistics();
+        const auto& statistics = dstConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
-        static size_t totalCount = 0;
         while (!stop.stop_requested()) {
             static size_t countPerSecond;
             recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
             if (!recvPackets.empty()) {
-                totalCount += recvPackets.size();
                 countPerSecond += recvPackets.size();
             }
 
             auto duration = std::chrono::steady_clock::now() - start;
             if (duration > 1s) {
-                std::cout << "Recv packets : " << totalCount << std::endl;
-                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
-                std::cout << "dst: " << statistics << std::endl;
+                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << '\n';
+                std::cout << "dst: " << statistics << '\n';
                 countPerSecond = 0;
                 start = std::chrono::steady_clock::now();
             }
@@ -74,13 +71,13 @@ void TestConnection()
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
         IPacket::List userData = UDPQueue::CreateBuffers(200000);
-        auto& statistics = srcConnection->GetStatistics();
+        const auto& statistics = srcConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
         while (!stop.stop_requested()) {
             userData = srcConnection->Send(stop, std::move(userData));
             auto duration = std::chrono::steady_clock::now() - start;
             if (duration > 1s) {
-                std::cout << "src: " << statistics << std::endl;
+                std::cout << "src: " << statistics << '\n';
                 start = std::chrono::steady_clock::now();
             }
         }
@@ -175,7 +172,7 @@ void TestSleep()
                 auto end = std::chrono::system_clock::now();
                 if ((end - start) > 1000ms) {
                     start = end;
-                    std::cout << counter << std::endl;
+                    std::cout << counter << '\n';
                     counter = 0;
                 }
             }
@@ -191,8 +188,8 @@ void TestPeriodicExecutor()
     PeriodicExecutor executor([]() {
         static std::atomic<int64_t> counter = 0;
         if (counter++ % RUNS_NUMBER == 0) {
-            std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl
-                      << "counter: " << counter << std::endl;
+            std::cout << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << '\n'
+                      << "counter: " << counter << '\n';
         }
 
         // std::this_thread::sleep_for(1ms);
@@ -264,11 +261,11 @@ void TestMultiList()
     }
 
     for (const auto& element : list) {
-        std::cout << element << std::endl;
+        std::cout << element << '\n';
     }
 
     for (auto& element : list) {
-        std::cout << element << std::endl;
+        std::cout << element << '\n';
     }
 }
 

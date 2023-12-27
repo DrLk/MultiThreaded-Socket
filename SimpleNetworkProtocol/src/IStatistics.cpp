@@ -4,6 +4,10 @@
 
 namespace FastTransport::Protocol {
 
+IStatistics::IStatistics() = default;
+
+IStatistics::~IStatistics() = default;
+
 std::ostream& operator<<(std::ostream& stream, const IStatistics& statistics) // NOLINT(fuchsia-overloaded-operator)
 {
     stream << "Send: " << statistics.GetSendPackets()

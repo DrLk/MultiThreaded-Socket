@@ -10,6 +10,10 @@ namespace FastTransport::Protocol {
 class Statistics final : public IStatistics {
 public:
     Statistics();
+    Statistics(const Statistics&) = delete;
+    Statistics(Statistics&&) = delete;
+    Statistics& operator=(const Statistics&) = delete;
+    Statistics& operator=(Statistics&&) = delete;
     ~Statistics() override;
 
     void AddLostPackets(uint64_t lostPackets);

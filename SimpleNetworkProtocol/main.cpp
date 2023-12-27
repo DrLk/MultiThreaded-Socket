@@ -38,16 +38,31 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
         IPacket::List userData = UDPQueue::CreateBuffers(200000);
+        size_t packetsPerSecond = 0;
+        auto start = std::chrono::steady_clock::now();
+        const IStatistics& statistics = srcConnection->GetStatistics();
         while (!stop.stop_requested()) {
+
+            if (!userData.empty()) {
+                packetsPerSecond += userData.size();
+            }
             userData = srcConnection->Send(stop, std::move(userData));
+
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << statistics << '\n';
+                std::cout << "Send speed: " << packetsPerSecond << "pkt/sec" << '\n';
+                packetsPerSecond = 0;
+                start = std::chrono::steady_clock::now();
+            }
         } });
 
     sendThread.join();
 }
 
-void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort)
+void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 {
-    std::jthread recvThread([srcAddress, srcPort, dstAddress, dstPort](std::stop_token stop) {
+    std::jthread recvThread([srcAddress, srcPort](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
@@ -57,20 +72,20 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort, std
         }
 
         auto start = std::chrono::steady_clock::now();
-        static size_t totalCount = 0;
+        size_t packetsPerSecond = 0;
+        const IStatistics& statistics = dstConnection->GetStatistics();
         while (!stop.stop_requested()) {
-            static size_t countPerSecond;
+
             recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
             if (!recvPackets.empty()) {
-                totalCount += recvPackets.size();
-                countPerSecond += recvPackets.size();
+                packetsPerSecond += recvPackets.size();
             }
 
             auto duration = std::chrono::steady_clock::now() - start;
             if (duration > 1s) {
-                std::cout << "Recv packets : " << totalCount << std::endl;
-                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << std::endl;
-                countPerSecond = 0;
+                std::cout << statistics << '\n';
+                std::cout << "Recv speed: " << packetsPerSecond << "pkt/sec" << '\n';
+                packetsPerSecond = 0;
                 start = std::chrono::steady_clock::now();
             }
 
@@ -103,10 +118,14 @@ int main(int argc, char** argv)
     switch (version) {
     case Source: {
         RunSourceConnection(srcAddress, srcPort, dstAddress, dstPort);
+        break;
     }
     case Destination: {
-        RunDestinationConnection(srcAddress, srcPort, dstAddress, dstPort);
+        RunDestinationConnection(srcAddress, srcPort);
+        break;
     }
+    default:
+        return 1;
     }
 
     const std::span<char*> args { argv, static_cast<size_t>(argc) };
