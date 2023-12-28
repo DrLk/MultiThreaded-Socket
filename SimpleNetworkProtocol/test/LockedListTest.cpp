@@ -1,5 +1,5 @@
 #include "LockedList.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <stop_token>
 #include <utility>

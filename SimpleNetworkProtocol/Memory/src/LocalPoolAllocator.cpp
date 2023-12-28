@@ -25,7 +25,6 @@ void* LocalPoolAllocator::Allocate(std::size_t size, std::size_t alignment)
         return allocation;
     }
 
-    std::size_t count = MaxFreeSize;
     auto nodes = _globalAllocator->Allocate2(size, alignment);
 
     backetSize = 0;
@@ -36,7 +35,6 @@ void* LocalPoolAllocator::Allocate(std::size_t size, std::size_t alignment)
 
         free = _pool.insert({ std::move(node) });
         backetSize++;
-        count--;
     }
 
     if (free != _pool.end()) {
@@ -57,9 +55,9 @@ void LocalPoolAllocator::Deallocate(void* memory, std::size_t size, std::size_t 
     if (bucketSize > MaxFreeSize * 2) {
         ThreadSafeAllocator::AllocationNodes nodes;
         auto [begin, end] = _pool.equal_range({ size, alignment });
-        auto node = nodes.begin();
-        for (auto iterator = begin; iterator != end && node != nodes.end(); ++node) {
-            *node = _pool.extract(iterator++);
+        int index = 0;
+        for (auto iterator = begin; iterator != end && index < nodes.size(); ++index) {
+            nodes.at(index) = _pool.extract(iterator++);
             bucketSize--;
         }
 

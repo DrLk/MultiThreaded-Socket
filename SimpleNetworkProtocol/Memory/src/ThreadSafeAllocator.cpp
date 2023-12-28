@@ -9,9 +9,7 @@ ThreadSafeAllocator::ThreadSafeAllocator(std::pmr::memory_resource* resource)
 {
 }
 
-ThreadSafeAllocator::~ThreadSafeAllocator()
-{
-}
+ThreadSafeAllocator::~ThreadSafeAllocator() = default;
 
 void* ThreadSafeAllocator::Allocate(std::size_t size, std::size_t alignment)
 {

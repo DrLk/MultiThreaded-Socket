@@ -11,12 +11,19 @@
 namespace TaskQueue {
 
 class ITaskQueue {
-    virtual std::future<void> Async(std::stop_token stop, std::function<void()>&& task) = 0;
+    virtual std::future<void> Async(std::function<void()>&& function) = 0;
+public:
+    ITaskQueue() = default;
+    ITaskQueue(const ITaskQueue&) = delete;
+    ITaskQueue(ITaskQueue&&) = delete;
+    ITaskQueue& operator=(const ITaskQueue&) = delete;
+    ITaskQueue& operator=(ITaskQueue&&) = delete;
+    virtual ~ITaskQueue() = default;
 };
 
 class TaskQueue : public ITaskQueue {
 public:
-    std::future<void> Async(std::stop_token stop, std::function<void()>&& task) override;
+    std::future<void> Async(std::function<void()>&& function) override;
 
 private:
     using LockedList = FastTransport::Containers::LockedList<std::packaged_task<void()>>;

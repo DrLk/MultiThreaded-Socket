@@ -1,5 +1,5 @@
 #include "Socket.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <compare>
 #include <cstddef>

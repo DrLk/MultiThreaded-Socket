@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <cstddef>
 #include <list>
@@ -54,6 +54,7 @@ TEST(MemoryTest, MemoryAllocator)
 
     std::jthread thread2([&allocator]() {
         void* address = allocator.allocate(100);
+        allocator.deallocate(address, 100);
     });
 
     thread2.join();

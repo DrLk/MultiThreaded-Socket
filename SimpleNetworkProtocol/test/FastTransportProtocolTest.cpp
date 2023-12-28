@@ -1,5 +1,5 @@
 #include "FastTransportProtocol.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <array>

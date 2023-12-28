@@ -1,5 +1,5 @@
 #include "SampleStats.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <chrono>
 

@@ -1,5 +1,5 @@
 #include "Packet.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <span>

@@ -17,6 +17,6 @@ private:
     [[nodiscard]] bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override;
 
     std::pmr::memory_resource* _resource;
-    std::size_t _allocatedSize;
+    std::size_t _allocatedSize { 0 };
 };
 } // namespace FastTransport::Memory

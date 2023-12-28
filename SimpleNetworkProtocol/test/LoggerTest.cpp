@@ -1,5 +1,5 @@
 #include "Logger.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 TEST(LoggerTest, BasicLoggerTest)
 {

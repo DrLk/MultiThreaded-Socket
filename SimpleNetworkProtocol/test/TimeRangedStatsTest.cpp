@@ -1,5 +1,5 @@
 #include "TimeRangedStats.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <chrono>
@@ -171,7 +171,7 @@ TEST(TimeRangedStatsTest, UpdateStats2)
         });
 
     auto sample = std::find_if(samples.begin(), samples.end(),
-        [packetCount](const SampleStats& sample) {
+        [](const SampleStats& sample) {
             return sample.GetAllPackets() == packetCount;
         });
 

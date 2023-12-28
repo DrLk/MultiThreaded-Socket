@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "Connection.hpp"
 #include "ConnectionAddr.hpp"
@@ -11,7 +11,7 @@ TEST(StatisticaTest, BasicStatisticaTest)
 {
     /* Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID); */
     Connection connection(ConnectionState::DataState, ConnectionAddr("127.0.0.1", 10000), 1);
-    IStatistics& statistics = connection.GetStatistics();
+    const IStatistics& statistics = connection.GetStatistics();
 
     connection.SendPacket(std::make_unique<Packet>(1500), true);
     EXPECT_EQ(statistics.GetSendPackets(), 1);

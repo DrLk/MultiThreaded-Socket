@@ -74,6 +74,6 @@ if(ENABLE_PRECOMPILE_HEADERS)
   target_precompile_headers(SimpleNetworkProtocolTest PRIVATE include/pch.hpp)
 endif()
 
-  include(GoogleTest)
-  gtest_discover_tests(SimpleNetworkProtocolTest)
+include(GoogleTest)
+gtest_discover_tests(SimpleNetworkProtocolTest)
 endif()

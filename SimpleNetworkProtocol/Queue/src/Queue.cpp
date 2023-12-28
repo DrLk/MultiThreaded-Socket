@@ -5,9 +5,9 @@
 
 namespace TaskQueue {
 
-std::future<void> TaskQueue::Async(std::stop_token stop, std::function<void()>&& function)
+std::future<void> TaskQueue::Async(std::function<void()>&& function)
 {
-    auto task = std::packaged_task<void()>(function);
+    auto task = std::packaged_task<void()>(std::move(function));
     std::future<void> future = task.get_future();
     _taskQueue.LockedPushBack(std::move(task));
     _taskQueue.NotifyAll();
@@ -33,7 +33,7 @@ void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
 int64_t add(int64_t lhs, int64_t rhs)
 {
     TaskQueue queue;
-    std::future wait = queue.Async(std::stop_token(), []() { return; });
+    const std::future wait = queue.Async([]() { return; });
     wait.wait();
     return lhs + rhs;
 }
@@ -57,4 +57,4 @@ int64_t square(int64_t value)
 {
     return value * value;
 }
-} // namespace calc
+}  // namespace TaskQueue

@@ -5,7 +5,6 @@
 namespace FastTransport::Memory {
 MemoryLogger::MemoryLogger(std::pmr::memory_resource* resource)
     : _resource(resource)
-    , _allocatedSize(0)
 {
 }
 

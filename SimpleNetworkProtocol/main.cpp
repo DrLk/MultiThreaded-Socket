@@ -108,13 +108,13 @@ int main(int argc, char** argv)
     if (argc == 1) {
         Test();
     }
+    auto args = std::span(argv, argc);
 
-    int version = std::stoi(argv[1]);
-
-    std::string_view srcAddress = argv[2];
-    uint16_t srcPort = std::stoi(argv[3]);
-    std::string_view dstAddress = argv[4];
-    uint16_t dstPort = std::stoi(argv[5]);
+    const int version = std::stoi(args[1]);
+    const std::string_view srcAddress = args[2];
+    const uint16_t srcPort = std::stoi(args[3]);
+    const std::string_view dstAddress = args[4];
+    const uint16_t dstPort = std::stoi(args[5]);
 
     switch (version) {
     case Source: {
@@ -129,7 +129,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const std::span<char*> args { argv, static_cast<size_t>(argc) };
     const int port = std::stoi(args[2]);
     const ConnectionAddr address("0.0.0.0", port);
     const int threadCount = std::stoi(args[3]);
