@@ -22,7 +22,7 @@ void PoolAllocator::do_deallocate(void* memory, std::size_t bytes, std::size_t a
     GetThreadPool().Deallocate(memory, bytes, alignment);
 }
 
-bool PoolAllocator::do_is_equal(const std::pmr::memory_resource& other) const noexcept
+bool PoolAllocator::do_is_equal(const std::pmr::memory_resource&  /*other*/) const noexcept
 {
     assert(false);
     return false;

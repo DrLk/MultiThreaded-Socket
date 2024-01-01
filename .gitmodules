@@ -1,3 +1,6 @@
 [submodule "SimpleNetworkProtocol/external/googletest"]
 	path = SimpleNetworkProtocol/external/googletest
 	url = git@github.com:DrLk/googletest.git
+[submodule "SimpleNetworkProtocol/external/tracy/tracy"]
+	path = SimpleNetworkProtocol/external/tracy/tracy
+	url = https://github.com/wolfpld/tracy

@@ -52,7 +52,7 @@ void ThreadSafeAllocator::Deallocate(AllocationPool&& pool)
     _pool.merge(std::move(pool));
 }
 
-void ThreadSafeAllocator::Deallocate(AllocationNodes&& nodes)
+void ThreadSafeAllocator::Deallocate(AllocationNodes&& nodes) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     const std::scoped_lock<Mutex> lock(_mutex);
 

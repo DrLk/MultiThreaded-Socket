@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
+option(ENABLE_TRACY "Enable Tracy" ON)
 
 project(SimpleNetworkProtocol)
 
@@ -19,16 +20,18 @@ add_subdirectory(Queue)
 if (NOT TARGET LockedList)
   add_subdirectory(LockedList)
 endif()
+add_subdirectory(external/tracy EXCLUDDE_FROM_ALL SYSTEM)
 
 
 set(COMMON_INCLUDES include)
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 
+
 include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList Logger Memory)
+target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList Logger Memory Tracy)
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )
