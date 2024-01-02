@@ -19,6 +19,7 @@
 #include "Logger.hpp"
 #include "OutgoingPacket.hpp"
 #include "ThreadName.hpp"
+#include "Tracy.hpp"
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
@@ -129,6 +130,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 
 void FastTransportContext::ConnectionsRun(std::stop_token stop)
 {
+    ZoneScopedN("ConnectionsRun");
     {
         const std::shared_lock lock(_connectionsMutex);
 
@@ -142,6 +144,7 @@ void FastTransportContext::ConnectionsRun(std::stop_token stop)
 
 void FastTransportContext::SendQueueStep(std::stop_token stop)
 {
+    ZoneScopedN("SendQueueStep");
     OutgoingPacket::List packets;
 
     {
@@ -178,6 +181,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
 
 void FastTransportContext::RecvQueueStep(std::stop_token stop)
 {
+    ZoneScopedN("RecvQueueStep");
     // TODO: get 1k freePackets
     IPacket::List freePackets;
     freePackets.swap(_freeRecvPackets);
@@ -193,6 +197,7 @@ void FastTransportContext::RecvQueueStep(std::stop_token stop)
 
 void FastTransportContext::CheckRecvQueue()
 {
+    ZoneScopedN("CheckRecvQueue");
     const std::shared_lock lock(_connectionsMutex);
 
     for (auto& [key, connection] : _connections) {
@@ -202,6 +207,7 @@ void FastTransportContext::CheckRecvQueue()
 
 void FastTransportContext::RemoveRecvClosedConnections()
 {
+    ZoneScopedN("RemoveRecvClosedConnections");
     const std::scoped_lock lock(_connectionsMutex);
 
     std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
@@ -218,6 +224,7 @@ void FastTransportContext::RemoveRecvClosedConnections()
 }
 void FastTransportContext::RemoveSendClosedConnections()
 {
+    ZoneScopedN("RemoveSendClosedConnections");
     const std::scoped_lock lock(_connectionsMutex);
     std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
         const auto& [key, connection] = that;
@@ -240,6 +247,7 @@ OutgoingPacket::List FastTransportContext::Send(std::stop_token stop, OutgoingPa
 void FastTransportContext::SendThread(std::stop_token stop, FastTransportContext& context)
 {
     SetThreadName("SendThread");
+    ZoneScopedN("SendThread");
 
     while (!stop.stop_requested()) {
         context.RemoveSendClosedConnections();
@@ -250,6 +258,7 @@ void FastTransportContext::SendThread(std::stop_token stop, FastTransportContext
 void FastTransportContext::RecvThread(std::stop_token stop, FastTransportContext& context)
 {
     SetThreadName("RecvThread");
+    ZoneScopedN("RecvThread");
 
     context.InitRecvPackets();
 

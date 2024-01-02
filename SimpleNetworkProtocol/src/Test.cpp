@@ -1,26 +1,18 @@
 #include "Test.hpp"
 
-#include <Tracy.hpp>
 #include <chrono>
 #include <stop_token>
 #include <thread>
+
+#include "Tracy.hpp"
 
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
 void TestConnection()
 {
-    std::jthread recvThread([](std::stop_token  /*stop*/) {
-        ZoneScopedN("recvThread");
-        auto start = std::chrono::steady_clock::now();
-
-        while (start + 10s > std::chrono::steady_clock::now()) {
-            ZoneScoped;
-            std::this_thread::sleep_for(500ms);
-            FrameMark;
-        }
-
-        /*FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+    std::jthread recvThread([](std::stop_token  stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
         const IConnection::Ptr dstConnection = dst.Accept(stop);
@@ -46,37 +38,29 @@ void TestConnection()
             }
 
             // std::this_thread::sleep_for(500ms);
-        }*/
+        }
     });
 
     std::this_thread::sleep_for(500ms);
 
-    std::jthread sendThread([](std::stop_token  /*stop*/) {
-        ZoneScopedN("sendThread");
+    std::jthread sendThread([](std::stop_token  stop) {
+
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+        
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+        
+        IPacket::List userData = UDPQueue::CreateBuffers(200000);
+        const auto& statistics = srcConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
-
-        while (start + 7s > std::chrono::steady_clock::now()) {
-            ZoneScoped;
-            std::this_thread::sleep_for(500ms);
-            FrameMark;
+        while (!stop.stop_requested()) {
+            userData = srcConnection->Send(stop, std::move(userData));
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << "src: " << statistics << '\n';
+                start = std::chrono::steady_clock::now();
+            }
         }
-
-        /* FastTransportContext src(ConnectionAddr("127.0.0.1", 11100)); */
-        /* const ConnectionAddr dstAddr("127.0.0.1", 11200); */
-        /*  */
-        /* const IConnection::Ptr srcConnection = src.Connect(dstAddr); */
-        /*  */
-        /* IPacket::List userData = UDPQueue::CreateBuffers(200000); */
-        /* const auto& statistics = srcConnection->GetStatistics(); */
-        /* auto start = std::chrono::steady_clock::now(); */
-        /* while (!stop.stop_requested()) { */
-        /*     userData = srcConnection->Send(stop, std::move(userData)); */
-        /*     auto duration = std::chrono::steady_clock::now() - start; */
-        /*     if (duration > 1s) { */
-        /*         std::cout << "src: " << statistics << '\n'; */
-        /*         start = std::chrono::steady_clock::now(); */
-        /*     } */
-        /* } */
     });
 
     recvThread.join();

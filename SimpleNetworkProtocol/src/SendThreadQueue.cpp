@@ -10,6 +10,7 @@
 #include "OutgoingPacket.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
+#include "Tracy.hpp"
 #include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;
@@ -39,26 +40,31 @@ namespace {
 void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, SendThreadQueue& /*sendThreadQueue*/, const Socket& socket, size_t index)
 {
     SetThreadName("WriteThread");
+    ZoneScopedN("UDPQueue::WriteThread");
 
     OutgoingPacket::List sendQueue;
 
     while (!stop.stop_requested()) {
-
         if (sendQueue.empty()) {
+            ZoneScopedN("GetOutgoingPacketsToSend");
             sendQueue = GetOutgoingPacketsToSend(stop, udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
         }
 
         for (auto& packet : sendQueue) {
+            ZoneScopedN("SendQueueLoop");
             packet.SetSendTime(clock::now());
             auto data = packet.GetPacket()->GetBuffer();
             ConnectionAddr sockaddr = packet.GetPacket()->GetDstAddr();
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             if (!socket.WaitWrite()) {
+                int i = 0;
+                i++;
                 break;
             }
 
             while (true) {
+                ZoneScopedN("SendPacket");
                 const int result = socket.SendTo(data, sockaddr);
                 // WSAEWOULDBLOCK
                 if (result == data.size()) {
@@ -68,6 +74,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         }
 
         if (!sendQueue.empty()) {
+            ZoneScopedN("SendQueueEmpty");
             OutgoingPacket::List queue;
             queue.swap(sendQueue);
             udpQueue._sendFreeQueue.LockedSplice(std::move(queue));

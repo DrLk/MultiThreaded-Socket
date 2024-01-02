@@ -15,6 +15,7 @@
 #include "SendThreadQueue.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
+#include "Tracy.hpp"
 
 using namespace std::chrono_literals;
 
@@ -105,12 +106,14 @@ IPacket::List UDPQueue::CreateBuffers(size_t size)
 void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, size_t index)
 {
     SetThreadName("ReadThread");
+    ZoneScopedN("UDPQueue::ReadThread");
 
     IPacket::List recvQueue;
 
     while (!stop.stop_requested()) {
 
         if (recvQueue.empty()) {
+            ZoneScopedN("RecvQueueEmpty");
 
             if (!udpQueue._recvFreeQueue.Wait(stop)) {
                 continue;
@@ -124,6 +127,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
         }
 
         for (auto it = recvQueue.begin(); it != recvQueue.end();) {
+            ZoneScopedN("RecvQueueLoop");
             IPacket::Ptr& packet = *it;
             ConnectionAddr connectionAddr;
             const int result = socket.RecvFrom(packet->GetElement(), connectionAddr);
@@ -144,6 +148,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
         }
 
         if (!recvThreadQueue._recvThreadQueue.empty()) {
+            ZoneScopedN("RecvThreadQueueEmpty");
             IPacket::List queue;
             queue.swap(recvThreadQueue._recvThreadQueue);
             udpQueue._recvQueue.LockedSplice(std::move(queue));
