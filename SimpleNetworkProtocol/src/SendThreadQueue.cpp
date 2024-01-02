@@ -58,8 +58,6 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
             sockaddr.SetPort(sockaddr.GetPort() + index);
 
             if (!socket.WaitWrite()) {
-                int i = 0;
-                i++;
                 break;
             }
 

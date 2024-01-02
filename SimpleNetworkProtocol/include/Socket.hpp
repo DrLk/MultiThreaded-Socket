@@ -21,11 +21,11 @@
 #endif
 
 #include <cstddef>
-#include <cstdint>
 #include <span>
 #include <stdexcept>
 
 #include "ConnectionAddr.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 class Socket {
@@ -49,45 +49,10 @@ public:
     Socket& operator=(const Socket&) = delete;
     Socket& operator=(Socket&&) = delete;
 
-    void Init()
-    {
-        // create a UDP socket
-        _socket = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP);
-        if (_socket == INVALID_SOCKET) {
-            throw std::runtime_error("socket");
-        }
+    void Init();
 
-#ifdef WIN32
-        u_long mode = 1; // 1 to enable non-blocking socket
-        ioctlsocket(_socket, FIONBIO, &mode); // NOLINT
-#elif __APPLE__
-        fcntl(_socket, F_SETFL, O_NONBLOCK); // NOLINT
-#else
-        uint32_t mode = 1; // 1 to enable non-blocking socket
-        ioctl(_socket, FIONBIO, &mode); // NOLINT
-#endif
-
-        const int bufferSize = 10 * 1024 * 1024;
-        int result = setsockopt(_socket, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&bufferSize), sizeof(bufferSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        if (result != 0) {
-            throw std::runtime_error("Socket: failed to set SO_RCVBUF");
-        }
-
-        result = setsockopt(_socket, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<const char*>(&bufferSize), sizeof(bufferSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        if (result != 0) {
-            throw std::runtime_error("Socket: failed to set SO_SNDBUF");
-        }
-
-        // bind socket to port
-        if (bind(_socket, reinterpret_cast<const sockaddr*>(&_address.GetAddr()), sizeof(sockaddr)) != 0) { // NOLINT
-            throw std::runtime_error("Socket: failed to bind");
-        }
-    }
-
-    [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const
-    {
-        return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
-    }
+    [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
+    [[nodiscard]] size_t SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const;
 
     int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const
     {

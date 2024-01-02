@@ -11,6 +11,16 @@ public:
         friend MultiList;
 
     public:
+        using value_type = T;
+        using pointer = value_type*;
+        using reference = value_type&;
+        using iterator_category = std::bidirectional_iterator_tag;
+
+        // not sure if this last one makes sense, since
+        // `int operator-(CharPointer_UTF8 lhs, CharPointer_UTF8 rhs);`
+        // is not defined. Maybe it should?
+        using difference_type = int;
+
         explicit Iterator(MultiList<T>* container);
         Iterator(MultiList<T>* container, const typename std::list<std::list<T>>::iterator& it1);
 
@@ -18,6 +28,8 @@ public:
         bool operator==(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         bool operator!=(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         T& operator*(); // NOLINT(fuchsia-overloaded-operator)
+        const T* operator->() const; // NOLINT(fuchsia-overloaded-operator)
+        T* operator->(); // NOLINT(fuchsia-overloaded-operator)
 
     private:
         const MultiList<T>* _container;
@@ -106,6 +118,18 @@ template <class T> // NOLINT(fuchsia-overloaded-operator)
 T& MultiList<T>::Iterator::operator*() // NOLINT(fuchsia-overloaded-operator)
 {
     return *_it2;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const T* MultiList<T>::Iterator::operator->() const // NOLINT(fuchsia-overloaded-operator)
+{
+    return &(*_it2);
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+T* MultiList<T>::Iterator::operator->() // NOLINT(fuchsia-overloaded-operator)
+{
+    return &(*_it2);
 }
 
 template <class T>
