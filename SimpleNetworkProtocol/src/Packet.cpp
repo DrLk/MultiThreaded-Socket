@@ -98,8 +98,8 @@ void Packet::SetPayload(std::span<IPacket::ElementType> payload)
 
 std::span<IPacket::ElementType> Packet::GetBuffer()
 {
-    const PayloadSizeType pyaloadSize = Header(_element.data(), _element.size()).GetPayloadSize();
-    return { _element.data(), HeaderSize + pyaloadSize };
+    const PayloadSizeType payloadSize = Header(_element.data(), _element.size()).GetPayloadSize();
+    return { _element.data(), HeaderSize + payloadSize };
 }
 
 } // namespace FastTransport::Protocol

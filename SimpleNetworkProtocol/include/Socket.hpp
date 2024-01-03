@@ -50,18 +50,13 @@ public:
     Socket& operator=(Socket&&) = delete;
 
     void Init();
+    void Init2();
 
     [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
     [[nodiscard]] int SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const;
 
-    int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const
-    {
-        socklen_t len = sizeof(sockaddr_storage);
-        sockaddr_storage addr {};
-        int receivedBytes = recvfrom(_socket, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&addr), &len); // NOLINT
-        connectionAddr = ConnectionAddr(addr);
-        return receivedBytes;
-    }
+    [[nodiscard]] int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const;
+    [[nodiscard]] int RecvMsg(IPacket::List& packets, ConnectionAddr& addr) const;
 
     [[nodiscard]] bool WaitRead() const
     {
@@ -116,6 +111,9 @@ private:
     int _socket { INVALID_SOCKET };
 #endif
     ConnectionAddr _address;
+
+static constexpr size_t ControlMessageSpace{CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(struct in_pktinfo)) +
+                           CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(uint16_t))};
 };
 
 } // namespace FastTransport::Protocol
