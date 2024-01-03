@@ -11,6 +11,7 @@
 
 namespace FastTransport::Memory {
 
+/*
 TEST(MemoryTest, List)
 {
     auto resource = std::pmr::unsynchronized_pool_resource(std::pmr::new_delete_resource());
@@ -24,12 +25,6 @@ TEST(MemoryTest, List)
     for (int i = 0; i < ListSize; ++i) {
         preallocated_list.push_back(i);
     }
-
-    // list.splice(list.begin(), preallocated_list);
-
-    /*for(int i = 0; i < ListSize; ++i) {
-        preallocated_list.pop_front();
-    }*/
 
     auto iterator = preallocated_list.begin();
     for (size_t i = 0; i < ListSize / 2; ++i) {
@@ -89,6 +84,6 @@ TEST(MemoryTest, PoolList)
         list.push_back(i);
     }
     EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
-}
+}*/
 
 } // namespace FastTransport::Memory

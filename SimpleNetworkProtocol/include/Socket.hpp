@@ -52,7 +52,7 @@ public:
     void Init();
 
     [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
-    [[nodiscard]] size_t SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const;
+    [[nodiscard]] int SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const;
 
     int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const
     {

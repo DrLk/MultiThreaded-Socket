@@ -1,17 +1,17 @@
 #include "Socket.hpp"
+
 #include "IPacket.hpp"
 
 #include <algorithm>
+#include <array>
+#include <functional>
 #include <unordered_map>
+#include <utility>
 
-#ifndef POSIX
-/* #include <linux/udp.h> */
+#ifdef __linux__
 #include <map>
 #include <netinet/udp.h>
-#include <numeric>
-#include <string>
 #include <sys/socket.h>
-/* #include <sys/socket.h> */
 #endif
 
 namespace FastTransport::Protocol {
@@ -45,12 +45,14 @@ void Socket::Init()
         if (result != 0) {
             throw std::runtime_error("Socket: failed to set SO_SNDBUF");
         }
-        /* int gso_size = ETH_DATA_LEN - sizeof(struct ipv6hdr) - sizeof(struct udphdr); */
-        int gso_size = 1000;
+
+#ifdef __linux__
+        int gso_size = 400;
         result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &gso_size, sizeof(gso_size));
         if (result != 0) {
             throw std::runtime_error("Socket: failed to set UDP_SEGMENT");
         }
+#endif
 
         // bind socket to port
         if (bind(_socket, reinterpret_cast<const sockaddr*>(&_address.GetAddr()), sizeof(sockaddr)) != 0) { // NOLINT
@@ -64,51 +66,119 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
     return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
 }
 
-size_t Socket::SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const
+int Socket::SendMsg(IPacket::List& packets, const ConnectionAddr& addr) const
 {
-    static constexpr size_t CtrlSize = (sizeof(struct cmsghdr) + sizeof(int));
-    std::array<char, CtrlSize> ctrl {};
 
-    static constexpr size_t Size = 10;
-    std::array<iovec, Size> iov {};
-
-    std::unordered_map<int, std::vector<IPacket::Ptr>> map {};
     auto tranform = [](auto& packet) {
-        return std::pair<int, IPacket::Ptr> { packet->GetDstAddr().GetPort(), std::move(packet)};
+        return std::pair<int, std::reference_wrapper<IPacket::Ptr>> { packet->GetDstAddr().GetPort(), packet };
     };
 
-    auto mergeMaps = [](std::unordered_map<int, std::vector<IPacket::Ptr>>& map1, std::pair<int, IPacket::Ptr>&& value) {
-        map1[value.first].push_back(std::move(std::move(value.second)));
-        std::unordered_map<int, std::vector<IPacket::Ptr>> result;
-        /* result.insert(map1.begin(), map1.end()); */
-        return result;
+    auto insertPacket = [](std::unordered_map<int, std::vector<std::reference_wrapper<IPacket::Ptr>>>& map1, const std::pair<int, std::reference_wrapper<IPacket::Ptr>>& value) {
+        auto&& [address, packet] = value;
+        map1[address].push_back(packet);
+        return map1;
     };
-    std::transform_reduce(packets.begin(), packets.end(), std::unordered_map<int, std::vector<IPacket::Ptr>>(), mergeMaps, tranform);
+    auto sortedPackets = std::transform_reduce(packets.begin(), packets.end(), std::unordered_map<int, std::vector<std::reference_wrapper<IPacket::Ptr>>>(), insertPacket, tranform);
 
-    std::transform(packets.begin(), packets.end(), std::begin(iov), [](const IPacket::Ptr& packet) {
-        iovec iov {};
+    std::vector<mmsghdr> headers(sortedPackets.size());
 
-        iov.iov_base = packet->GetBuffer().data();
-        iov.iov_len = packet->GetBuffer().size();
-        return iov;
+    struct IoCtrl {
+        std::vector<char> ctrls;
+        std::vector<iovec> iov;
+    } __attribute__((aligned(64)));
+
+    std::vector<IoCtrl> ioCtrls(sortedPackets.size());
+
+    std::transform(sortedPackets.begin(), sortedPackets.end(), ioCtrls.begin(), headers.begin(), [&addr](auto& arg, auto& ioctrl) {
+        auto& [address, packets] = arg;
+
+        std::vector<iovec>& iov = ioctrl.iov;
+        std::vector<char>& ctrl = ioctrl.ctrls;
+        iov.resize(packets.size());
+        ctrl.resize(packets.size());
+
+        std::transform(packets.begin(), packets.end(), std::begin(iov), [](const IPacket::Ptr& packet) {
+            iovec iov {};
+
+            iov.iov_base = packet->GetBuffer().data();
+            iov.iov_len = packet->GetBuffer().size();
+            return iov;
+        });
+
+        struct msghdr message = {
+            .msg_iov = iov.data(),
+            .msg_iovlen = iov.size(),
+            .msg_control = ctrl.data(),
+            .msg_controllen = 0,
+            .msg_name = const_cast<void*>(static_cast<const void*>(&(addr.GetAddr()))),
+            .msg_namelen = sizeof(sockaddr),
+        };
+        return mmsghdr { .msg_hdr = message };
     });
 
-    struct msghdr message = {
-        .msg_iov = iov.data(),
-        .msg_iovlen = std::min(Size, packets.size()),
-        .msg_control = ctrl.data(),
-        .msg_controllen = 0,
-    };
-    message.msg_name = const_cast<void*>(static_cast<const void*>(&(addr.GetAddr())));
-    message.msg_namelen = sizeof(sockaddr);
+    auto result = sendmmsg(_socket, headers.data(), headers.size(), MSG_ZEROCOPY);
 
-    std::vector<mmsghdr> messages;
+    unsigned int msg_length = 0;
+    for (const auto& header : headers) {
+        msg_length += header.msg_len;
+    }
 
-    messages[0].msg_hdr = message;
+    return msg_length;
 
-    sendmmsg(_socket, messages.data(), messages.size(), 0);
+    /* for (auto& [address, packets] : sortedPackets) { */
+    /*     std::vector<iovec> iov; */
+    /*     std::vector<char> ctrl; */
+    /*     std::transform(packets.begin(), packets.end(), std::begin(iov), [](const IPacket::Ptr& packet) { */
+    /*         iovec iov {}; */
+    /*  */
+    /*         iov.iov_base = packet->GetBuffer().data(); */
+    /*         iov.iov_len = packet->GetBuffer().size(); */
+    /*         return iov; */
+    /*     }); */
+    /*  */
+    /*     struct msghdr message = { */
+    /*         .msg_iov = iov.data(), */
+    /*         .msg_iovlen = iov.size(), */
+    /*         .msg_control = ctrl.data(), */
+    /*         .msg_controllen = 0, */
+    /*         .msg_name = const_cast<void*>(static_cast<const void*>(&(addr.GetAddr()))), */
+    /*         .msg_namelen = sizeof(sockaddr), */
+    /*     }; */
+    /*     headers.push_back(mmsghdr { .msg_hdr = message }); */
+    /* } */
+    /*  */
+    /* return sendmmsg(_socket, headers.data(), headers.size(), 0); */
 
-    return sendmsg(_socket, &message, 0);
+    /* static constexpr size_t CtrlSize = (sizeof(struct cmsghdr) + sizeof(int)); */
+    /* std::array<char, CtrlSize> ctrl {}; */
+    /*  */
+    /* static constexpr size_t Size = 10; */
+    /* std::array<iovec, Size> iov2 {}; */
+    /*  */
+    /* std::transform(packets.begin(), packets.end(), std::begin(iov2), [](const IPacket::Ptr& packet) { */
+    /*     iovec iov {}; */
+    /*  */
+    /*     iov.iov_base = packet->GetBuffer().data(); */
+    /*     iov.iov_len = packet->GetBuffer().size(); */
+    /*     return iov; */
+    /* }); */
+    /*  */
+    /* struct msghdr message2 = { */
+    /*     .msg_iov = iov2.data(), */
+    /*     .msg_iovlen = std::min(Size, packets.size()), */
+    /*     .msg_control = ctrl.data(), */
+    /*     .msg_controllen = 0, */
+    /* }; */
+    /* message2.msg_name = const_cast<void*>(static_cast<const void*>(&(addr.GetAddr()))); */
+    /* message2.msg_namelen = sizeof(sockaddr); */
+    /*  */
+    /* std::vector<mmsghdr> messages; */
+    /*  */
+    /* messages[0].msg_hdr = message2; */
+    /*  */
+    /* sendmmsg(_socket, messages.data(), messages.size(), 0); */
+    /*  */
+    /* return sendmsg(_socket, &message2, 0); */
 }
 
 } // namespace FastTransport::Protocol
