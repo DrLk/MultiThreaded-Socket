@@ -42,6 +42,13 @@ public:
     ConnectionAddr& operator=(ConnectionAddr&& that) noexcept = default;
     ~ConnectionAddr() = default;
 
+    struct HashFunction {
+        size_t operator()(const ConnectionAddr& key) const // NOLINT(fuchsia-overloaded-operator)
+        {
+            return key.GetPort();
+        }
+    };
+
     bool operator==(const ConnectionAddr& that) const // NOLINT(fuchsia-overloaded-operator)
     {
         if (_storage.ss_family != that._storage.ss_family) {

@@ -2,10 +2,11 @@
 
 #include <cstddef>
 #include <list>
+#include <ranges>
 
 namespace FastTransport::Containers {
 template <class T>
-class MultiList {
+class MultiList : std::ranges::view_interface<MultiList<T>> {
 public:
     class Iterator {
         friend MultiList;
@@ -15,21 +16,48 @@ public:
         using pointer = value_type*;
         using reference = value_type&;
         using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = std::ptrdiff_t;
 
-        // not sure if this last one makes sense, since
-        // `int operator-(CharPointer_UTF8 lhs, CharPointer_UTF8 rhs);`
-        // is not defined. Maybe it should?
-        using difference_type = int;
-
+        Iterator() = default;
         explicit Iterator(MultiList<T>* container);
         Iterator(MultiList<T>* container, const typename std::list<std::list<T>>::iterator& it1);
 
         Iterator& operator++(); // NOLINT(fuchsia-overloaded-operator)
+        const Iterator operator++(int); // NOLINT(fuchsia-overloaded-operator)
         bool operator==(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         bool operator!=(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
-        T& operator*(); // NOLINT(fuchsia-overloaded-operator)
+        T& operator*() const; // NOLINT(fuchsia-overloaded-operator)
         const T* operator->() const; // NOLINT(fuchsia-overloaded-operator)
         T* operator->(); // NOLINT(fuchsia-overloaded-operator)
+
+    private:
+        const MultiList<T>* _container;
+
+        typename std::list<std::list<T>>::iterator _it1;
+        typename std::list<T>::iterator _it2;
+    };
+
+    class ConstIterator {
+        friend MultiList;
+
+    public:
+        using value_type = T;
+        using pointer = value_type*;
+        using reference = value_type&;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+
+        ConstIterator() = default;
+        explicit ConstIterator(const MultiList<T>* container);
+        ConstIterator(const MultiList<T>* container, const typename std::list<std::list<T>>::iterator& it1);
+
+        ConstIterator& operator++(); // NOLINT(fuchsia-overloaded-operator)
+        const ConstIterator operator++(int); // NOLINT(fuchsia-overloaded-operator)
+        bool operator==(const ConstIterator& other) const; // NOLINT(fuchsia-overloaded-operator)
+        bool operator!=(const ConstIterator& other) const; // NOLINT(fuchsia-overloaded-operator)
+        const T& operator*() const; // NOLINT(fuchsia-overloaded-operator)
+        const T* operator->() const; // NOLINT(fuchsia-overloaded-operator)
+        const T* operator->(); // NOLINT(fuchsia-overloaded-operator)
 
     private:
         const MultiList<T>* _container;
@@ -58,7 +86,11 @@ public:
 
     Iterator begin();
     Iterator end();
-    void erase(const Iterator& that);
+    ConstIterator begin() const;
+    ConstIterator end() const;
+    ConstIterator cbegin() const;
+    ConstIterator cend() const;
+    Iterator erase(Iterator that);
     void swap(MultiList& that) noexcept;
 
 private:
@@ -103,6 +135,23 @@ typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++() // NOLINT(
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
+const MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(fuchsia-overloaded-operator)
+{
+    _it2++;
+    if (_it2 == _it1->end()) {
+        _it1++;
+        if (_it1 == _container->_lists.end()) {
+            const typename std::list<T>::iterator defaultIterator {};
+            _it2 = defaultIterator;
+        } else {
+            _it2 = _it1->begin();
+        }
+    }
+
+    return *this;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
 bool MultiList<T>::Iterator::operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
 {
     return _it1 == other._it1 && _it2 == other._it2;
@@ -115,7 +164,7 @@ bool MultiList<T>::Iterator::operator!=(const Iterator& other) const // NOLINT(f
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-T& MultiList<T>::Iterator::operator*() // NOLINT(fuchsia-overloaded-operator)
+T& MultiList<T>::Iterator::operator*() const // NOLINT(fuchsia-overloaded-operator)
 {
     return *_it2;
 }
@@ -128,6 +177,79 @@ const T* MultiList<T>::Iterator::operator->() const // NOLINT(fuchsia-overloaded
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
 T* MultiList<T>::Iterator::operator->() // NOLINT(fuchsia-overloaded-operator)
+{
+    return &(*_it2);
+}
+
+template <class T>
+MultiList<T>::ConstIterator::ConstIterator(const MultiList* container)
+    : _container(container)
+    , _it1(container->_lists.begin())
+{
+    if (_it1 != container->_lists.end()) {
+        _it2 = _it1->begin();
+    }
+}
+
+template <class T>
+MultiList<T>::ConstIterator::ConstIterator(const MultiList* container, const typename std::list<std::list<T>>::iterator& it1)
+    : _container(container)
+    , _it1(it1)
+    , _it2()
+{
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+typename MultiList<T>::ConstIterator& MultiList<T>::ConstIterator::operator++() // NOLINT(fuchsia-overloaded-operator)
+{
+    _it2++;
+    if (_it2 == _it1->end()) {
+        _it1++;
+        if (_it1 == _container->_lists.end()) {
+            const typename std::list<T>::iterator defaultIterator {};
+            _it2 = defaultIterator;
+        } else {
+            _it2 = _it1->begin();
+        }
+    }
+
+    return *this;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const typename MultiList<T>::ConstIterator MultiList<T>::ConstIterator::operator++(int) // NOLINT(fuchsia-overloaded-operator)
+{
+    auto copy = operator++();
+    operator++();
+    return copy;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+bool MultiList<T>::ConstIterator::operator==(const ConstIterator& other) const // NOLINT(fuchsia-overloaded-operator)
+{
+    return _it1 == other._it1 && _it2 == other._it2;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+bool MultiList<T>::ConstIterator::operator!=(const ConstIterator& other) const // NOLINT(fuchsia-overloaded-operator)
+{
+    return !(*this == other);
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const T& MultiList<T>::ConstIterator::operator*() const // NOLINT(fuchsia-overloaded-operator)
+{
+    return *_it2;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const T* MultiList<T>::ConstIterator::operator->() const // NOLINT(fuchsia-overloaded-operator)
+{
+    return &(*_it2);
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const T* MultiList<T>::ConstIterator::operator->() // NOLINT(fuchsia-overloaded-operator)
 {
     return &(*_it2);
 }
@@ -250,18 +372,45 @@ typename MultiList<T>::Iterator MultiList<T>::begin()
 }
 
 template <class T>
+typename MultiList<T>::ConstIterator MultiList<T>::begin() const
+{
+    return ConstIterator(this);
+}
+
+template <class T>
+typename MultiList<T>::ConstIterator MultiList<T>::cbegin() const
+{
+    return ConstIterator(this);
+}
+
+template <class T>
 typename MultiList<T>::Iterator MultiList<T>::end()
 {
     return Iterator(this, _lists.end());
 }
 
 template <class T>
-void MultiList<T>::erase(const Iterator& that)
+typename MultiList<T>::ConstIterator MultiList<T>::end() const
 {
+    return ConstIterator(this, _lists.end());
+}
+
+template <class T>
+typename MultiList<T>::ConstIterator MultiList<T>::cend() const
+{
+    return ConstIterator(this, _lists.end());
+}
+
+template <class T>
+MultiList<T>::Iterator MultiList<T>::erase(Iterator that)
+{
+    Iterator newIterator = that;
     that._it1->erase(that._it2);
     if (that._it1->empty()) {
         _lists.erase(that._it1);
     }
+
+    return newIterator;
 }
 
 template <class T>

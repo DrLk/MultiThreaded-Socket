@@ -43,50 +43,67 @@ TEST(SocketTest, GSOSendMsg)
     /* Socket src(ConnectionAddr("0.0.0.0", 13100)); */
     /* Socket dst(ConnectionAddr("0.0.0.0", 13200)); */
     Socket src(ConnectionAddr("192.168.100.12", 13100));
-    Socket dst(ConnectionAddr("192.168.100.12", 13200));
+    Socket dst1(ConnectionAddr("192.168.100.12", 13201));
+    Socket dst2(ConnectionAddr("192.168.100.12", 13202));
 
     src.Init();
-    dst.Init();
+    dst1.Init();
+    dst2.Init();
 
-    constexpr int PacketSize = 200;
+    constexpr int PacketSize = 400;
     std::vector<std::byte> data(PacketSize);
     for (int i = 0; i < PacketSize; ++i) {
         data[i] = static_cast<std::byte>(i % 256);
     }
 
     /* const ConnectionAddr dstAddr("127.0.0.1", 13200); */
-    const ConnectionAddr dstAddr("192.168.100.12", 13200);
-    IPacket::List sendPackets;
+    const ConnectionAddr dstAddr1("192.168.100.12", 13201);
+    const ConnectionAddr dstAddr2("192.168.100.12", 13202);
+    IPacket::List sendPackets1;
+    IPacket::List sendPackets2;
     std::array<std::byte, PacketSize - 100> payload {};
 
-    static constexpr int PacketNumber = 2;
+    static constexpr int PacketNumber = 64;
     for (int i = 0; i < PacketNumber; ++i) {
         auto packet = std::make_unique<Packet>(PacketSize);
         packet->SetPayload(payload);
-        packet->SetAddr(dstAddr);
-        sendPackets.push_back(std::move(packet));
+        packet->SetAddr(dstAddr1);
+        sendPackets1.push_back(std::move(packet));
+
+        packet = std::make_unique<Packet>(PacketSize);
+        packet->SetPayload(payload);
+        packet->SetAddr(dstAddr2);
+        sendPackets1.push_back(std::move(packet));
+    }
+
+    for (int i = 0; i < PacketNumber / 2; ++i) {
+        auto packet = std::make_unique<Packet>(PacketSize);
+        packet->SetPayload(payload);
+        packet->SetAddr(dstAddr2);
+        sendPackets2.push_back(std::move(packet));
     }
 
     for (int i = 0; i < 3; ++i) {
-        auto result = src.SendMsg(sendPackets, dstAddr);
+        auto result = src.SendMsg(sendPackets1);
+        result = src.SendMsg(sendPackets2);
         EXPECT_EQ(result, PacketSize);
     }
 
     IPacket::List recvPackets2 {};
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 64; ++i) {
         auto packet = std::make_unique<Packet>(400);
         recvPackets2.push_back(std::move(packet));
     }
 
     ConnectionAddr srcAddr;
-    while (!dst.WaitRead()) { }
-    auto result = dst.RecvMsg(recvPackets2, srcAddr);
-    while (!dst.WaitRead()) { }
-    result = dst.RecvMsg(recvPackets2, srcAddr);
-    while (!dst.WaitRead()) { }
-    result = dst.RecvMsg(recvPackets2, srcAddr);
-    while (!dst.WaitRead()) { }
-    result = dst.RecvMsg(recvPackets2, srcAddr);
+    while (!dst1.WaitRead()) { }
+    auto result = dst1.RecvMsg(recvPackets2, srcAddr);
+    while (!dst2.WaitRead()) { }
+    result = dst2.RecvMsg(recvPackets2, srcAddr);
+    while (!dst1.WaitRead()) { }
+    result = dst1.RecvMsg(recvPackets2, srcAddr);
+    while (!dst2.WaitRead()) { }
+    result = dst2.RecvMsg(recvPackets2, srcAddr);
 
     /* ConnectionAddr addr; */
     /* std::vector<std::byte> data2(PacketSize); */
@@ -105,7 +122,7 @@ TEST(SocketTest, GSOSendMsg)
     auto now = std::chrono::high_resolution_clock::now();
     size_t packetsPerSecond = 0;
     while (true) {
-        result = src.SendMsg(sendPackets, dstAddr);
+        result = src.SendMsg(sendPackets1);
         packetsPerSecond += result;
         if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) {
             now = std::chrono::high_resolution_clock::now();
@@ -127,7 +144,7 @@ TEST(SocketTest, GSOSendMsg)
     packetsPerSecond = 0;
     while (true) {
         ConnectionAddr srcAddr;
-        result = dst.RecvMsg(recvPackets, srcAddr);
+        result = dst1.RecvMsg(recvPackets, srcAddr);
         packetsPerSecond += result;
         if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) {
             now = std::chrono::high_resolution_clock::now();
