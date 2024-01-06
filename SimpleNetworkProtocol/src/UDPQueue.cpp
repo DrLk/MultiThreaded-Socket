@@ -97,7 +97,7 @@ IPacket::List UDPQueue::CreateBuffers(size_t size)
 {
     IPacket::List buffers;
     for (size_t i = 0; i < size; i++) {
-        buffers.push_back(std::make_unique<Packet>(1400));
+        buffers.push_back(std::make_unique<Packet>(Socket::GsoSize));
     }
 
     return buffers;
@@ -112,7 +112,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
 
     while (!stop.stop_requested()) {
 
-        if (recvQueue.empty()) {
+        if (recvQueue.size() < Socket::UDPMaxSegments) {
             ZoneScopedN("RecvQueueEmpty");
 
             if (!udpQueue._recvFreeQueue.Wait(stop)) {
@@ -120,11 +120,19 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
             }
 
             recvQueue.splice(udpQueue._recvFreeQueue.LockedTryGenerate(udpQueue._recvQueueSizePerThread));
+            continue;
         }
 
         if (!socket.WaitRead()) {
             continue;
         }
+
+#ifndef __linux__
+
+        IPacket::List freePackets = socket.RecvMsg(recvQueue, index);
+        recvThreadQueue._recvThreadQueue.splice(std::move(recvQueue));
+        recvQueue = std::move(freePackets);
+#else
 
         for (auto it = recvQueue.begin(); it != recvQueue.end();) {
             ZoneScopedN("RecvQueueLoop");
@@ -145,6 +153,8 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
                 it = recvQueue.erase(temp);
             }
         }
+
+#endif
 
         if (!recvThreadQueue._recvThreadQueue.empty()) {
             ZoneScopedN("RecvThreadQueueEmpty");

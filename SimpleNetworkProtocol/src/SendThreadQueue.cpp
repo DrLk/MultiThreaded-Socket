@@ -53,7 +53,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         for (auto& packet : sendQueue) {
             ZoneScopedN("SendQueueLoop");
             packet.SetSendTime(clock::now());
-            auto data = packet.GetPacket()->GetBuffer();
+            auto data = packet.GetPacket()->GetElement();
             ConnectionAddr sockaddr = packet.GetPacket()->GetDstAddr();
             sockaddr.SetPort(sockaddr.GetPort() + index);
 

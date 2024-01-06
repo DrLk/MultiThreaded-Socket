@@ -30,6 +30,9 @@
 namespace FastTransport::Protocol {
 class Socket {
 public:
+    static constexpr size_t UDPMaxSegments = 64;
+    static constexpr int GsoSize = 1400;
+
     explicit Socket(const ConnectionAddr& address)
         : _address(address)
     {
@@ -55,7 +58,7 @@ public:
     [[nodiscard]] uint32_t SendMsg(IPacket::List& packets) const;
 
     [[nodiscard]] int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const;
-    [[nodiscard]] int RecvMsg(IPacket::List& packets, ConnectionAddr& addr) const;
+    [[nodiscard]] IPacket::List RecvMsg(IPacket::List& packets, size_t index) const;
 
     [[nodiscard]] bool WaitRead() const
     {

@@ -90,7 +90,7 @@ public:
     ConstIterator end() const;
     ConstIterator cbegin() const;
     ConstIterator cend() const;
-    Iterator erase(Iterator that);
+    Iterator erase(const Iterator& that);
     void swap(MultiList& that) noexcept;
 
 private:
@@ -135,7 +135,7 @@ typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++() // NOLINT(
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-const MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(fuchsia-overloaded-operator)
+const MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
 {
     _it2++;
     if (_it2 == _it1->end()) {
@@ -154,7 +154,17 @@ const MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(f
 template <class T> // NOLINT(fuchsia-overloaded-operator)
 bool MultiList<T>::Iterator::operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
 {
-    return _it1 == other._it1 && _it2 == other._it2;
+    if (_it1 == other._it1) {
+        if (_it2 == other._it2) {
+            return true;
+        }
+
+        if (_it1 == _container->_lists.end()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
@@ -217,7 +227,7 @@ typename MultiList<T>::ConstIterator& MultiList<T>::ConstIterator::operator++() 
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-const typename MultiList<T>::ConstIterator MultiList<T>::ConstIterator::operator++(int) // NOLINT(fuchsia-overloaded-operator)
+const typename MultiList<T>::ConstIterator MultiList<T>::ConstIterator::operator++(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
 {
     auto copy = operator++();
     operator++();
@@ -402,12 +412,20 @@ typename MultiList<T>::ConstIterator MultiList<T>::cend() const
 }
 
 template <class T>
-MultiList<T>::Iterator MultiList<T>::erase(Iterator that)
+MultiList<T>::Iterator MultiList<T>::erase(const Iterator& that)
 {
     Iterator newIterator = that;
-    that._it1->erase(that._it2);
-    if (that._it1->empty()) {
-        _lists.erase(that._it1);
+    newIterator._it2 = newIterator._it1->erase(newIterator._it2);
+    if (newIterator._it2 == newIterator._it1->end()) {
+        if (newIterator._it1->empty()) {
+            newIterator._it1 = _lists.erase(newIterator._it1);
+        } else {
+            newIterator._it1++;
+        }
+
+        if (newIterator._it1 != _lists.end()) {
+            newIterator._it2 = newIterator._it1->begin();
+        }
     }
 
     return newIterator;

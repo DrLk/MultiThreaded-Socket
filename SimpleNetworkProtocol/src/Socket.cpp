@@ -3,7 +3,6 @@
 #include "IPacket.hpp"
 
 #include <algorithm>
-#include <array>
 #include <ctime>
 #include <functional>
 #include <utility>
@@ -19,7 +18,6 @@
 
 static constexpr size_t ControlMessageSpace { CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(struct in_pktinfo)) + CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(uint16_t)) };
 
-static constexpr size_t UDPMaxSegments = 64;
 #if defined(UDP_MAX_SEGMENTS) and UDP_MAX_SEGMENTS != 64
 #error "Unexpected UDP_MAX_SEGMENTS size"
 #endif
@@ -57,8 +55,7 @@ void Socket::Init()
     }
 
 #ifdef __linux__
-    int gso_size = 400;
-    result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &gso_size, sizeof(gso_size));
+    result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &GsoSize, sizeof(GsoSize));
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set UDP_SEGMENT");
     }
@@ -80,44 +77,6 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
 {
     return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
 }
-
-template <class T>
-struct DummyIter {
-    /* using iterator_category = std::random_access_iterator_tag; */
-    using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = T;
-    using difference_type = std::ptrdiff_t;
-
-    DummyIter() = default;
-
-    const T operator*() const
-    {
-        T t;
-        return t;
-    }
-
-    auto& operator++() { return *this; }
-
-    auto operator++(int val)
-    {
-        DummyIter tmp = *this;
-        ++*this;
-        return tmp;
-    }
-
-    auto operator==(const DummyIter& iter) const { return true; }
-};
-
-template <class V>
-struct DummyView : std::ranges::view_interface<DummyView<V>> {
-    // auto begin() const { return std::ranges::begin(v); }
-    [[nodiscard]] DummyIter<char> begin() const { return {}; }
-    [[nodiscard]] DummyIter<char> end() const { return {}; }
-    [[nodiscard]] DummyIter<int> begin() { return {}; }
-    [[nodiscard]] DummyIter<int> end() { return {}; }
-
-    V v;
-};
 
 uint32_t Socket::SendMsg(IPacket::List& packets) const
 {
@@ -160,19 +119,20 @@ uint32_t Socket::SendMsg(IPacket::List& packets) const
             messages.reserve(packets.size() / UDPMaxSegments + 1);
             auto iovBegin = iov.begin();
             auto ctrlBegin = ctrl.begin();
-            auto packetChunks = packets | std::views::chunk(UDPMaxSegments);
+            auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 40));
             for (const auto& packetChunk : packetChunks) {
 
                 auto iovEnd = std::transform(packetChunk.begin(), packetChunk.end(), iovBegin, [](const IPacket::Ptr& packet) {
-                    return iovec {
-                        .iov_base = packet->GetBuffer().data(),
-                        .iov_len = packet->GetBuffer().size(),
+                    iovec iovec {
+                        .iov_base = packet->GetElement().data(),
+                        .iov_len = packet->GetElement().size(),
                     };
+                    return iovec;
                 });
 
                 auto packetChunkSize = packetChunk.size();
                 struct msghdr message = {
-                    .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))),
+                    .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), //NOLINT(cppcoreguidelines-pro-type-const-cast)
                     .msg_namelen = sizeof(sockaddr),
                     .msg_iov = std::addressof(*iovBegin),
                     .msg_iovlen = packetChunkSize,
@@ -188,8 +148,8 @@ uint32_t Socket::SendMsg(IPacket::List& packets) const
             return messages;
         });
 
-    int result = sendmmsg(_socket, headers.data(), headers.size(), MSG_ZEROCOPY);
-    if (result < headers.size()) {
+    int result = sendmmsg(_socket, headers.data(), headers.size(), 0);
+    if (result < std::ssize(headers)) {
         throw std::runtime_error("Not implemented");
     }
 
@@ -210,9 +170,10 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     return receivedBytes;
 }
 
-[[nodiscard]] int Socket::RecvMsg(IPacket::List& packets, ConnectionAddr& connectionAddr) const
+[[nodiscard]] IPacket::List Socket::RecvMsg(IPacket::List& packets, size_t index) const
 {
-    auto packetChunks = packets | std::views::chunk(UDPMaxSegments);
+    IPacket::List freePackets;
+    auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 64));
     std::vector<iovec> iov(packets.size());
     std::vector<char> control(ControlMessageSpace);
     auto iovBegin = iov.begin();
@@ -227,44 +188,51 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
 
         const auto& [_, iovEnd] = std::ranges::copy(iovRange.begin(), iovRange.end(), iovBegin);
         auto iovSize = iovEnd - iovBegin;
-        assert(iovSize == 64);
+        if (iovSize != UDPMaxSegments) {
+            assert(iovSize < UDPMaxSegments);
+            return mmsghdr { .msg_hdr = msghdr {} };
+        }
 
         sockaddr_storage addr {}; // TODO: add vector of addr
-        msghdr message {};
-        message.msg_iov = std::addressof(*iovBegin);
-        message.msg_iovlen = iovSize;
-        message.msg_name = &addr;
-        message.msg_namelen = sizeof(sockaddr);
-        message.msg_control = std::addressof(*controlBegin);
-        message.msg_controllen = iovSize;
-        message.msg_flags = 0;
+        msghdr message {
+            .msg_name = &addr,
+            .msg_namelen = sizeof(sockaddr),
+            .msg_iov = std::addressof(*iovBegin),
+            .msg_iovlen = UDPMaxSegments,
+            .msg_control = std::addressof(*controlBegin),
+            .msg_controllen = UDPMaxSegments,
+            .msg_flags = 0,
+        };
 
-        controlBegin += iovSize;
-        iovBegin += iovSize;
+        controlBegin += UDPMaxSegments;
+        iovBegin += UDPMaxSegments;
 
         return mmsghdr { .msg_hdr = message };
-        /* size_t result = recvmsg(_socket, &message, 0); */
     });
 
     std::vector<mmsghdr> messages;
     messages.reserve(10);
     std::ranges::copy(messageRange.begin(), messageRange.end(), std::back_inserter(messages));
     timespec time {};
-    int result = recvmmsg(_socket, messages.data(), messages.size(), 0, &time);
+    int result = recvmmsg(_socket, messages.data(), messages.size(), 0, nullptr);
+    if (result < 0) {
+        throw std::runtime_error("Not imenough data");
+    }
 
-    IPacket::List freePackets;
     auto packetIterator = packets.begin();
     for (const mmsghdr& message : messages) {
-        if ((message.msg_hdr.msg_flags & (MSG_CTRUNC | MSG_TRUNC)) != 0) {
+        if (((static_cast<std::size_t>(message.msg_hdr.msg_flags)) & (static_cast<std::size_t>(MSG_CTRUNC) | MSG_TRUNC)) != 0) {
             throw std::runtime_error("Not implemented");
         }
 
-        constexpr unsigned int gsoSize = 400;
-        size_t packetNumber = (message.msg_len + gsoSize -1) / 400;
+        size_t packetNumber = (message.msg_len + GsoSize - 1) / GsoSize;
 
         for (size_t i = 0; i < packetNumber; i++) {
 
-            (*packetIterator)->SetAddr(ConnectionAddr(*static_cast<sockaddr_storage*>(message.msg_hdr.msg_name)));
+            ConnectionAddr srcAddress(*static_cast<sockaddr_storage*>(message.msg_hdr.msg_name));
+            srcAddress.SetPort(srcAddress.GetPort() - index);
+            (*packetIterator)->SetAddr(srcAddress);
+
             packetIterator++;
         }
 
@@ -277,7 +245,12 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
         }
     }
 
-    return result;
+    while (packetIterator != packets.end()) {
+        freePackets.push_back(std::move(*packetIterator));
+        packetIterator = packets.erase(packetIterator);
+    }
+
+    return freePackets;
 }
 
 } // namespace FastTransport::Protocol

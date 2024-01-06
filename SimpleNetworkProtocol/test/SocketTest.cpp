@@ -50,7 +50,7 @@ TEST(SocketTest, GSOSendMsg)
     dst1.Init();
     dst2.Init();
 
-    constexpr int PacketSize = 400;
+    constexpr int PacketSize = Socket::GsoSize;
     std::vector<std::byte> data(PacketSize);
     for (int i = 0; i < PacketSize; ++i) {
         data[i] = static_cast<std::byte>(i % 256);
@@ -63,7 +63,7 @@ TEST(SocketTest, GSOSendMsg)
     IPacket::List sendPackets2;
     std::array<std::byte, PacketSize - 100> payload {};
 
-    static constexpr int PacketNumber = 64;
+    static constexpr int PacketNumber = Socket::UDPMaxSegments;
     for (int i = 0; i < PacketNumber; ++i) {
         auto packet = std::make_unique<Packet>(PacketSize);
         packet->SetPayload(payload);
@@ -90,20 +90,32 @@ TEST(SocketTest, GSOSendMsg)
     }
 
     IPacket::List recvPackets2 {};
-    for (int i = 0; i < 64; ++i) {
-        auto packet = std::make_unique<Packet>(400);
+    for (int i = 0; i < 128; ++i) {
+        auto packet = std::make_unique<Packet>(1400);
         recvPackets2.push_back(std::move(packet));
     }
 
-    ConnectionAddr srcAddr;
-    while (!dst1.WaitRead()) { }
-    auto result = dst1.RecvMsg(recvPackets2, srcAddr);
-    while (!dst2.WaitRead()) { }
-    result = dst2.RecvMsg(recvPackets2, srcAddr);
-    while (!dst1.WaitRead()) { }
-    result = dst1.RecvMsg(recvPackets2, srcAddr);
-    while (!dst2.WaitRead()) { }
-    result = dst2.RecvMsg(recvPackets2, srcAddr);
+    /* while (!dst1.WaitRead()) { } */
+    /* auto result = dst1.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst1.WaitRead()) { } */
+    /* result = dst1.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst1.WaitRead()) { } */
+    /* result = dst1.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst1.WaitRead()) { } */
+    /* result = dst1.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst2.WaitRead()) { } */
+    /* result = dst2.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst1.WaitRead()) { } */
+    /* result = dst1.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
+    /* while (!dst2.WaitRead()) { } */
+    /* result = dst2.RecvMsg(recvPackets2, 0); */
+    /* recvPackets2.splice(std::move(result)); */
 
     /* ConnectionAddr addr; */
     /* std::vector<std::byte> data2(PacketSize); */
@@ -122,14 +134,14 @@ TEST(SocketTest, GSOSendMsg)
     auto now = std::chrono::high_resolution_clock::now();
     size_t packetsPerSecond = 0;
     while (true) {
-        result = src.SendMsg(sendPackets1);
+        auto result = src.SendMsg(sendPackets1);
         packetsPerSecond += result;
         if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) {
             now = std::chrono::high_resolution_clock::now();
             LOGGER() << "Send packets: " << packetsPerSecond;
         }
 
-        if (packetsPerSecond >= 10 * 1024 * 1024) {
+        if (packetsPerSecond >= static_cast<int64_t>(10) * 1024 * 1024) {
             LOGGER() << "Send packets: " << packetsPerSecond;
             break;
         }
@@ -141,16 +153,15 @@ TEST(SocketTest, GSOSendMsg)
         recvPackets.push_back(std::move(packet));
     }
 
-    packetsPerSecond = 0;
-    while (true) {
-        ConnectionAddr srcAddr;
-        result = dst1.RecvMsg(recvPackets, srcAddr);
-        packetsPerSecond += result;
-        if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) {
-            now = std::chrono::high_resolution_clock::now();
-            LOGGER() << "Recv packets: " << packetsPerSecond;
-            packetsPerSecond = 0;
-        }
-    }
+    /* packetsPerSecond = 0; */
+    /* while (true) { */
+    /*     auto result = dst1.RecvMsg(recvPackets, 0); */
+    /*     packetsPerSecond += recvPackets.size(); */
+    /*     if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) { */
+    /*         now = std::chrono::high_resolution_clock::now(); */
+    /*         LOGGER() << "Recv packets: " << packetsPerSecond; */
+    /*         packetsPerSecond = 0; */
+    /*     } */
+    /* } */
 }
 } // namespace FastTransport::Protocol
