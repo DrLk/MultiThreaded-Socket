@@ -11,7 +11,8 @@
 namespace FastTransport::Protocol {
 
 SendQueue::SendQueue()
-    : _nextPacketNumber(-1)
+    : _resendPackets(OutgoingComparator)
+    , _nextPacketNumber(-1)
 {
 }
 
@@ -32,20 +33,18 @@ void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
 
 void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
 {
-    _resendPackets.splice(std::move(packets));
+    for (auto& packet : packets) {
+        _resendPackets.insert(std::move(packet));
+    }
 }
 
 OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 {
     OutgoingPacket::List result;
 
-    if (_resendPackets.size() > size) {
-        result.splice(_resendPackets.TryGenerate(size));
-        return result;
+    for (auto it = _resendPackets.begin(); it != _resendPackets.end() && size > 0; size--) {
+        result.push_back(std::move(_resendPackets.extract(it++).value()));
     }
-
-    result.swap(_resendPackets);
-    size -= result.size();
 
     if (size != 0U) {
         result.splice(_needToSend.TryGenerate(size));

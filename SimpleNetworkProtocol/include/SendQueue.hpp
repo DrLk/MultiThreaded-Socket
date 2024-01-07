@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <set>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
@@ -24,7 +25,7 @@ public:
 
 private:
     static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
-    OutgoingPacket::List _resendPackets;
+    std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
 
     MultiList<OutgoingPacket> _needToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
