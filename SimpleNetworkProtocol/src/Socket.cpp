@@ -78,6 +78,8 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
     return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
 }
 
+#ifdef __linux__
+
 uint32_t Socket::SendMsg(IPacket::List& packets) const
 {
     auto tranform = [](auto& packet) {
@@ -161,6 +163,8 @@ uint32_t Socket::SendMsg(IPacket::List& packets) const
     return msgLength;
 }
 
+#endif
+
 int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const
 {
     socklen_t len = sizeof(sockaddr_storage);
@@ -169,6 +173,8 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     connectionAddr = ConnectionAddr(addr);
     return receivedBytes;
 }
+
+#ifdef __linux__
 
 [[nodiscard]] IPacket::List Socket::RecvMsg(IPacket::List& packets, size_t index) const
 {
@@ -252,5 +258,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
 
     return freePackets;
 }
+
+#endif
 
 } // namespace FastTransport::Protocol

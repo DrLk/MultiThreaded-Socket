@@ -6,7 +6,7 @@ enum class RecvQueueStatus {
     INVALID,
     NEW,
     FULL,
-    DUPLICATE
+    DUPLICATED
 };
 
 } // namespace FastTransport::Protocol

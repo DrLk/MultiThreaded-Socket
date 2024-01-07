@@ -31,7 +31,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
             _selectiveAcks.push_back(packetNumber);
         }
 
-        return { RecvQueueStatus::DUPLICATE, std::move(packet) };
+        return { RecvQueueStatus::DUPLICATED, std::move(packet) };
     }
 
     if (packetNumber - _beginFullRecievedAck >= QueueSize) {
@@ -45,7 +45,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
 
     auto& queuePacket = _queue[(packetNumber) % QueueSize];
     if (queuePacket) {
-        return { RecvQueueStatus::DUPLICATE, std::move(packet) };
+        return { RecvQueueStatus::DUPLICATED, std::move(packet) };
     }
 
     queuePacket = std::move(packet);

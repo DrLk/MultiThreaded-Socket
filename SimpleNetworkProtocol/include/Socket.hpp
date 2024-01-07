@@ -55,10 +55,14 @@ public:
     void Init();
 
     [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
+#ifdef __linux__
     [[nodiscard]] uint32_t SendMsg(IPacket::List& packets) const;
+#endif
 
     [[nodiscard]] int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const;
+#ifdef __linux__
     [[nodiscard]] IPacket::List RecvMsg(IPacket::List& packets, size_t index) const;
+#endif
 
     [[nodiscard]] bool WaitRead() const
     {

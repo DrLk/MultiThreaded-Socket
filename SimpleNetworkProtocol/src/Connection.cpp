@@ -189,7 +189,7 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
         _statistics.AddOverflowPackets();
         break;
     }
-    case RecvQueueStatus::DUPLICATE: {
+    case RecvQueueStatus::DUPLICATED: {
         _statistics.AddDuplicatePackets();
         break;
     }
