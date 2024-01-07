@@ -5,8 +5,11 @@
 #include <stop_token>
 #include <utility>
 
+#ifndef __linux__
 #include "ConnectionAddr.hpp"
 #include "IPacket.hpp"
+#endif
+
 #include "OutgoingPacket.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
@@ -48,8 +51,36 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         if (sendQueue.empty()) {
             ZoneScopedN("GetOutgoingPacketsToSend");
             sendQueue = GetOutgoingPacketsToSend(stop, udpQueue._sendQueue, udpQueue._sendQueueSizePerThread);
+            continue;
         }
 
+#ifdef __linux__
+        OutgoingPacket::List list;
+        sendQueue.swap(list);
+        while (!list.empty()) {
+            if (!socket.WaitWrite()) {
+                break;
+            }
+
+            auto packets = list.TryGenerate(1);
+            for (auto& packet : packets) {
+                ZoneScopedN("SendQueueLoop");
+                packet.SetSendTime(clock::now());
+            }
+            auto result = socket.SendMsg(packets, index);
+            sendQueue.splice(std::move(packets));
+        }
+        /* for (auto& packet : sendQueue) { */
+        /*     ZoneScopedN("SendQueueLoop"); */
+        /*     packet.SetSendTime(clock::now()); */
+        /*     OutgoingPacket::List p1; */
+        /*     p1.push_back(std::move(packet)); */
+        /*     auto result = socket.SendMsg(p1, index); */
+        /*     packet = std::move(p1.front()); */
+        /* } */
+
+        /* auto result = socket.SendMsg(sendQueue, index); */
+#else
         for (auto& packet : sendQueue) {
             ZoneScopedN("SendQueueLoop");
             packet.SetSendTime(clock::now());
@@ -70,6 +101,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
                 }
             }
         }
+#endif
 
         if (!sendQueue.empty()) {
             ZoneScopedN("SendQueueEmpty");

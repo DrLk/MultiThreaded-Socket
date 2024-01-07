@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
-option(ENABLE_TRACY "Enable Tracy" ON)
+option(ENABLE_TRACY "Enable Tracy" OFF)
 
 project(SimpleNetworkProtocol)
 

@@ -1,6 +1,5 @@
 #include "Socket.hpp"
 
-#include "IPacket.hpp"
 
 #include <algorithm>
 #include <ctime>
@@ -15,6 +14,9 @@
 #include <ranges>
 #include <sys/socket.h>
 #include <unordered_map>
+
+#include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
 
 static constexpr size_t ControlMessageSpace { CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(struct in_pktinfo)) + CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(uint16_t)) };
 
@@ -65,6 +67,14 @@ void Socket::Init()
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set UDP_SEGMENT");
     }
+
+    // Note for documentation: Using this feature requires using the fq queue discipline, which can be activated per interface using something like this:
+    // tc qdisc add dev eth0 root fq
+    int bytesPerSecond = 1024 * 1024 * 1000;
+    result = setsockopt(_socket, SOL_SOCKET, SO_MAX_PACING_RATE, &bytesPerSecond, sizeof(bytesPerSecond));
+    if (result != 0) {
+        throw std::runtime_error("Socket: failed to set SO_MAX_PACING_RATE");
+    }
 #endif
 
     // bind socket to port
@@ -78,10 +88,12 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
     return sendto(_socket, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<const struct sockaddr*>(&addr.GetAddr()), sizeof(sockaddr_in)); // NOLINT
 }
 
-uint32_t Socket::SendMsg(IPacket::List& packets) const
+uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
 {
-    auto tranform = [](auto& packet) {
-        return std::pair<ConnectionAddr, std::reference_wrapper<IPacket::Ptr>> { packet->GetDstAddr(), packet };
+    auto tranform = [index](OutgoingPacket& packet) {
+        auto destination = packet.GetPacket()->GetDstAddr();
+        destination.SetPort(destination.GetPort() + index);
+        return std::pair<ConnectionAddr, std::reference_wrapper<IPacket::Ptr>> { destination, packet.GetPacket() };
     };
 
     auto insertPacket = [](std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<IPacket::Ptr>>, ConnectionAddr::HashFunction>& map1, const std::pair<ConnectionAddr, std::reference_wrapper<IPacket::Ptr>>& value) {
@@ -119,7 +131,7 @@ uint32_t Socket::SendMsg(IPacket::List& packets) const
             messages.reserve(packets.size() / UDPMaxSegments + 1);
             auto iovBegin = iov.begin();
             auto ctrlBegin = ctrl.begin();
-            auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 40));
+            auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 65000 / GsoSize));
             for (const auto& packetChunk : packetChunks) {
 
                 auto iovEnd = std::transform(packetChunk.begin(), packetChunk.end(), iovBegin, [](const IPacket::Ptr& packet) {
@@ -148,9 +160,14 @@ uint32_t Socket::SendMsg(IPacket::List& packets) const
             return messages;
         });
 
-    int result = sendmmsg(_socket, headers.data(), headers.size(), 0);
+    int result = sendmmsg(_socket, headers.data(), headers.size(), /*MSG_CONFIRM*/0);
     if (result < std::ssize(headers)) {
         throw std::runtime_error("Not implemented");
+    }
+
+    size_t len = 0;
+    for (auto& header : headers) {
+        len += header.msg_len;
     }
 
     uint32_t msgLength = 0;
@@ -176,9 +193,11 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 64));
     std::vector<iovec> iov(packets.size());
     std::vector<char> control(ControlMessageSpace);
+    std::vector<sockaddr_storage> addresses(packets.size());
     auto iovBegin = iov.begin();
     auto controlBegin = control.begin();
-    auto messageRange = packetChunks | std::views::transform([&iovBegin, &controlBegin](const auto& packetChunk) {
+    auto addressBegin = addresses.begin();
+    auto messageRange = packetChunks | std::views::transform([&iovBegin, &controlBegin, &addressBegin](const auto& packetChunk) {
         auto iovRange = packetChunk | std::views::transform([](const IPacket::Ptr& packet) {
             return iovec {
                 .iov_base = packet->GetElement().data(),
@@ -193,9 +212,8 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
             return mmsghdr { .msg_hdr = msghdr {} };
         }
 
-        sockaddr_storage addr {}; // TODO: add vector of addr
         msghdr message {
-            .msg_name = &addr,
+            .msg_name = std::addressof(*addressBegin),
             .msg_namelen = sizeof(sockaddr),
             .msg_iov = std::addressof(*iovBegin),
             .msg_iovlen = UDPMaxSegments,
@@ -211,16 +229,22 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     });
 
     std::vector<mmsghdr> messages;
-    messages.reserve(10);
+    messages.reserve(10); // TODO: preallocate memory
     std::ranges::copy(messageRange.begin(), messageRange.end(), std::back_inserter(messages));
-    timespec time {};
-    int result = recvmmsg(_socket, messages.data(), messages.size(), 0, nullptr);
+    timespec time {
+        .tv_sec = 1,
+    };
+
+    auto messagesSize = (messages.back().msg_hdr.msg_iovlen != 0u) ? messages.size() : messages.size() - 1;
+    int result = recvmmsg(_socket, messages.data(), messagesSize, MSG_WAITFORONE, &time);
     if (result < 0) {
-        throw std::runtime_error("Not imenough data");
+        assert(false);
+        freePackets.splice(std::move(packets));
+        return freePackets;
     }
 
     auto packetIterator = packets.begin();
-    for (const mmsghdr& message : messages) {
+    for (const mmsghdr& message : messages | std::views::take(result)) {
         if (((static_cast<std::size_t>(message.msg_hdr.msg_flags)) & (static_cast<std::size_t>(MSG_CTRUNC) | MSG_TRUNC)) != 0) {
             throw std::runtime_error("Not implemented");
         }

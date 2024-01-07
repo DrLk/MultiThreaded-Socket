@@ -25,7 +25,10 @@
 #include <stdexcept>
 
 #include "ConnectionAddr.hpp"
+#ifdef __linux__
 #include "IPacket.hpp"
+#include "OutgoingPacket.hpp"
+#endif
 
 namespace FastTransport::Protocol {
 class Socket {
@@ -55,7 +58,7 @@ public:
     void Init();
 
     [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
-    [[nodiscard]] uint32_t SendMsg(IPacket::List& packets) const;
+    [[nodiscard]] uint32_t SendMsg(OutgoingPacket::List& packets, size_t index) const;
 
     [[nodiscard]] int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const;
     [[nodiscard]] IPacket::List RecvMsg(IPacket::List& packets, size_t index) const;

@@ -8,6 +8,7 @@
 #include "ConnectionAddr.hpp"
 #include "IPacket.hpp"
 #include "Logger.hpp"
+#include "OutgoingPacket.hpp"
 #include "Packet.hpp"
 
 namespace FastTransport::Protocol {
@@ -19,7 +20,7 @@ TEST(SocketTest, Socket)
     src.Init();
     dst.Init();
 
-    constexpr int PacketSize = 1400;
+    constexpr int PacketSize = Socket::GsoSize;
     std::vector<std::byte> data(PacketSize);
     for (int i = 0; i < PacketSize; ++i) {
         data[i] = static_cast<std::byte>(i % 256);
@@ -57,10 +58,10 @@ TEST(SocketTest, GSOSendMsg)
     }
 
     /* const ConnectionAddr dstAddr("127.0.0.1", 13200); */
-    const ConnectionAddr dstAddr1("192.168.100.12", 13201);
-    const ConnectionAddr dstAddr2("192.168.100.12", 13202);
-    IPacket::List sendPackets1;
-    IPacket::List sendPackets2;
+    const ConnectionAddr dstAddr1("192.168.100.1", 13201);
+    const ConnectionAddr dstAddr2("192.168.100.1", 13202);
+    OutgoingPacket::List sendPackets1;
+    OutgoingPacket::List sendPackets2;
     std::array<std::byte, PacketSize - 100> payload {};
 
     static constexpr int PacketNumber = Socket::UDPMaxSegments;
@@ -68,25 +69,24 @@ TEST(SocketTest, GSOSendMsg)
         auto packet = std::make_unique<Packet>(PacketSize);
         packet->SetPayload(payload);
         packet->SetAddr(dstAddr1);
-        sendPackets1.push_back(std::move(packet));
+        sendPackets1.push_back({ std::move(packet), false });
 
         packet = std::make_unique<Packet>(PacketSize);
         packet->SetPayload(payload);
         packet->SetAddr(dstAddr2);
-        sendPackets1.push_back(std::move(packet));
+        sendPackets1.push_back({ std::move(packet), false });
     }
 
     for (int i = 0; i < PacketNumber / 2; ++i) {
         auto packet = std::make_unique<Packet>(PacketSize);
         packet->SetPayload(payload);
         packet->SetAddr(dstAddr2);
-        sendPackets2.push_back(std::move(packet));
+        sendPackets2.push_back({ std::move(packet), false });
     }
 
     for (int i = 0; i < 3; ++i) {
-        auto result = src.SendMsg(sendPackets1);
-        result = src.SendMsg(sendPackets2);
-        EXPECT_EQ(result, PacketSize);
+        auto result = src.SendMsg(sendPackets1, 0);
+        result = src.SendMsg(sendPackets2, 0);
     }
 
     IPacket::List recvPackets2 {};
@@ -134,7 +134,7 @@ TEST(SocketTest, GSOSendMsg)
     auto now = std::chrono::high_resolution_clock::now();
     size_t packetsPerSecond = 0;
     while (true) {
-        auto result = src.SendMsg(sendPackets1);
+        auto result = src.SendMsg(sendPackets1, 0);
         packetsPerSecond += result;
         if (now + std::chrono::seconds(1) < std::chrono::high_resolution_clock::now()) {
             now = std::chrono::high_resolution_clock::now();

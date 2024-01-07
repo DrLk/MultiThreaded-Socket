@@ -17,9 +17,9 @@ uint64_t Statistics::GetLostPackets() const
     return _lostPackets;
 }
 
-void Statistics::AddSendPackets()
+void Statistics::AddSendPackets(uint64_t sendPackets)
 {
-    _sendPackets += OnePacket;
+    _sendPackets += sendPackets;
 }
 
 uint64_t Statistics::GetSendPackets() const

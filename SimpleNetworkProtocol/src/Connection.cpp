@@ -141,7 +141,9 @@ const ConnectionKey& Connection::GetConnectionKey() const
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
     const std::size_t size = _inFlightQueue->GetNumberPacketToSend();
-    return _sendQueue->GetPacketsToSend(size);
+    OutgoingPacket::List packets = _sendQueue->GetPacketsToSend(size);
+    _statistics.AddSendPackets(packets.size());
+    return packets;
 }
 
 void Connection::SetInternalFreePackets(IPacket::List&& freeInternalSendPackets, IPacket::List&& freeRecvPackets)
@@ -173,9 +175,7 @@ void Connection::ProcessRecvPackets()
 
 void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
 {
-    if (needAck) {
-        _statistics.AddSendPackets();
-    } else {
+    if (!needAck) {
         _statistics.AddAckSendPackets();
     }
     _sendQueue->SendPacket(std::move(packet), needAck);
@@ -206,6 +206,7 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 
 void Connection::ReSendPackets(OutgoingPacket::List&& packets)
 {
+    _statistics.AddSendPackets(packets.size());
     _statistics.AddLostPackets(packets.size());
     _sendQueue->ReSendPackets(std::move(packets));
 }

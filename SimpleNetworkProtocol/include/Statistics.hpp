@@ -18,7 +18,7 @@ public:
 
     void AddLostPackets(uint64_t lostPackets);
     [[nodiscard]] uint64_t GetLostPackets() const override;
-    void AddSendPackets();
+    void AddSendPackets(uint64_t sendPackets);
     [[nodiscard]] uint64_t GetSendPackets() const override;
     void AddReceivedPackets();
     [[nodiscard]] uint64_t GetReceivedPackets() const override;

@@ -4,8 +4,6 @@
 #include <stop_token>
 #include <thread>
 
-#include "Tracy.hpp"
-
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
