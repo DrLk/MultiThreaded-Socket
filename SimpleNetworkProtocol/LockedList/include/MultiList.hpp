@@ -135,7 +135,7 @@ typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator++() // NOLINT(
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
-typename const MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
+const typename MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
 {
     _it2++;
     if (_it2 == _it1->end()) {
