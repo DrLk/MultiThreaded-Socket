@@ -8,6 +8,7 @@ namespace FastTransport::Containers {
 template <class T>
 class MultiList : std::ranges::view_interface<MultiList<T>> {
 public:
+    using value_type = T;
     class Iterator {
         friend MultiList;
 
@@ -19,6 +20,11 @@ public:
         using difference_type = std::ptrdiff_t;
 
         Iterator() = default;
+        Iterator(const Iterator& that) = default;
+        Iterator(Iterator&&) = default;
+        Iterator& operator=(const Iterator&) = default;
+        Iterator& operator=(Iterator&& that) noexcept = default; // NOLINT(fuchsia-overloaded-operator) */
+        ~Iterator() = default;
         explicit Iterator(MultiList<T>* container);
         Iterator(MultiList<T>* container, const typename std::list<std::list<T>>::iterator& it1);
 
