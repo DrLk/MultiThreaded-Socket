@@ -127,7 +127,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
             continue;
         }
 
-#ifndef __linux__
+#ifdef __linux__
 
         IPacket::List freePackets = socket.RecvMsg(recvQueue, index);
         recvThreadQueue._recvThreadQueue.splice(std::move(recvQueue));

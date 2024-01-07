@@ -39,6 +39,9 @@ TEST(SocketTest, Socket)
     EXPECT_TRUE(data <=> data2 == std::weak_ordering::equivalent);
 }
 
+
+#ifdef __linux__
+
 TEST(SocketTest, GSOSendMsg)
 {
     /* Socket src(ConnectionAddr("0.0.0.0", 13100)); */
@@ -164,4 +167,7 @@ TEST(SocketTest, GSOSendMsg)
     /*     } */
     /* } */
 }
+
+#endif
+
 } // namespace FastTransport::Protocol
