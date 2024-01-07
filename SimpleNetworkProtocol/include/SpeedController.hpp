@@ -43,7 +43,7 @@ private:
     TimeRangedStats _stats;
 
     std::map<SpeedState, std::unique_ptr<ISpeedControllerState>> _states;
-    SpeedState _currentState = SpeedState::BBQ;
+    SpeedState _currentState = SpeedState::STABLE;
 
     bool _up { true };
     int64_t _speedIncrement { 1 };

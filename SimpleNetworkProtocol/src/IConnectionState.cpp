@@ -141,6 +141,8 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPa
         break;
     }
     case PacketType::DATA: {
+        connection._destinationID = packet->GetSrcConnectionID();
+        connection.SetConnected(true);
         auto freeRecvPacket = connection.RecvPacket(std::move(packet));
         if (freeRecvPacket) {
             freePackets.push_back(std::move(freeRecvPacket));

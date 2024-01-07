@@ -299,7 +299,7 @@ public:
     ISpeedControllerState* Run(const TimeRangedStats& /*stats*/, SpeedControllerState& state) override
     {
         // state.realSpeed = MinSpeed;
-        state.realSpeed = 10000;
+        state.realSpeed = 100;
 
         return this;
     }
