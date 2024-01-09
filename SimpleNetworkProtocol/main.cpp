@@ -14,27 +14,14 @@
 
 using namespace FastTransport::Protocol; // NOLINT
 
-void Test()
-{
-    TestConnection();
-    // TestCloseConnection();
-    // TestBBQState();
-    // TestTimeRangedStats();
-    // TestMultiList();
-    // TestSocket();
-    // TestRecvQueue();
-    // TestSleep();
-    // TestPeriodicExecutor();
-
-    /* std::this_thread::sleep_for(std::chrono::milliseconds(100000)); */
-}
 
 constexpr int Source = 1;
 constexpr int Destination = 2;
 
 void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort)
 {
-    std::jthread sendThread([srcAddress, srcPort, dstAddress, dstPort](std::stop_token stop) {
+    auto endTestTime = std::chrono::steady_clock::now() + 20s;
+    std::jthread sendThread([srcAddress, srcPort, dstAddress, dstPort, endTestTime](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
         const ConnectionAddr dstAddr(dstAddress, dstPort);
 
@@ -51,7 +38,12 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
             }
             userData = srcConnection->Send(stop, std::move(userData));
 
-            auto duration = std::chrono::steady_clock::now() - start;
+            auto now = std::chrono::steady_clock::now();
+            if (now > endTestTime) {
+                return;
+            }
+
+            auto duration = now - start;
             if (duration > 1s) {
                 std::cout << statistics << '\n';
                 std::cout << "Send speed: " << packetsPerSecond << "pkt/sec" << '\n';
@@ -108,7 +100,7 @@ int main(int argc, char** argv)
     }
 #endif
     if (argc == 1) {
-        Test();
+        TestConnection();
         return 0;
     }
     auto args = std::span(argv, argc);
@@ -131,20 +123,6 @@ int main(int argc, char** argv)
     default:
         return 1;
     }
-
-    const int port = std::stoi(args[2]);
-    const ConnectionAddr address("0.0.0.0", port);
-    const int threadCount = std::stoi(args[3]);
-    const int sendBufferSize = std::stoi(args[4]);
-    const int recvBufferSize = std::stoi(args[5]);
-
-    const std::string dstIP = args[7];
-    UDPQueue socket(address, threadCount, sendBufferSize, recvBufferSize);
-
-    socket.Init();
-
-    const IPacket::List recvBuffers = UDPQueue::CreateBuffers(10000);
-    const IPacket::List sendBuffers = UDPQueue::CreateBuffers(10000);
 
     return 0;
 }
