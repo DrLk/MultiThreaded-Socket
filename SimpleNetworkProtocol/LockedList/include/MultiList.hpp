@@ -85,17 +85,17 @@ public:
     void push_back(T&& element);
     void splice(MultiList<T>&& that); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
     [[nodiscard]] bool empty() const noexcept;
-    T& front();
-    T& back();
+    [[nodiscard]] T& front();
+    [[nodiscard]] T& back();
     void pop_back();
     [[nodiscard]] std::size_t size() const noexcept;
 
-    Iterator begin();
-    Iterator end();
-    ConstIterator begin() const;
-    ConstIterator end() const;
-    ConstIterator cbegin() const;
-    ConstIterator cend() const;
+    [[nodiscard]] Iterator begin();
+    [[nodiscard]] Iterator end();
+    [[nodiscard]] ConstIterator begin() const;
+    [[nodiscard]] ConstIterator end() const;
+    [[nodiscard]] ConstIterator cbegin() const;
+    [[nodiscard]] ConstIterator cend() const;
     Iterator erase(const Iterator& that);
     void swap(MultiList& that) noexcept;
 
