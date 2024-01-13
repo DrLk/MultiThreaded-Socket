@@ -27,9 +27,10 @@ class ConnectionAddr;
 namespace FastTransport::Protocol {
 
 Connection::Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID)
-    : _key(addr, myID)
+    : _context(std::make_shared<ConnectionContext>())
+    , _key(addr, myID)
     , _lastPacketReceive(clock::now())
-    , _inFlightQueue(std::make_unique<InFlightQueue>())
+    , _inFlightQueue(std::make_unique<InFlightQueue>(_context))
     , _recvQueue(std::make_unique<RecvQueue>())
     , _sendQueue(std::make_unique<SendQueue>())
     , _closed(false)
@@ -81,6 +82,11 @@ const IStatistics& Connection::GetStatistics() const
 Statistics& Connection::GetStatistics()
 {
     return _statistics;
+}
+
+ConnectionContext& Connection::GetContext()
+{
+    return *_context;
 }
 
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
@@ -185,15 +191,15 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 {
     auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
     switch (status) {
-    case RecvQueueStatus::FULL: {
+    case RecvQueueStatus::Full: {
         _statistics.AddOverflowPackets();
         break;
     }
-    case RecvQueueStatus::DUPLICATED: {
+    case RecvQueueStatus::Duplicated: {
         _statistics.AddDuplicatePackets();
         break;
     }
-    case RecvQueueStatus::NEW: {
+    case RecvQueueStatus::New: {
         _statistics.AddReceivedPackets();
         break;
     }
@@ -206,7 +212,6 @@ IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 
 void Connection::ReSendPackets(OutgoingPacket::List&& packets)
 {
-    _statistics.AddSendPackets(packets.size());
     _statistics.AddLostPackets(packets.size());
     _sendQueue->ReSendPackets(std::move(packets));
 }

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
+
 #include "Connection.hpp"
 #include "ConnectionAddr.hpp"
 #include "ConnectionState.hpp"
@@ -9,15 +11,39 @@
 namespace FastTransport::Protocol {
 TEST(StatisticaTest, BasicStatisticaTest)
 {
-    /* Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID); */
+    static constexpr auto TestTimeout = 10s;
+
     Connection connection(ConnectionState::DataState, ConnectionAddr("127.0.0.1", 10000), 1);
     const IStatistics& statistics = connection.GetStatistics();
 
     connection.SendPacket(std::make_unique<Packet>(1500), true);
+    auto now = std::chrono::steady_clock::now();
+    auto packets = connection.GetPacketsToSend();
+    while (packets.empty()) {
+        if (now + TestTimeout < std::chrono::steady_clock::now()) {
+            EXPECT_FALSE(packets.empty());
+            break;
+        }
+
+        packets = connection.GetPacketsToSend();
+    }
     EXPECT_EQ(statistics.GetSendPackets(), 1);
+    EXPECT_EQ(packets.size(), 1);
 
     connection.SendPacket(std::make_unique<Packet>(1500), true);
+    packets = connection.GetPacketsToSend();
+    now = std::chrono::steady_clock::now();
+    packets = connection.GetPacketsToSend();
+    while (packets.empty()) {
+        if (now + TestTimeout < std::chrono::steady_clock::now()) {
+            EXPECT_FALSE(packets.empty());
+            break;
+        }
+
+        packets = connection.GetPacketsToSend();
+    }
     EXPECT_EQ(statistics.GetSendPackets(), 2);
+    EXPECT_EQ(packets.size(), 1);
 
     connection.SendPacket(std::make_unique<Packet>(1500), false);
     EXPECT_EQ(statistics.GetAckSendPackets(), 1);

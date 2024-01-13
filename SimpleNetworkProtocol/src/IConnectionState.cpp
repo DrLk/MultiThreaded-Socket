@@ -25,7 +25,7 @@ namespace FastTransport::Protocol {
 
 std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
 {
-    if (packet->GetPacketType() == PacketType::SYN) {
+    if (packet->GetPacketType() == PacketType::Syn) {
         Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID); // NOLINT
         auto freePackets = connection->OnRecvPackets(std::move(packet));
         return { connection, std::move(freePackets) };
@@ -67,7 +67,7 @@ ConnectionState SendingSynState::SendPackets(Connection& connection)
     IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
     connection._freeInternalSendPackets.pop_back();
 
-    synPacket->SetPacketType(PacketType::SYN);
+    synPacket->SetPacketType(PacketType::Syn);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
     synPacket->SetPayload(std::span<IPacket::ElementType>());
@@ -91,7 +91,7 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacke
         return result;
     }
 
-    if (packet->GetPacketType() == PacketType::SYN) {
+    if (packet->GetPacketType() == PacketType::Syn) {
         connection._destinationID = packet->GetSrcConnectionID();
 
         freePackets.push_back(std::move(packet));
@@ -108,7 +108,7 @@ ConnectionState SendingSynAckState::SendPackets(Connection& connection)
     IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
     connection._freeInternalSendPackets.pop_back();
 
-    synPacket->SetPacketType(PacketType::SYN_ACK);
+    synPacket->SetPacketType(PacketType::SynAck);
     synPacket->SetDstConnectionID(connection._destinationID);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
@@ -134,13 +134,13 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPa
     }
 
     switch (packet->GetPacketType()) {
-    case PacketType::SYN_ACK: {
+    case PacketType::SynAck: {
         connection._destinationID = packet->GetSrcConnectionID();
         connection.SetConnected(true);
         freePackets.push_back(std::move(packet));
         break;
     }
-    case PacketType::DATA: {
+    case PacketType::Data: {
         connection._destinationID = packet->GetSrcConnectionID();
         connection.SetConnected(true);
         auto freeRecvPacket = connection.RecvPacket(std::move(packet));
@@ -178,7 +178,7 @@ ConnectionState DataState::SendPackets(Connection& connection)
         IPacket::Ptr packet = std::move(connection._freeInternalSendPackets.back());
         connection._freeInternalSendPackets.pop_back();
 
-        packet->SetPacketType(PacketType::SACK);
+        packet->SetPacketType(PacketType::Sack);
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->SetDstConnectionID(connection._destinationID);
         packet->SetAckNumber(connection.GetRecvQueue().GetLastAck());
@@ -212,7 +212,7 @@ ConnectionState DataState::SendPackets(Connection& connection)
     connection._sendUserData.LockedSwap(userData);
 
     for (auto& packet : userData) {
-        packet->SetPacketType(PacketType::DATA);
+        packet->SetPacketType(PacketType::Data);
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
         packet->SetDstConnectionID(connection._destinationID);
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
@@ -230,11 +230,11 @@ std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr
     auto& [connectionState, freePackets] = result;
 
     switch (packet->GetPacketType()) {
-    case PacketType::SYN_ACK: {
+    case PacketType::SynAck: {
         freePackets.push_back(std::move(packet));
         break;
     }
-    case PacketType::SACK: {
+    case PacketType::Sack: {
         connection.SetLastAck(packet->GetAckNumber());
         connection.AddAcks(packet->GetAcks());
         // send free;
@@ -242,7 +242,7 @@ std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr
 
         break;
     }
-    case PacketType::DATA: {
+    case PacketType::Data: {
         connection.SetLastAck(packet->GetAckNumber());
 
         auto freePacket = connection.RecvPacket(std::move(packet));

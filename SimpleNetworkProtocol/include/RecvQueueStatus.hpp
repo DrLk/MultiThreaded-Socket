@@ -3,10 +3,10 @@
 namespace FastTransport::Protocol {
 
 enum class RecvQueueStatus {
-    INVALID,
-    NEW,
-    FULL,
-    DUPLICATED
+    Invalid,
+    New,
+    Full,
+    Duplicated
 };
 
 } // namespace FastTransport::Protocol

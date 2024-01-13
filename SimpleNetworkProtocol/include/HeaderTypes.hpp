@@ -6,14 +6,14 @@
 namespace FastTransport::Protocol {
 
 enum class PacketType : int16_t {
-    NONE = 0,
-    SYN = 1,
-    ACK = 2,
-    SYN_ACK = 3,
-    DATA = 4,
-    SACK = 8,
-    FIN = 16,
-    CLOSE = 32
+    None = 0,
+    Syn = 1,
+    Ack = 2,
+    SynAck = 3,
+    Data = 4,
+    Sack = 8,
+    Fin = 16,
+    Close = 32
 };
 
 using MagicNumber = int;

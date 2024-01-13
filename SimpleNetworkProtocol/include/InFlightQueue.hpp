@@ -7,6 +7,7 @@
 #include <span>
 #include <unordered_set>
 #include <utility>
+#include <memory>
 
 #include "HeaderTypes.hpp"
 #include "IInFlightQueue.hpp"
@@ -17,8 +18,12 @@
 #include "SpinLock.hpp"
 
 namespace FastTransport::Protocol {
+
+class ConnectionContext;
+
 class InFlightQueue final : public IInFlightQueue {
 public:
+    InFlightQueue(const std::shared_ptr<ConnectionContext>& context);
     [[nodiscard]] std::pair<IPacket::List, IPacket::List> AddQueue(OutgoingPacket::List&& packets) override;
     void SetLastAck(SeqNumberType lastAck) override;
     void AddAcks(std::span<SeqNumberType> acks) override;

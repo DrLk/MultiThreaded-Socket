@@ -31,11 +31,11 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
             _selectiveAcks.push_back(packetNumber);
         }
 
-        return { RecvQueueStatus::DUPLICATED, std::move(packet) };
+        return { RecvQueueStatus::Duplicated, std::move(packet) };
     }
 
     if (packetNumber - _beginFullRecievedAck >= QueueSize) {
-        return { RecvQueueStatus::FULL, std::move(packet) };
+        return { RecvQueueStatus::Full, std::move(packet) };
     }
 
     {
@@ -45,11 +45,11 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
 
     auto& queuePacket = _queue[(packetNumber) % QueueSize];
     if (queuePacket) {
-        return { RecvQueueStatus::DUPLICATED, std::move(packet) };
+        return { RecvQueueStatus::Duplicated, std::move(packet) };
     }
 
     queuePacket = std::move(packet);
-    return { RecvQueueStatus::NEW, nullptr };
+    return { RecvQueueStatus::New, nullptr };
 }
 
 void RecvQueue::ProccessUnorderedPackets()

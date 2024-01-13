@@ -19,6 +19,12 @@
 using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
+
+    InFlightQueue::InFlightQueue(const std::shared_ptr<ConnectionContext>& context)
+        : _speedController(context)
+    {
+
+    }
 std::pair<IPacket::List, IPacket::List> InFlightQueue::AddQueue(OutgoingPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     IPacket::List freePackets;

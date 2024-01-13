@@ -17,7 +17,10 @@
 #include "Statistics.hpp"
 
 namespace FastTransport::Protocol {
+
 class ConnectionAddr;
+class ConnectionContext;
+
 } // namespace FastTransport::Protocol
 
 namespace FastTransport::Protocol {
@@ -43,6 +46,7 @@ public:
 
     [[nodiscard]] virtual bool IsConnected() const = 0;
     [[nodiscard]] virtual const IStatistics& GetStatistics() const = 0;
+    [[nodiscard]] virtual ConnectionContext& GetContext() = 0;
 
     [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
@@ -68,6 +72,8 @@ public:
     void SetConnected(bool connected);
     [[nodiscard]] const IStatistics& GetStatistics() const override;
     [[nodiscard]] Statistics& GetStatistics();
+
+    [[nodiscard]] virtual ConnectionContext& GetContext() override;
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
@@ -113,6 +119,7 @@ public:
 
     IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
+    std::shared_ptr<ConnectionContext> _context;
     ConnectionKey _key;
 
     LockedList<IPacket::Ptr> _freeRecvPackets;
