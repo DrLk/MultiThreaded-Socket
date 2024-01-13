@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ConnectionContext.hpp"
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
@@ -19,7 +20,6 @@
 namespace FastTransport::Protocol {
 
 class ConnectionAddr;
-class ConnectionContext;
 
 } // namespace FastTransport::Protocol
 

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string>
 #include <thread>
@@ -18,14 +19,19 @@ using namespace FastTransport::Protocol; // NOLINT
 constexpr int Source = 1;
 constexpr int Destination = 2;
 
-void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort)
+void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort, std::optional<size_t> sendSpeed)
 {
     auto endTestTime = std::chrono::steady_clock::now() + 20s;
-    std::jthread sendThread([srcAddress, srcPort, dstAddress, dstPort, endTestTime](std::stop_token stop) {
+    std::jthread sendThread([srcAddress, srcPort, dstAddress, dstPort, endTestTime, sendSpeed](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
         const ConnectionAddr dstAddr(dstAddress, dstPort);
 
         const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        if (sendSpeed.has_value()) {
+            srcConnection->GetContext().SetInt(Settings::MinSpeed, sendSpeed.value());
+            srcConnection->GetContext().SetInt(Settings::MaxSpeed, sendSpeed.value());
+        }
 
         IPacket::List userData = UDPQueue::CreateBuffers(200000);
         size_t packetsPerSecond = 0;
@@ -39,8 +45,7 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
             userData = srcConnection->Send(stop, std::move(userData));
 
             auto now = std::chrono::steady_clock::now();
-            if (now > endTestTime) {
-                return;
+            if (now > endTestTime) { return;
             }
 
             auto duration = now - start;
@@ -110,10 +115,14 @@ int main(int argc, char** argv)
     const uint16_t srcPort = std::stoi(args[3]);
     const std::string_view dstAddress = args[4];
     const uint16_t dstPort = std::stoi(args[5]);
+    std::optional<size_t> sendSpeed;
+    if (argc > 6) {
+        sendSpeed = std::stoi(args[6]);
+    }
 
     switch (version) {
     case Source: {
-        RunSourceConnection(srcAddress, srcPort, dstAddress, dstPort);
+        RunSourceConnection(srcAddress, srcPort, dstAddress, dstPort, sendSpeed);
         break;
     }
     case Destination: {
