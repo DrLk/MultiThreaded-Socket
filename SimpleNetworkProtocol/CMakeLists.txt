@@ -69,6 +69,7 @@ if(ENABLE_TESTS)
     PRIVATE
     SimpleNetworkProtocolLib
     GTest::gtest_main
+    GTest::gmock_main
   )
 
   target_link_libraries(SimpleNetworkProtocol PRIVATE  GTest::gtest_main)
