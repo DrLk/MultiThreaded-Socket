@@ -62,7 +62,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
                 break;
             }
 
-            auto packets = list.TryGenerate(1);
+            auto packets = list.TryGenerate(Socket::UDPMaxSegments);
             for (auto& packet : packets) {
                 ZoneScopedN("SendQueueLoop");
                 packet.SetSendTime(clock::now());
