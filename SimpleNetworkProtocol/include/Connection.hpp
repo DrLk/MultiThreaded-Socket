@@ -73,7 +73,7 @@ public:
     [[nodiscard]] const IStatistics& GetStatistics() const override;
     [[nodiscard]] Statistics& GetStatistics();
 
-    [[nodiscard]] virtual ConnectionContext& GetContext() override;
+    [[nodiscard]] ConnectionContext& GetContext() override;
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;

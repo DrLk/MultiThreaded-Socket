@@ -12,12 +12,12 @@ ConnectionContext::ConnectionContext()
     _intSettings[Settings::MaxSpeed] = std::numeric_limits<size_t>::max();
     _intSettings[Settings::MinSpeed] = std::numeric_limits<size_t>::min();
 }
-void ConnectionContext::SetInt(const Settings key, size_t value)
+void ConnectionContext::SetInt(Settings key, size_t value)
 {
     _intSettings[key].store(value, std::memory_order_relaxed);
     NotifyIntSubscribers(key, value);
 }
-size_t ConnectionContext::GetInt(const Settings key) const
+size_t ConnectionContext::GetInt(Settings key) const
 {
     return _intSettings[key];
 }
@@ -50,7 +50,7 @@ void ConnectionContext::UnSubscribe(Subscriber& subscriber)
     });
 }
 
-void ConnectionContext::NotifyIntSubscribers(const Settings key, size_t value)
+void ConnectionContext::NotifyIntSubscribers(Settings key, size_t value)
 {
     const std::scoped_lock lock(_intSubscribersMutex);
     for (auto& subscriber : _intSubscribers) {

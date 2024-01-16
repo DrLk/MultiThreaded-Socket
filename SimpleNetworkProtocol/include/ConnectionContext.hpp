@@ -21,15 +21,15 @@ public:
 
     ConnectionContext();
 
-    void SetInt(const Settings key, size_t value);
-    size_t GetInt(const Settings key) const;
+    void SetInt(Settings key, size_t value);
+    size_t GetInt(Settings key) const;
 
     class Subscriber {
     public:
         Subscriber(const std::shared_ptr<ConnectionContext>& context);
         ~Subscriber();
 
-        virtual void OnSettingsChanged(const Settings key, size_t value) = 0;
+        virtual void OnSettingsChanged(Settings key, size_t value) = 0;
 
     private:
         std::shared_ptr<ConnectionContext> _context;
@@ -43,7 +43,7 @@ private:
     std::vector<std::reference_wrapper<Subscriber>> _intSubscribers;
     Thread::SpinLock _intSubscribersMutex;
 
-    void NotifyIntSubscribers(const Settings key, size_t value);
+    void NotifyIntSubscribers(Settings key, size_t value);
 };
 
 } // namespace FastTransport::Protocol
