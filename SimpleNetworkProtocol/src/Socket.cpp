@@ -137,7 +137,7 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
             for (const auto& packetChunk : packetChunks) {
 
                 auto iovEnd = std::transform(packetChunk.begin(), packetChunk.end(), iovBegin, [](const IPacket::Ptr& packet) {
-                    iovec iovec {
+                    const iovec iovec {
                         .iov_base = packet->GetElement().data(),
                         .iov_len = packet->GetElement().size(),
                     };
@@ -145,8 +145,8 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
                 });
 
                 auto packetChunkSize = packetChunk.size();
-                struct msghdr message = {
-                    .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), //NOLINT(cppcoreguidelines-pro-type-const-cast)
+                const struct msghdr message = {
+                    .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
                     .msg_namelen = sizeof(sockaddr),
                     .msg_iov = std::addressof(*iovBegin),
                     .msg_iovlen = packetChunkSize,
@@ -162,7 +162,7 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
             return messages;
         });
 
-    int result = sendmmsg(_socket, headers.data(), headers.size(), /*MSG_CONFIRM*/0);
+    const int result = sendmmsg(_socket, headers.data(), headers.size(), /*MSG_CONFIRM*/0);
     if (result < std::ssize(headers)) {
         throw std::runtime_error("Not implemented");
     }
@@ -218,7 +218,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
             return mmsghdr { .msg_hdr = msghdr {} };
         }
 
-        msghdr message {
+        const msghdr message {
             .msg_name = std::addressof(*addressBegin),
             .msg_namelen = sizeof(sockaddr),
             .msg_iov = std::addressof(*iovBegin),
@@ -241,8 +241,8 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
         .tv_sec = 1,
     };
 
-    auto messagesSize = (messages.back().msg_hdr.msg_iovlen != 0u) ? messages.size() : messages.size() - 1;
-    int result = recvmmsg(_socket, messages.data(), messagesSize, MSG_WAITFORONE, &time);
+    auto messagesSize = (messages.back().msg_hdr.msg_iovlen != 0U) ? messages.size() : messages.size() - 1;
+    const int result = recvmmsg(_socket, messages.data(), messagesSize, MSG_WAITFORONE, &time);
     if (result < 0) {
         assert(false);
         freePackets.splice(std::move(packets));
@@ -255,7 +255,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
             throw std::runtime_error("Not implemented");
         }
 
-        size_t packetNumber = (message.msg_len + GsoSize - 1) / GsoSize;
+        const size_t packetNumber = (message.msg_len + GsoSize - 1) / GsoSize;
 
         for (size_t i = 0; i < packetNumber; i++) {
 

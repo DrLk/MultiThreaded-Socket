@@ -16,7 +16,6 @@ using namespace std::chrono_literals;
 SpeedController::SpeedController(const std::shared_ptr<ConnectionContext>& context)
     : ConnectionContext::Subscriber(context)
     , _lastSend(clock::now())
-    , _packetPerSecond(MinSpeed)
     , _context(context)
 {
     _context->Subscribe(*this);
@@ -44,7 +43,7 @@ size_t SpeedController::GetNumberPacketToSend()
     if (coeficient != 0) {
         const size_t ration = 1s / TimeRangedStats::Interval;
 
-        size_t realSpeed = std::clamp<size_t>(speedState.realSpeed, _minSpeed, _maxSpeed);
+        const size_t realSpeed = std::clamp<size_t>(speedState.realSpeed, _minSpeed, _maxSpeed);
         const size_t number = realSpeed * ration * 100 / coeficient;
         if (number != 0) {
             _lastSend = now;
@@ -67,7 +66,7 @@ SpeedController::clock::duration SpeedController::GetTimeout() const
     return timeout + 50ms;
 }
 
-void SpeedController::OnSettingsChanged(const Settings key, size_t value)
+void SpeedController::OnSettingsChanged(Settings key, size_t value)
 {
     switch (key) {
     case Settings::MinSpeed:

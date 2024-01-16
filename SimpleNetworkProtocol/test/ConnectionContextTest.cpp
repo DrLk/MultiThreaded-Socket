@@ -38,8 +38,8 @@ TEST(ConnectionContextTest, ConnectionContextSubscribeUnsubscribe)
         MockSubscriber(MockSubscriber&&) = delete;
         MockSubscriber& operator=(const MockSubscriber&) = delete;
         MockSubscriber& operator=(MockSubscriber&&) = delete;
-        virtual ~MockSubscriber() = default;
-        MOCK_METHOD(void, OnSettingsChanged, (const Settings, size_t));
+        ~MockSubscriber() override = default;
+        MOCK_METHOD(void, OnSettingsChanged, (Settings, size_t));
     };
 
     MockSubscriber subscriber(context);

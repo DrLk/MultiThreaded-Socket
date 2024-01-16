@@ -26,12 +26,12 @@ class SpeedController : private ConnectionContext::Subscriber {
     };
 
 public:
-    SpeedController(const std::shared_ptr<ConnectionContext>& context);
+    explicit SpeedController(const std::shared_ptr<ConnectionContext>& context);
     SpeedController(const SpeedController& that) = delete;
     SpeedController(SpeedController&& that) = delete;
     SpeedController& operator=(const SpeedController& that) = delete;
     SpeedController& operator=(SpeedController&& that) = delete;
-    ~SpeedController() = default;
+    ~SpeedController() override = default;
 
     size_t GetNumberPacketToSend();
     void UpdateStats(const TimeRangedStats& stats);
@@ -39,7 +39,7 @@ public:
 
 private:
     clock::time_point _lastSend;
-    size_t _packetPerSecond;
+    size_t _packetPerSecond { 0 };
     static constexpr std::chrono::seconds QueueTimeInterval = std::chrono::seconds(10);
     static constexpr std::chrono::milliseconds Interval = TimeRangedStats::Interval / 2;
 
@@ -54,7 +54,7 @@ private:
     std::atomic<size_t> _maxSpeed { 0 };
     std::shared_ptr<ConnectionContext> _context;
 
-    void OnSettingsChanged(const Settings key, size_t value) override;
+    void OnSettingsChanged(Settings key, size_t value) override;
     void OnMinSpeedChanged(size_t minSpeed);
     void OnMaxSpeedChanged(size_t maxSpeed);
 };

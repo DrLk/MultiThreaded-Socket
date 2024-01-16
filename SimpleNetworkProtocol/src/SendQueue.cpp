@@ -31,7 +31,7 @@ void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
     }
 }
 
-void SendQueue::ReSendPackets(OutgoingPacket::List&& packets)
+void SendQueue::ReSendPackets(OutgoingPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     for (auto& packet : packets) {
         _resendPackets.insert(std::move(packet));

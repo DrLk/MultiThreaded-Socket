@@ -4,10 +4,10 @@
 #include <chrono>
 #include <cstddef>
 #include <list>
+#include <memory>
 #include <span>
 #include <unordered_set>
 #include <utility>
-#include <memory>
 
 #include "HeaderTypes.hpp"
 #include "IInFlightQueue.hpp"
@@ -23,7 +23,7 @@ class ConnectionContext;
 
 class InFlightQueue final : public IInFlightQueue {
 public:
-    InFlightQueue(const std::shared_ptr<ConnectionContext>& context);
+    explicit InFlightQueue(const std::shared_ptr<ConnectionContext>& context);
     [[nodiscard]] std::pair<IPacket::List, IPacket::List> AddQueue(OutgoingPacket::List&& packets) override;
     void SetLastAck(SeqNumberType lastAck) override;
     void AddAcks(std::span<SeqNumberType> acks) override;
