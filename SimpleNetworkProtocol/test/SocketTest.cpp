@@ -66,7 +66,6 @@ TEST(SocketTest, GSOSendMsg)
     const ConnectionAddr dstAddr1("127.0.0.1", 13201);
     const ConnectionAddr dstAddr2("127.0.0.1", 13202);
     OutgoingPacket::List sendPackets1;
-    OutgoingPacket::List sendPackets2;
     std::array<std::byte, PacketSize - 100> payload {};
 
     static constexpr int PacketNumber = Socket::UDPMaxSegments;

@@ -22,12 +22,16 @@ public:
     ConnectionContext();
 
     void SetInt(Settings key, size_t value);
-    size_t GetInt(Settings key) const;
+    [[nodiscard]] size_t GetInt(Settings key) const;
 
     class Subscriber {
     public:
-        Subscriber(const std::shared_ptr<ConnectionContext>& context);
-        ~Subscriber();
+        explicit Subscriber(const std::shared_ptr<ConnectionContext>& context);
+        Subscriber(const Subscriber&);
+        Subscriber(Subscriber&&);
+        Subscriber& operator=(const Subscriber&);
+        Subscriber& operator=(Subscriber&&);
+        virtual ~Subscriber();
 
         virtual void OnSettingsChanged(Settings key, size_t value) = 0;
 

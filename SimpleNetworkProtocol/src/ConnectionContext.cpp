@@ -26,6 +26,13 @@ ConnectionContext::Subscriber::Subscriber(const std::shared_ptr<ConnectionContex
     : _context(context)
 {
 }
+ConnectionContext::Subscriber::Subscriber(const Subscriber&) = default;
+
+ConnectionContext::Subscriber::Subscriber(Subscriber&&) = default;
+
+ConnectionContext::Subscriber& ConnectionContext::Subscriber::operator=(const Subscriber&) = default;
+
+ConnectionContext::Subscriber& ConnectionContext::Subscriber::operator=(Subscriber&&) = default;
 
 ConnectionContext::Subscriber::~Subscriber()
 {
