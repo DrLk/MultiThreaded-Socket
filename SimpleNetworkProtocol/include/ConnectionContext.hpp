@@ -28,9 +28,9 @@ public:
     public:
         explicit Subscriber(const std::shared_ptr<ConnectionContext>& context);
         Subscriber(const Subscriber&);
-        Subscriber(Subscriber&&);
+        Subscriber(Subscriber&&) noexcept;
         Subscriber& operator=(const Subscriber&);
-        Subscriber& operator=(Subscriber&&);
+        Subscriber& operator=(Subscriber&&) noexcept;
         virtual ~Subscriber();
 
         virtual void OnSettingsChanged(Settings key, size_t value) = 0;

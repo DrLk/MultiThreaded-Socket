@@ -28,11 +28,11 @@ ConnectionContext::Subscriber::Subscriber(const std::shared_ptr<ConnectionContex
 }
 ConnectionContext::Subscriber::Subscriber(const Subscriber&) = default;
 
-ConnectionContext::Subscriber::Subscriber(Subscriber&&) = default;
+ConnectionContext::Subscriber::Subscriber(Subscriber&&) noexcept = default;
 
 ConnectionContext::Subscriber& ConnectionContext::Subscriber::operator=(const Subscriber&) = default;
 
-ConnectionContext::Subscriber& ConnectionContext::Subscriber::operator=(Subscriber&&) = default;
+ConnectionContext::Subscriber& ConnectionContext::Subscriber::operator=(Subscriber&&) noexcept = default;
 
 ConnectionContext::Subscriber::~Subscriber()
 {
