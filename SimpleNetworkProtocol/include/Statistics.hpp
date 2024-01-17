@@ -26,7 +26,7 @@ public:
     [[nodiscard]] uint64_t GetDuplicatePackets() const override;
     void AddOverflowPackets();
     [[nodiscard]] uint64_t GetOverflowPackets() const override;
-    void AddAckSendPackets();
+    void AddAckSendPackets(uint64_t ackSendPackets);
     [[nodiscard]] uint64_t GetAckSendPackets() const override;
     void AddAckReceivedPackets();
     [[nodiscard]] uint64_t GetAckReceivedPackets() const override;

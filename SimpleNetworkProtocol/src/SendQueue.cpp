@@ -16,18 +16,20 @@ SendQueue::SendQueue()
 {
 }
 
-void SendQueue::SendPacket(IPacket::Ptr&& packet, bool needAck)
+void SendQueue::SendPackets(IPacket::List&& packets, bool needAck)
 {
-    packet->SetMagic();
+    for (auto&& packet : packets) {
+        packet->SetMagic();
 
-    if (needAck) {
-        packet->SetSeqNumber(++_nextPacketNumber);
-    } else {
-        packet->SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
-    }
+        if (needAck) {
+            packet->SetSeqNumber(++_nextPacketNumber);
+        } else {
+            packet->SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
+        }
 
-    {
-        _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
+        {
+            _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
+        }
     }
 }
 

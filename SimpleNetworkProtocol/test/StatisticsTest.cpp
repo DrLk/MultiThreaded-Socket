@@ -16,40 +16,56 @@ TEST(StatisticaTest, BasicStatisticaTest)
     Connection connection(ConnectionState::DataState, ConnectionAddr("127.0.0.1", 10000), 1);
     const IStatistics& statistics = connection.GetStatistics();
 
-    connection.SendPacket(std::make_unique<Packet>(1500), true);
     auto now = std::chrono::steady_clock::now();
-    auto packets = connection.GetPacketsToSend();
-    while (packets.empty()) {
-        if (now + TestTimeout < std::chrono::steady_clock::now()) {
-            EXPECT_FALSE(packets.empty());
-            break;
+    {
+        IPacket::List dataPackets;
+        dataPackets.push_back(std::make_unique<Packet>(1500));
+        connection.SendDataPackets(std::move(dataPackets));
+        auto packets = connection.GetPacketsToSend();
+        while (packets.empty()) {
+            if (now + TestTimeout < std::chrono::steady_clock::now()) {
+                EXPECT_FALSE(packets.empty());
+                break;
+            }
+
+            packets = connection.GetPacketsToSend();
         }
-
-        packets = connection.GetPacketsToSend();
+        EXPECT_EQ(statistics.GetSendPackets(), 1);
+        EXPECT_EQ(packets.size(), 1);
     }
-    EXPECT_EQ(statistics.GetSendPackets(), 1);
-    EXPECT_EQ(packets.size(), 1);
 
-    connection.SendPacket(std::make_unique<Packet>(1500), true);
-    packets = connection.GetPacketsToSend();
-    now = std::chrono::steady_clock::now();
-    packets = connection.GetPacketsToSend();
-    while (packets.empty()) {
-        if (now + TestTimeout < std::chrono::steady_clock::now()) {
-            EXPECT_FALSE(packets.empty());
-            break;
+    {
+        IPacket::List dataPackets;
+        dataPackets.push_back(std::make_unique<Packet>(1500));
+        connection.SendDataPackets(std::move(dataPackets));
+        auto packets = connection.GetPacketsToSend();
+        now = std::chrono::steady_clock::now();
+        packets = connection.GetPacketsToSend();
+        while (packets.empty()) {
+            if (now + TestTimeout < std::chrono::steady_clock::now()) {
+                EXPECT_FALSE(packets.empty());
+                break;
+            }
+
+            packets = connection.GetPacketsToSend();
         }
-
-        packets = connection.GetPacketsToSend();
+        EXPECT_EQ(statistics.GetSendPackets(), 2);
+        EXPECT_EQ(packets.size(), 1);
     }
-    EXPECT_EQ(statistics.GetSendPackets(), 2);
-    EXPECT_EQ(packets.size(), 1);
 
-    connection.SendPacket(std::make_unique<Packet>(1500), false);
-    EXPECT_EQ(statistics.GetAckSendPackets(), 1);
+    {
+        IPacket::List servicePackets;
+        servicePackets.push_back(std::make_unique<Packet>(1500));
+        connection.SendServicePackets(std::move(servicePackets));
+        EXPECT_EQ(statistics.GetAckSendPackets(), 1);
+    }
 
-    connection.SendPacket(std::make_unique<Packet>(1500), false);
-    EXPECT_EQ(statistics.GetAckSendPackets(), 2);
+    {
+        IPacket::List servicePackets;
+        servicePackets.push_back(std::make_unique<Packet>(1500));
+        connection.SendServicePackets(std::move(servicePackets));
+        EXPECT_EQ(statistics.GetAckSendPackets(), 2);
+    }
 
     OutgoingPacket::List outgoingPackets;;
     outgoingPackets.push_back(OutgoingPacket(std::make_unique<Packet>(1500), true));

@@ -11,6 +11,7 @@
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
+#include "IConnectionInternal.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
 #include "LockedList.hpp"
@@ -33,29 +34,7 @@ class IInFlightQueue;
 class IRecvQueue;
 class IConnectionState;
 
-class IConnection {
-public:
-    using Ptr = std::shared_ptr<IConnection>;
-
-    IConnection() = default;
-    IConnection(const IConnection&) = default;
-    IConnection(IConnection&&) = default;
-    IConnection& operator=(const IConnection&) = default;
-    IConnection& operator=(IConnection&&) = default;
-    virtual ~IConnection() = default;
-
-    [[nodiscard]] virtual bool IsConnected() const = 0;
-    [[nodiscard]] virtual const IStatistics& GetStatistics() const = 0;
-    [[nodiscard]] virtual ConnectionContext& GetContext() = 0;
-
-    [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
-    [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
-
-    virtual void Close() = 0;
-    [[nodiscard]] virtual bool IsClosed() const = 0;
-};
-
-class Connection final : public IConnection {
+class Connection final : public IConnectionInternal {
     using clock = std::chrono::steady_clock;
 
 public:
@@ -69,7 +48,7 @@ public:
     ~Connection() override;
 
     [[nodiscard]] bool IsConnected() const override;
-    void SetConnected(bool connected);
+    void SetConnected(bool connected) override;
     [[nodiscard]] const IStatistics& GetStatistics() const override;
     [[nodiscard]] Statistics& GetStatistics();
 
@@ -84,7 +63,7 @@ public:
 
     [[nodiscard]] IPacket::List OnRecvPackets(IPacket::Ptr&& packet);
 
-    [[nodiscard]] const ConnectionKey& GetConnectionKey() const;
+    [[nodiscard]] const ConnectionKey& GetConnectionKey() const override;
     [[nodiscard]] OutgoingPacket::List GetPacketsToSend();
 
     void SetInternalFreePackets(IPacket::List&& freeInternalSendPackets, IPacket::List&& freeRecvPackets);
@@ -94,34 +73,36 @@ public:
 
     void Run();
 
-    void SendPacket(IPacket::Ptr&& packet, bool needAck);
-    void ReSendPackets(OutgoingPacket::List&& packets);
+    void SendDataPackets(IPacket::List&& packets) override;
+    void SendServicePackets(IPacket::List&& packets) override;
+    void ReSendPackets(OutgoingPacket::List&& packets) override;
 
-    [[nodiscard]] IPacket::Ptr RecvPacket(IPacket::Ptr&& packet);
+    [[nodiscard]] IPacket::Ptr RecvPacket(IPacket::Ptr&& packet) override;
 
-    [[nodiscard]] IPacket::List ProcessAcks();
-    [[nodiscard]] OutgoingPacket::List CheckTimeouts();
-    void AddAcks(std::span<SeqNumberType> acks);
-    void SetLastAck(SeqNumberType acks);
+    [[nodiscard]] IPacket::List ProcessAcks() override;
+    [[nodiscard]] OutgoingPacket::List CheckTimeouts() override;
+    void AddAcks(std::span<SeqNumberType> acks) override;
+    void SetLastAck(SeqNumberType acks) override;
 
-    IRecvQueue& GetRecvQueue();
+    IRecvQueue& GetRecvQueue() override;
+    IPacket::List GetSendUserData() override;
+ 
+    void SetDestinationID(ConnectionID destinationId) override;
+    [[nodiscard]] ConnectionID GetDestinationID() const override;
 
     [[nodiscard]] IPacket::List GetFreeRecvPackets();
 
     [[nodiscard]] IPacket::List CleanFreeRecvPackets();
     [[nodiscard]] IPacket::List CleanFreeSendPackets();
 
-    void AddFreeUserSendPackets(IPacket::List&& freePackets);
+    IPacket::Ptr GetFreeSendPacket() override;
+    void AddFreeUserSendPackets(IPacket::List&& freePackets) override;
 
-    LockedList<IPacket::Ptr> _sendUserData; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-
-    ConnectionID _destinationID { 0 }; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
-
-    IPacket::List _freeInternalSendPackets; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes, misc-non-private-member-variables-in-classes)
 private:
     std::shared_ptr<ConnectionContext> _context;
     ConnectionKey _key;
 
+    IPacket::List _freeInternalSendPackets;
     LockedList<IPacket::Ptr> _freeRecvPackets;
     LockedList<std::vector<char>> _recvUserData;
 
@@ -141,5 +122,9 @@ private:
     ConnectionState _connectionState;
     std::unordered_map<ConnectionState, std::unique_ptr<IConnectionState>> _states;
     Statistics _statistics;
+
+    LockedList<IPacket::Ptr> _sendUserData;
+
+    ConnectionID _destinationId { 0 };
 };
 } // namespace FastTransport::Protocol

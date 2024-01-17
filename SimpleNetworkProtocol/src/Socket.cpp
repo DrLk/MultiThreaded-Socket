@@ -57,7 +57,7 @@ void Socket::Init()
     }
 
 #ifdef __linux__
-    result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &GsoSize, sizeof(GsoSize));
+    /*result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &GsoSize, sizeof(GsoSize));
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set UDP_SEGMENT");
     }
@@ -74,7 +74,7 @@ void Socket::Init()
     result = setsockopt(_socket, SOL_SOCKET, SO_MAX_PACING_RATE, &bytesPerSecond, sizeof(bytesPerSecond));
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set SO_MAX_PACING_RATE");
-    }
+    }*/
 #endif
 
     // bind socket to port
@@ -144,7 +144,7 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
                     return iovec;
                 });
 
-                auto packetChunkSize = packetChunk.size();
+                const std::uint32_t packetChunkSize = packetChunk.size();
                 const struct msghdr message = {
                     .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
                     .msg_namelen = sizeof(sockaddr),
@@ -167,12 +167,7 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
         throw std::runtime_error("Not implemented");
     }
 
-    size_t len = 0;
-    for (auto& header : headers) {
-        len += header.msg_len;
-    }
-
-    uint32_t msgLength = 0;
+    std::uint32_t msgLength = 0;
     for (const auto& header : headers) {
         msgLength += header.msg_len;
     }

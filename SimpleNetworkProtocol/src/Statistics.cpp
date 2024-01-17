@@ -57,9 +57,9 @@ uint64_t Statistics::GetOverflowPackets() const
     return _overflowPackets;
 }
 
-void Statistics::AddAckSendPackets()
+void Statistics::AddAckSendPackets(uint64_t ackSendPackets)
 {
-    _ackSendPackets += OnePacket;
+    _ackSendPackets += ackSendPackets;
 }
 
 uint64_t Statistics::GetAckSendPackets() const

@@ -17,7 +17,7 @@ class SendQueue final : public ISendQueue {
 public:
     SendQueue();
 
-    void SendPacket(IPacket::Ptr&& packet, bool needAck) override;
+    void SendPackets(IPacket::List&& packets, bool needAck) override;
     void ReSendPackets(OutgoingPacket::List&& packets) override;
 
     // make list of list to get fast 1k packets

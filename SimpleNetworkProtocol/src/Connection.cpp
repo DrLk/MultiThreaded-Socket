@@ -179,12 +179,15 @@ void Connection::ProcessRecvPackets()
     _recvQueue->ProccessUnorderedPackets();
 }
 
-void Connection::SendPacket(IPacket::Ptr&& packet, bool needAck)
+void Connection::SendServicePackets(IPacket::List&& packets)
 {
-    if (!needAck) {
-        _statistics.AddAckSendPackets();
-    }
-    _sendQueue->SendPacket(std::move(packet), needAck);
+    _statistics.AddAckSendPackets(packets.size());
+    _sendQueue->SendPackets(std::move(packets), false);
+}
+
+void Connection::SendDataPackets(IPacket::List&& packets)
+{
+    _sendQueue->SendPackets(std::move(packets), true);
 }
 
 IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
@@ -242,6 +245,23 @@ IRecvQueue& Connection::GetRecvQueue()
     return *_recvQueue;
 }
 
+IPacket::List Connection::GetSendUserData()
+{
+    IPacket::List result;
+    _sendUserData.LockedSwap(result);
+    return result;
+}
+
+void Connection::SetDestinationID(ConnectionID destinationId)
+{
+    _destinationId = destinationId;
+}
+
+ConnectionID Connection::GetDestinationID() const
+{
+    return _destinationId;
+}
+
 IPacket::List Connection::GetFreeRecvPackets()
 {
     IPacket::List freePackets;
@@ -264,6 +284,13 @@ IPacket::List Connection::CleanFreeSendPackets()
     IPacket::List freePackets = _inFlightQueue->GetAllPackets();
 
     return freePackets;
+}
+
+IPacket::Ptr Connection::GetFreeSendPacket()
+{
+    IPacket::Ptr packet = std::move(_freeInternalSendPackets.back());
+    _freeInternalSendPackets.pop_back();
+    return packet;
 }
 
 void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)

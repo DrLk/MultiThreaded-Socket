@@ -12,12 +12,13 @@
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
+#include "IConnectionInternal.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
 #include "Logger.hpp"
 #include "OutgoingPacket.hpp"
 
-#define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection._destinationID << "]: " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[" << connection.GetConnectionKey() << "-" << connection.GetDestinationID() << "]: " // NOLINT(cppcoreguidelines-macro-usage)
 
 using namespace std::literals::chrono_literals;
 
@@ -34,17 +35,17 @@ std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& pac
     return { nullptr, IPacket::List() };
 }
 
-std::tuple<ConnectionState, IPacket::List> BasicConnectionState::OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+std::tuple<ConnectionState, IPacket::List> BasicConnectionState::OnRecvPackets(IPacket::Ptr&& /*packet*/, IConnectionInternal& /*connection*/) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     throw std::runtime_error("Not implemented");
 }
 
-ConnectionState BasicConnectionState::SendPackets(Connection& /*connection*/)
+ConnectionState BasicConnectionState::SendPackets(IConnectionInternal& /*connection*/)
 {
     throw std::runtime_error("Not implemented");
 }
 
-ConnectionState BasicConnectionState::OnTimeOut(Connection& /*connection*/)
+ConnectionState BasicConnectionState::OnTimeOut(IConnectionInternal& /*connection*/)
 {
     throw std::runtime_error("Not implemented");
 }
@@ -54,30 +55,31 @@ std::chrono::milliseconds BasicConnectionState::GetTimeout() const
     return 3s;
 }
 
-void BasicConnectionState::ProcessInflightPackets(Connection& connection)
+void BasicConnectionState::ProcessInflightPackets(IConnectionInternal& connection)
 {
     IPacket::List freePackets = connection.ProcessAcks();
     connection.AddFreeUserSendPackets(std::move(freePackets));
 }
 
-ConnectionState SendingSynState::SendPackets(Connection& connection)
+ConnectionState SendingSynState::SendPackets(IConnectionInternal& connection)
 {
     TRACER() << "SendingSynState::SendPackets";
 
-    IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
-    connection._freeInternalSendPackets.pop_back();
+    IPacket::Ptr synPacket = connection.GetFreeSendPacket();
 
     synPacket->SetPacketType(PacketType::Syn);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
     synPacket->SetPayload(std::span<IPacket::ElementType>());
 
-    connection.SendPacket(std::move(synPacket), false);
+    IPacket::List packets;
+    packets.push_back(std::move(synPacket));
+    connection.SendServicePackets(std::move(packets));
 
     return ConnectionState::WaitingSynAckState;
 }
 
-std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection)
 {
     TRACER() << "WaitingSynState::OnRecvPackets";
 
@@ -92,7 +94,7 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacke
     }
 
     if (packet->GetPacketType() == PacketType::Syn) {
-        connection._destinationID = packet->GetSrcConnectionID();
+        connection.SetDestinationID(packet->GetSrcConnectionID());
 
         freePackets.push_back(std::move(packet));
         connectionState = ConnectionState::SendingSynAckState;
@@ -101,25 +103,26 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynState::OnRecvPackets(IPacke
     throw std::runtime_error("Wrong packet type");
 }
 
-ConnectionState SendingSynAckState::SendPackets(Connection& connection)
+ConnectionState SendingSynAckState::SendPackets(IConnectionInternal& connection)
 {
     TRACER() << "SendingSynAckState::SendPackets";
 
-    IPacket::Ptr synPacket = std::move(connection._freeInternalSendPackets.back());
-    connection._freeInternalSendPackets.pop_back();
+    IPacket::Ptr synPacket = connection.GetFreeSendPacket();
 
     synPacket->SetPacketType(PacketType::SynAck);
-    synPacket->SetDstConnectionID(connection._destinationID);
+    synPacket->SetDstConnectionID(connection.GetDestinationID());
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
     synPacket->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
     synPacket->SetPayload(std::span<IPacket::ElementType>());
 
-    connection.SendPacket(std::move(synPacket), false);
+    IPacket::List packets;
+    packets.push_back(std::move(synPacket));
+    connection.SendServicePackets(std::move(packets));
 
     return ConnectionState::DataState;
 }
 
-std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection)
 {
     TRACER() << "WaitingSynAckState::OnRecvPackets";
 
@@ -135,13 +138,13 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPa
 
     switch (packet->GetPacketType()) {
     case PacketType::SynAck: {
-        connection._destinationID = packet->GetSrcConnectionID();
+        connection.SetDestinationID(packet->GetSrcConnectionID());
         connection.SetConnected(true);
         freePackets.push_back(std::move(packet));
         break;
     }
     case PacketType::Data: {
-        connection._destinationID = packet->GetSrcConnectionID();
+        connection.SetDestinationID(packet->GetSrcConnectionID());
         connection.SetConnected(true);
         auto freeRecvPacket = connection.RecvPacket(std::move(packet));
         if (freeRecvPacket) {
@@ -158,29 +161,28 @@ std::tuple<ConnectionState, IPacket::List> WaitingSynAckState::OnRecvPackets(IPa
     return result;
 }
 
-ConnectionState WaitingSynAckState::SendPackets(Connection& /*connection*/)
+ConnectionState WaitingSynAckState::SendPackets(IConnectionInternal& /*connection*/)
 {
     return ConnectionState::WaitingSynAckState;
 }
 
-ConnectionState WaitingSynAckState::OnTimeOut(Connection& connection)
+ConnectionState WaitingSynAckState::OnTimeOut(IConnectionInternal& connection)
 {
     TRACER() << "WaitingSynAckState::OnTimeOut";
 
     return ConnectionState::SendingSynState;
 }
 
-ConnectionState DataState::SendPackets(Connection& connection)
+ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 {
     std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     // TODO: maybe error after std::move second loop
     while (!acks.empty()) {
-        IPacket::Ptr packet = std::move(connection._freeInternalSendPackets.back());
-        connection._freeInternalSendPackets.pop_back();
+        IPacket::Ptr packet = connection.GetFreeSendPacket();
 
         packet->SetPacketType(PacketType::Sack);
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
-        packet->SetDstConnectionID(connection._destinationID);
+        packet->SetDstConnectionID(connection.GetDestinationID());
         packet->SetAckNumber(connection.GetRecvQueue().GetLastAck());
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
@@ -198,7 +200,9 @@ ConnectionState DataState::SendPackets(Connection& connection)
 
         packet->SetAcks(packetAcks);
 
-        connection.SendPacket(std::move(packet), false);
+        IPacket::List packets;
+        packets.push_back(std::move(packet));
+        connection.SendServicePackets(std::move(packets));
     }
 
     {
@@ -208,23 +212,23 @@ ConnectionState DataState::SendPackets(Connection& connection)
         }
     }
 
-    IPacket::List userData;
-    connection._sendUserData.LockedSwap(userData);
+    IPacket::List userData = connection.GetSendUserData();
 
     for (auto& packet : userData) {
         packet->SetPacketType(PacketType::Data);
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
-        packet->SetDstConnectionID(connection._destinationID);
+        packet->SetDstConnectionID(connection.GetDestinationID());
         packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
 
-        // packet->GetPayload().SetPayload(data);
-        connection.SendPacket(std::move(packet), true);
+        IPacket::List dataPackets;
+        dataPackets.push_back(std::move(packet));
+        connection.SendDataPackets(std::move(dataPackets));
     }
 
     return ConnectionState::DataState;
 }
 
-std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr&& packet, Connection& connection)
+std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection)
 {
     std::tuple<ConnectionState, IPacket::List> result;
     auto& [connectionState, freePackets] = result;
@@ -259,7 +263,7 @@ std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr
     return result;
 }
 
-ConnectionState DataState::OnTimeOut(Connection& connection)
+ConnectionState DataState::OnTimeOut(IConnectionInternal& connection)
 {
     TRACER() << "DataState::OnTimeOut";
 

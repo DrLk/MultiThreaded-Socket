@@ -10,6 +10,7 @@
 namespace FastTransport::Protocol {
 
 class Connection;
+class IConnectionInternal;
 
 class IConnectionState {
 public:
@@ -20,20 +21,20 @@ public:
     IConnectionState& operator=(IConnectionState&&) = default;
     virtual ~IConnectionState() = default;
 
-    virtual std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) = 0;
-    virtual ConnectionState SendPackets(Connection& connection) = 0;
-    virtual ConnectionState OnTimeOut(Connection& connection) = 0;
+    virtual std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection) = 0;
+    virtual ConnectionState SendPackets(IConnectionInternal& connection) = 0;
+    virtual ConnectionState OnTimeOut(IConnectionInternal& connection) = 0;
     [[nodiscard]] virtual std::chrono::milliseconds GetTimeout() const = 0;
-    virtual void ProcessInflightPackets(Connection& connection) = 0;
+    virtual void ProcessInflightPackets(IConnectionInternal& connection) = 0;
 };
 
 class BasicConnectionState : public IConnectionState {
 public:
-    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& /*packet*/, Connection& /*connection*/) override;
-    ConnectionState SendPackets(Connection& /*connection*/) override;
-    ConnectionState OnTimeOut(Connection& /*connection*/) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& /*packet*/, IConnectionInternal& /*connection*/) override;
+    ConnectionState SendPackets(IConnectionInternal& /*connection*/) override;
+    ConnectionState OnTimeOut(IConnectionInternal& /*connection*/) override;
     [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
-    void ProcessInflightPackets(Connection& connection) override;
+    void ProcessInflightPackets(IConnectionInternal& connection) override;
 };
 
 class ListenState {
@@ -43,30 +44,31 @@ public:
 
 class SendingSynState final : public BasicConnectionState {
 public:
-    ConnectionState SendPackets(Connection& connection) override;
+    ConnectionState SendPackets(IConnectionInternal& connection) override;
 };
 
 class WaitingSynState final : public BasicConnectionState {
 public:
-    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection) override;
 };
 
 class WaitingSynAckState final : public BasicConnectionState {
 public:
-    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
-    ConnectionState SendPackets(Connection& connection) override;
-    ConnectionState OnTimeOut(Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection) override;
+    ConnectionState SendPackets(IConnectionInternal& connection) override;
+    ConnectionState OnTimeOut(IConnectionInternal& connection) override;
 };
 
 class SendingSynAckState final : public BasicConnectionState {
-    ConnectionState SendPackets(Connection& connection) override;
+public:
+    ConnectionState SendPackets(IConnectionInternal& connection) override;
 };
 
 class DataState final : public BasicConnectionState {
 public:
-    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, Connection& connection) override;
-    ConnectionState SendPackets(Connection& connection) override;
-    [[nodiscard]] ConnectionState OnTimeOut(Connection& connection) override;
+    std::tuple<ConnectionState, IPacket::List> OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection) override;
+    ConnectionState SendPackets(IConnectionInternal& connection) override;
+    [[nodiscard]] ConnectionState OnTimeOut(IConnectionInternal& connection) override;
     [[nodiscard]] std::chrono::milliseconds GetTimeout() const override;
 };
 
