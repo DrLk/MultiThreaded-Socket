@@ -27,8 +27,8 @@ TEST(ConnectionStateTest, ConnectionState)
 {
     auto states = GetStates();
 
-    ConnectionAddr destinationAddress;
-    ConnectionID sourceID = 1;
+    const ConnectionAddr destinationAddress;
+    const ConnectionID sourceID = 1;
     auto sourceState = ConnectionState::SendingSynState;
     Connection connection(sourceState, destinationAddress, sourceID);
     connection.SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
@@ -39,7 +39,7 @@ TEST(ConnectionStateTest, ConnectionState)
     EXPECT_EQ(packets.front().GetPacket()->GetPacketType(), PacketType::Syn);
     EXPECT_EQ(packets.size(), 1);
 
-    ConnectionID destinationID = 1;
+    const ConnectionID destinationID = 1;
     auto [destinationConnection, freePackets] = ListenState::Listen(std::move(packets.front().GetPacket()), destinationID);
     EXPECT_EQ(destinationConnection != nullptr, true);
     destinationConnection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));

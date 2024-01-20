@@ -16,7 +16,7 @@ SendQueue::SendQueue()
 {
 }
 
-void SendQueue::SendPackets(IPacket::List&& packets, bool needAck)
+void SendQueue::SendPackets(IPacket::List&& packets, bool needAck) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     for (auto&& packet : packets) {
         packet->SetMagic();
