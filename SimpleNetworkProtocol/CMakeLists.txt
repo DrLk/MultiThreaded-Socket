@@ -47,6 +47,7 @@ endif()
 add_executable(SimpleNetworkProtocol main.cpp)
 
 target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
+target_link_options(SimpleNetworkProtocol PRIVATE -static-libgcc -static-libstdc++)
 
 
 ##############
@@ -72,8 +73,10 @@ if(ENABLE_TESTS)
     GTest::gtest_main
     GTest::gmock_main
   )
-
-  target_link_libraries(SimpleNetworkProtocol PRIVATE  GTest::gtest_main)
+  target_link_options(SimpleNetworkProtocolTest
+      PRIVATE
+      -static-libgcc
+      -static-libstdc++)
 
 if(ENABLE_PRECOMPILE_HEADERS)
   target_precompile_headers(SimpleNetworkProtocolTest PRIVATE include/pch.hpp)
