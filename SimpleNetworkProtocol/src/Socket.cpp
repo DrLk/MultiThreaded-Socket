@@ -57,7 +57,7 @@ void Socket::Init()
     }
 
 #ifdef __linux__
-    /*result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &GsoSize, sizeof(GsoSize));
+    result = setsockopt(_socket, SOL_UDP, UDP_SEGMENT, &GsoSize, sizeof(GsoSize));
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set UDP_SEGMENT");
     }
@@ -74,7 +74,7 @@ void Socket::Init()
     result = setsockopt(_socket, SOL_SOCKET, SO_MAX_PACING_RATE, &bytesPerSecond, sizeof(bytesPerSecond));
     if (result != 0) {
         throw std::runtime_error("Socket: failed to set SO_MAX_PACING_RATE");
-    }*/
+    }
 #endif
 
     // bind socket to port
@@ -162,9 +162,14 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
             return messages;
         });
 
-    const int result = sendmmsg(_socket, headers.data(), headers.size(), /*MSG_CONFIRM*/0);
-    if (result < std::ssize(headers)) {
-        throw std::runtime_error("Not implemented");
+    std::size_t messageIndex = 0;
+    while (messageIndex < headers.size()) {
+        const int result = sendmmsg(_socket, &headers[messageIndex], headers.size() - messageIndex, /*MSG_CONFIRM*/ 0);
+        if (result < 0) {
+            throw std::runtime_error("Failed to sendmmsg");
+        }
+
+        messageIndex += result;
     }
 
     std::uint32_t msgLength = 0;
