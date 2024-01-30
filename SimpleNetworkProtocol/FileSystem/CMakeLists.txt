@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Memory)
+project(FileSystem)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -11,17 +11,19 @@ if (NOT TARGET Logger)
     add_subdirectory(../Logger Logger)
 endif()
 
-add_subdirectory(../Thread Thread)
+if (NOT TARGET Thread)
+	add_subdirectory(../Thread Thread)
+endif()
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp include/*.hpp)
 
 include_directories(${INCLUDE_DIRS})
 
-add_library(Memory STATIC ${SRC_FILES})
+add_library(FileSystem STATIC ${SRC_FILES})
 
-target_link_libraries(Memory PUBLIC Logger Thread)
+target_link_libraries(FileSystem PUBLIC Logger Thread)
 
-target_include_directories(Memory
+target_include_directories(FileSystem
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 )
