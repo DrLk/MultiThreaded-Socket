@@ -13,6 +13,8 @@
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
+#include "FileSystem.hpp"
+
 using namespace FastTransport::Protocol; // NOLINT
 
 
@@ -97,6 +99,9 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 int main(int argc, char** argv)
 {
+    FileSystem filesystem;
+    filesystem.Start();
+    return 0;
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);

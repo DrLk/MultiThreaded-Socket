@@ -46,7 +46,7 @@ endif()
 
 add_executable(SimpleNetworkProtocol main.cpp)
 
-target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
+target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib FileSystem)
 target_link_options(SimpleNetworkProtocol PRIVATE -static-libgcc -static-libstdc++)
 
 

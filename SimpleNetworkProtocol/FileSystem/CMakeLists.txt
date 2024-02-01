@@ -21,7 +21,7 @@ include_directories(${INCLUDE_DIRS})
 
 add_library(FileSystem STATIC ${SRC_FILES})
 
-target_link_libraries(FileSystem PUBLIC Logger Thread)
+target_link_libraries(FileSystem PRIVATE Logger Thread fuse3 pthread)
 
 target_include_directories(FileSystem
     PUBLIC
