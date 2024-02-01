@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -13,7 +14,7 @@
 
 struct Leaf {
     std::uint64_t inode;
-    Leaf* parrent;
+    Leaf* parent;
     std::map<std::string_view, std::unique_ptr<Leaf>> children;
 
     File file;
@@ -22,7 +23,7 @@ struct Leaf {
     {
         auto leaf = std::make_unique<Leaf>();
         leaf->file = std::move(file);
-        leaf->parrent = this;
+        leaf->parent = this;
         auto [insertedLeaf, result] = children.insert({ leaf->file.name.native(), std::move(leaf) });
         return *insertedLeaf->second;
     }
@@ -36,6 +37,32 @@ struct Leaf {
         return {};
     }
 
+    void Serialize(std::ostream& stream)
+    {
+        file.Serialize(stream);
+        stream << children.size();
+        for (auto& [name, child] : children) {
+            child->Serialize(stream);
+        }
+    }
+
+    void Deserialize(std::istream& stream, Leaf* parent)
+    {
+        this->parent = parent;
+        stream >> file.name;
+        stream >> file.size;
+        unsigned char type;
+        stream >> type;
+        file.type = (std::filesystem::file_type)type;
+        int count;
+        stream >> count;
+        for (int i = 0; i < count; i++) {
+            auto leaf = std::make_unique<Leaf>();
+            leaf->Deserialize(stream, this);
+            children.insert({ leaf->file.name.native(), std::move(leaf) });
+        }
+    }
+
 private:
 };
 
@@ -46,12 +73,24 @@ public:
         _root = std::make_unique<Leaf>();
         _root->inode = 0;
         _root->file = std::move(file);
-        _root->parrent = nullptr;
+        _root->parent = nullptr;
     }
 
     std::unique_ptr<Leaf>& GetRoot()
     {
         return _root;
+    }
+
+
+    void Deserialize(std::istream& in) const
+    {
+        _root->Deserialize(in, nullptr);
+    }
+
+    void Serialize(const Leaf& root, std::ostream& stream) const
+    {
+        std::stringstream ss;
+        _root->Serialize(stream);
     }
 
     void AddOpened(const std::shared_ptr<Leaf>& leaf)
@@ -103,6 +142,9 @@ public:
             .name = "file2",
             .size = 2 * 1024 * 1024,
             .type = std::filesystem::file_type::directory });
+
+        std::ostringstream out;
+        tree.Serialize(*tree.GetRoot(), out);
 
         return tree;
     }

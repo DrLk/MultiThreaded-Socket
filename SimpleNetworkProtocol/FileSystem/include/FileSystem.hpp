@@ -31,9 +31,9 @@ public:
         std::string mountpoint = "/mnt/test";
         fuse_opt_add_arg(&args, mountpoint.c_str());
 
-        fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), NULL);
+        fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), nullptr);
 
-        if (se == NULL)
+        if (se == nullptr)
             throw std::runtime_error("Failed to fuse_session_new");
 
         if (fuse_set_signal_handlers(se) != 0)
@@ -112,6 +112,7 @@ private:
                  << " request: " << req
                  << " inode: " << inode
                  << " nlookup: " << nlookup;
+        fuse_reply_none(req);
     }
 
     static void FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -136,14 +137,10 @@ private:
             return;
         }
 
-        auto file = _openedFiles.find(inode);
-        if (file == _openedFiles.end())
-            fuse_reply_err(req, ENOENT);
-        else {
-            memset(&stbuf, 0, sizeof(stbuf));
-            Stat(inode, &stbuf, file->second.get().file);
-            fuse_reply_attr(req, &stbuf, 1.0);
-        }
+        auto& file = GetLeaf(inode);
+        memset(&stbuf, 0, sizeof(stbuf));
+        Stat(inode, &stbuf, file.file);
+        fuse_reply_attr(req, &stbuf, 1.0);
     }
 
     struct dirbuf {
@@ -156,7 +153,7 @@ private:
     {
         struct stat stbuf;
         size_t oldsize = b->size;
-        b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+        b->size += fuse_add_direntry(req, nullptr, 0, name, nullptr, 0);
         b->p = (char*)realloc(b->p, b->size);
         memset(&stbuf, 0, sizeof(stbuf));
         stbuf.st_ino = ino;
@@ -170,7 +167,7 @@ private:
             return fuse_reply_buf(req, buffer + off,
                 std::min(bufferSize - off, maxSize));
         else
-            return fuse_reply_buf(req, NULL, 0);
+            return fuse_reply_buf(req, nullptr, 0);
     }
 
     static void FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size,
@@ -248,13 +245,36 @@ private:
         }
     }
 
+    static void FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
+    {
+        TRACER() << "[opendir]"
+                 << " request: " << req
+                 << " inode: " << inode;
+
+        if ((fileInfo->flags & O_ACCMODE) != O_RDONLY) {
+            fuse_reply_err(req, EACCES);
+        }
+
+        fuse_reply_open(req, fileInfo);
+    }
+
+    static void FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets)
+    {
+        TRACER() << "[forgetmulti]"
+                 << " request: " << req
+                 << " size: " << count;
+        fuse_reply_none(req);
+    }
+
     const struct fuse_lowlevel_ops _fuseOperations = {
         .lookup = FuseLookup,
         .forget = FuseForget,
         .getattr = FuseGetattr,
         .open = FuseOpen,
         .read = FuseRead,
+        .opendir = FuseOpendir,
         .readdir = FuseReaddir,
+        .forget_multi = FuseForgetmulti,
         /*.setxattr = FuseSetxattr,
         .getxattr = FuseGetxattr,
         .removexattr = FuseRemovexattr,*/
