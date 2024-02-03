@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -26,6 +27,25 @@ struct Leaf {
         leaf->parent = this;
         auto [insertedLeaf, result] = children.insert({ leaf->file.name.native(), std::move(leaf) });
         return *insertedLeaf->second;
+    }
+
+    void AddRef()
+    {
+        _nlookup++;
+    }
+
+    void ReleaseRef()
+    {
+        assert(_nlookup > 0);
+
+        _nlookup--;
+    }
+
+    void ReleaseRef(uint64_t nlookup)
+    {
+        assert(_nlookup >= nlookup);
+
+        _nlookup -= nlookup;
     }
 
     std::optional<std::reference_wrapper<Leaf>> Find(const std::string& name)
@@ -64,23 +84,28 @@ struct Leaf {
     }
 
 private:
+    std::uint64_t _nlookup = 0;
+    bool _deleted = false;
 };
 
 class FileTree {
 public:
-    FileTree(File&& file)
+    FileTree()
     {
         _root = std::make_unique<Leaf>();
         _root->inode = 0;
-        _root->file = std::move(file);
         _root->parent = nullptr;
     }
 
-    std::unique_ptr<Leaf>& GetRoot()
+    Leaf& GetRoot()
     {
-        return _root;
+        return *_root;
     }
 
+    void SetRoot(File&& file)
+    {
+        _root->file = std::move(file);
+    }
 
     void Deserialize(std::istream& in) const
     {
@@ -98,16 +123,6 @@ public:
         _openedFiles.insert({ leaf->inode, leaf });
     }
 
-    std::shared_ptr<Leaf>& Find(std::uint64_t inode)
-    {
-        auto file = _openedFiles.find(inode);
-
-        if (file != _openedFiles.end())
-            return file->second;
-
-        throw std::runtime_error("Not implemented");
-    }
-
     void Release(std::uint64_t inode)
     {
         _openedFiles.erase(inode);
@@ -115,25 +130,28 @@ public:
 
     static FileTree GetTestFileTree()
     {
-        FileTree tree(File {
-            .name = "test",
-            .size = 0,
-            .type = std::filesystem::file_type::directory });
+        FileTree tree;
+        tree.SetRoot(
+            File {
+                .name = "test",
+                .size = 0,
+                .type = std::filesystem::file_type::directory,
+            });
         auto& root = tree.GetRoot();
 
-        auto& folder1 = root->AddFile(File {
+        auto& folder1 = root.AddFile(File {
             .name = "folder1",
             .size = 0,
             .type = std::filesystem::file_type::directory });
 
-        root->Find("folder1");
+        root.Find("folder1");
 
         folder1.AddFile(File {
             .name = "file1",
             .size = 1 * 1024 * 1024,
-            .type = std::filesystem::file_type::directory });
+            .type = std::filesystem::file_type::regular });
 
-        auto& folder2 = root->AddFile(File {
+        auto& folder2 = root.AddFile(File {
             .name = "folder2",
             .size = 0,
             .type = std::filesystem::file_type::directory });
@@ -141,10 +159,12 @@ public:
         folder2.AddFile(File {
             .name = "file2",
             .size = 2 * 1024 * 1024,
-            .type = std::filesystem::file_type::directory });
+            .type = std::filesystem::file_type::regular });
 
         std::ostringstream out;
-        tree.Serialize(*tree.GetRoot(), out);
+        tree.Serialize(tree.GetRoot(), out);
+
+        FileTree deserializedTree;
 
         return tree;
     }

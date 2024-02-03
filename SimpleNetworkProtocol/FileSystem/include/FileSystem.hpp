@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 
@@ -46,7 +45,6 @@ public:
 
         /* Block until ctrl+c or fusermount -u */
         int result = fuse_session_loop(se);
-        /* std::this_thread::sleep_for(std::chrono::seconds(1000)); */
     }
 
 private:
@@ -91,12 +89,14 @@ private:
 
         fuse_entry_param entry;
 
-        auto& parent = parentId == 1 ? *_tree.GetRoot() : GetLeaf(parentId);
+        auto& parent = parentId == FUSE_ROOT_ID ? _tree.GetRoot() : GetLeaf(parentId);
         memset(&entry, 0, sizeof(entry));
         auto file = parent.Find(name);
         if (!file) {
             fuse_reply_err(req, ENOENT);
         } else {
+            (*file).get().AddRef();
+
             entry.ino = GetINode(*file);
             entry.attr_timeout = 1.0;
             entry.entry_timeout = 1.0;
@@ -112,6 +112,9 @@ private:
                  << " request: " << req
                  << " inode: " << inode
                  << " nlookup: " << nlookup;
+
+        auto& file = GetLeaf(inode);
+        file.ReleaseRef(nlookup);
         fuse_reply_none(req);
     }
 
@@ -125,7 +128,7 @@ private:
 
         (void)fileInfo;
 
-        if (inode == 1) {
+        if (inode == FUSE_ROOT_ID) {
             memset(&stbuf, 0, sizeof(stbuf));
             File file {
                 .name = "test",
@@ -180,9 +183,9 @@ private:
                  << " off: " << off;
 
         (void)fi;
-        auto& directory = inode == 1 ? *_tree.GetRoot() : GetLeaf(inode);
-        fuse_ino_t currentINode = 1;
-        if (inode != 1) {
+        auto& directory = inode == FUSE_ROOT_ID ? _tree.GetRoot() : GetLeaf(inode);
+        fuse_ino_t currentINode = FUSE_ROOT_ID;
+        if (inode != FUSE_ROOT_ID) {
             currentINode = GetINode(directory);
         }
 
@@ -255,6 +258,14 @@ private:
             fuse_reply_err(req, EACCES);
         }
 
+        if (inode == FUSE_ROOT_ID) {
+            fuse_reply_open(req, fileInfo);
+            return;
+        }
+
+        auto& file = GetLeaf(inode);
+        file.AddRef();
+
         fuse_reply_open(req, fileInfo);
     }
 
@@ -266,14 +277,40 @@ private:
         fuse_reply_none(req);
     }
 
+    static void FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fi)
+    {
+        TRACER() << "[release]"
+                 << " request: " << req
+                 << " inode: " << inode;
+
+        auto& file = GetLeaf(inode);
+        file.ReleaseRef();
+    }
+
+    static void FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fi)
+    {
+        TRACER() << "[releasedir]"
+                 << " request: " << req
+                 << " inode: " << inode;
+
+        if (inode == FUSE_ROOT_ID) {
+            return;
+        }
+
+        auto& file = GetLeaf(inode);
+        file.ReleaseRef();
+    }
+
     const struct fuse_lowlevel_ops _fuseOperations = {
         .lookup = FuseLookup,
         .forget = FuseForget,
         .getattr = FuseGetattr,
         .open = FuseOpen,
         .read = FuseRead,
+        .release = FuseRelease,
         .opendir = FuseOpendir,
         .readdir = FuseReaddir,
+        .releasedir = FuseReleasedir,
         .forget_multi = FuseForgetmulti,
         /*.setxattr = FuseSetxattr,
         .getxattr = FuseGetxattr,
