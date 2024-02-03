@@ -26,7 +26,7 @@ public:
 
     std::uint64_t inode;
     Leaf* parent;
-    std::map<std::string_view, Leaf> children; // TODO: use std::set
+    std::map<std::string, Leaf> children; // TODO: use std::set
 
     File file;
 
@@ -70,7 +70,8 @@ public:
     void Serialize(std::ostream& stream) const
     {
         file.Serialize(stream);
-        stream << children.size();
+        int size = children.size();
+        stream.write((char*)&size, sizeof(size));
         for (auto& [name, child] : children) {
             child.Serialize(stream);
         }
@@ -79,14 +80,10 @@ public:
     void Deserialize(std::istream& stream, Leaf* parent)
     {
         this->parent = parent;
-        stream >> file.name;
-        stream >> file.size;
-        unsigned char type;
-        stream >> type;
-        file.type = (std::filesystem::file_type)type;
-        int count;
-        stream >> count;
-        for (int i = 0; i < count; i++) {
+        file.Deserialize(stream);
+        int size;
+        stream.read((char*)&size, sizeof(size));
+        for (int i = 0; i < size; i++) {
             Leaf leaf;
             leaf.Deserialize(stream, this);
             children.insert({ leaf.file.name.native(), std::move(leaf) });
@@ -121,9 +118,8 @@ public:
         _root.Deserialize(in, nullptr);
     }
 
-    void Serialize(const Leaf& root, std::ostream& stream) const
+    void Serialize(std::ostream& stream) const
     {
-        std::stringstream ss;
         _root.Serialize(stream);
     }
 
@@ -171,7 +167,7 @@ public:
             .type = std::filesystem::file_type::regular });
 
         std::ostringstream out;
-        tree.Serialize(tree.GetRoot(), out);
+        tree.Serialize(out);
 
         FileTree deserializedTree;
 
