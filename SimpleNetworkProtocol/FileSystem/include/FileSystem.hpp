@@ -198,9 +198,9 @@ private:
             BufferAddFile(req, &buffer, ".", currentINode);
             BufferAddFile(req, &buffer, "..", 1);
             for (auto& [name, file] : directory.children) {
-                auto inode = GetINode(*file);
-                BufferAddFile(req, &buffer, file->file.name.c_str(), inode);
-                _openedFiles.insert({ inode, *file });
+                auto inode = GetINode(file);
+                BufferAddFile(req, &buffer, file.file.name.c_str(), inode);
+                _openedFiles.insert({ inode, file });
             }
 
             ReplyBufferLimited(req, buffer.p, buffer.size, off, size);

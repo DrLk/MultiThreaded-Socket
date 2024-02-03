@@ -4,6 +4,7 @@
 #include <iostream>
 
 namespace FastTransport::FileSystem {
+
 void File::Serialize(std::ostream& stream) const
 {
     stream << name;

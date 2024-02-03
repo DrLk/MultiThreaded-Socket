@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <initializer_list>
 
 namespace FastTransport::FileSystem {
 struct File {

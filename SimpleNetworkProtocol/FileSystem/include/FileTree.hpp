@@ -16,19 +16,27 @@
 namespace FastTransport::FileSystem {
 
 struct Leaf {
+
+public:
+    Leaf() = default;
+    Leaf(const Leaf& that) = delete;
+    Leaf(Leaf&& that) = default;
+    Leaf& operator=(const Leaf& that) = delete;
+    Leaf& operator=(Leaf&& that) = default;
+
     std::uint64_t inode;
     Leaf* parent;
-    std::map<std::string_view, std::unique_ptr<Leaf>> children;
+    std::map<std::string_view, Leaf> children; // TODO: use std::set
 
     File file;
 
     Leaf& AddFile(File&& file)
     {
-        auto leaf = std::make_unique<Leaf>();
-        leaf->file = std::move(file);
-        leaf->parent = this;
-        auto [insertedLeaf, result] = children.insert({ leaf->file.name.native(), std::move(leaf) });
-        return *insertedLeaf->second;
+        Leaf leaf;
+        leaf.file = std::move(file);
+        leaf.parent = this;
+        auto [insertedLeaf, result] = children.insert({ leaf.file.name.native(), std::move(leaf) });
+        return insertedLeaf->second;
     }
 
     void AddRef()
@@ -54,7 +62,7 @@ struct Leaf {
     {
         auto file = children.find(name);
         if (file != children.end())
-            return *file->second;
+            return file->second;
 
         return {};
     }
@@ -64,7 +72,7 @@ struct Leaf {
         file.Serialize(stream);
         stream << children.size();
         for (auto& [name, child] : children) {
-            child->Serialize(stream);
+            child.Serialize(stream);
         }
     }
 
@@ -79,9 +87,9 @@ struct Leaf {
         int count;
         stream >> count;
         for (int i = 0; i < count; i++) {
-            auto leaf = std::make_unique<Leaf>();
-            leaf->Deserialize(stream, this);
-            children.insert({ leaf->file.name.native(), std::move(leaf) });
+            Leaf leaf;
+            leaf.Deserialize(stream, this);
+            children.insert({ leaf.file.name.native(), std::move(leaf) });
         }
     }
 
