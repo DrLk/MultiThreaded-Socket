@@ -99,7 +99,7 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 int main(int argc, char** argv)
 {
-    FileSystem filesystem;
+    FastTransport::FileSystem::FileSystem filesystem;
     filesystem.Start();
     return 0;
 #ifdef WIN32

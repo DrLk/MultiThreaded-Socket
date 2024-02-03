@@ -13,6 +13,8 @@
 
 #include "File.hpp"
 
+namespace FastTransport::FileSystem {
+
 struct Leaf {
     std::uint64_t inode;
     Leaf* parent;
@@ -57,7 +59,7 @@ struct Leaf {
         return {};
     }
 
-    void Serialize(std::ostream& stream)
+    void Serialize(std::ostream& stream) const
     {
         file.Serialize(stream);
         stream << children.size();
@@ -92,30 +94,29 @@ class FileTree {
 public:
     FileTree()
     {
-        _root = std::make_unique<Leaf>();
-        _root->inode = 0;
-        _root->parent = nullptr;
+        _root.inode = 0;
+        _root.parent = nullptr;
     }
 
     Leaf& GetRoot()
     {
-        return *_root;
+        return _root;
     }
 
     void SetRoot(File&& file)
     {
-        _root->file = std::move(file);
+        _root.file = std::move(file);
     }
 
-    void Deserialize(std::istream& in) const
+    void Deserialize(std::istream& in)
     {
-        _root->Deserialize(in, nullptr);
+        _root.Deserialize(in, nullptr);
     }
 
     void Serialize(const Leaf& root, std::ostream& stream) const
     {
         std::stringstream ss;
-        _root->Serialize(stream);
+        _root.Serialize(stream);
     }
 
     void AddOpened(const std::shared_ptr<Leaf>& leaf)
@@ -169,8 +170,38 @@ public:
         return tree;
     }
 
-private:
-    std::unique_ptr<Leaf> _root;
+    void Scan(std::filesystem::path directoryPath)
+    {
+        Scan(directoryPath, _root);
+    }
 
+private:
+    Leaf _root;
     std::unordered_map<std::uint64_t, std::shared_ptr<Leaf>> _openedFiles;
+
+    void Scan(std::filesystem::path directoryPath, Leaf& root)
+    {
+        std::filesystem::directory_iterator itt(directoryPath);
+
+        for (; itt != std::filesystem::directory_iterator(); itt++) {
+            const std::filesystem::path& path = itt->path();
+            if (std::filesystem::is_regular_file(path)) {
+                root.AddFile(File {
+                    .name = path,
+                    .size = std::filesystem::file_size(path),
+                    .type = std::filesystem::file_type::regular,
+                });
+
+            } else if (std::filesystem::is_directory(path)) {
+                auto& directory = root.AddFile(File {
+                    .name = path,
+                    .size = std::filesystem::file_size(path),
+                    .type = std::filesystem::file_type::directory,
+                });
+
+                Scan(path, directory);
+            }
+        }
+    }
 };
+} // namespace FastTransport::FileSystem

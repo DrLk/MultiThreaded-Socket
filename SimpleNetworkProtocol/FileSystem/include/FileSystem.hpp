@@ -21,7 +21,7 @@
 
 #define TRACER() LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
 
-namespace FastTransport::Protocol {
+namespace FastTransport::FileSystem {
 class FileSystem {
 public:
     void Start()
@@ -320,4 +320,4 @@ private:
     static FileTree _tree;
 };
 
-} // namespace FastTransport::Protocol
+} // namespace FastTransport::FileSystem

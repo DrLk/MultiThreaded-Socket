@@ -1,14 +1,13 @@
 #include "FileSystem.hpp"
 
-#include <cstring>
-#include <errno.h>
+#include <functional>
 #include <fuse3/fuse.h>
+#include <unordered_map>
 
-#include "File.hpp"
 #include "FileTree.hpp"
 
-namespace FastTransport::Protocol {
+namespace FastTransport::FileSystem {
 std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> FileSystem::_openedFiles;
 FileTree FileSystem::_tree = FileTree::GetTestFileTree();
 
-} // namespace FastTransport::Protocol
+} // namespace FastTransport::FileSystem
