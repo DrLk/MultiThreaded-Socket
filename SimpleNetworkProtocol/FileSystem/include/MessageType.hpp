@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 #include "ByteStream.hpp"
@@ -13,7 +15,13 @@ enum class MessageType {
     ResponseTree = 2,
     RequestFile = 3,
     ResponseFile = 4,
+    RequestFileBytes = 5,
+    ResponseFileBytes = 6,
+    RequestCloseFile = 7,
+    ResponseCloseFile = 8,
 };
+
+using FileID = std::uint64_t;
 
 struct Request {
     MessageType type;
@@ -24,11 +32,40 @@ struct RequestTree {
     std::string path;
 };
 
+struct RequestFile {
+    std::u8string path;
+    std::uint64_t offset;
+    std::uint64_t size;
+};
+
+struct ResponseFile {
+    std::u8string path;
+    FileID fileId;
+};
+
+struct RequestFileBytes {
+    FileID fileId;
+    std::uint64_t offset;
+    std::uint64_t size;
+};
+
+struct ResponseFileBytes {
+    FileID fileId;
+    std::uint64_t offset;
+    std::uint64_t size;
+    std::vector<std::byte> bytes;
+};
+
+struct RequestCloseFile {
+    FileID fileId;
+};
+
+struct ResponseCloseFile {
+    FileID fileId;
+};
+
 OutputByteStream& operator<<(OutputByteStream& stream, const RequestTree& message);
 InputByteStream& operator>>(InputByteStream& stream, RequestTree& message);
-
-class Response {
-};
 
 class Protocol {
 public:
