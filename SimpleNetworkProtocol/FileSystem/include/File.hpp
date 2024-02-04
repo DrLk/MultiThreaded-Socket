@@ -2,7 +2,8 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <initializer_list>
+
+#include "ByteStream.hpp"
 
 namespace FastTransport::FileSystem {
 struct File {
@@ -10,7 +11,7 @@ struct File {
     std::uintmax_t size;
     std::filesystem::file_type type;
 
-    void Serialize(std::ostream& stream) const;
-    void Deserialize(std::istream& stream);
+    void Serialize(OutputByteStream& stream) const;
+    void Deserialize(InputByteStream& stream);
 };
 } // namespace FastTransport::FileSystem

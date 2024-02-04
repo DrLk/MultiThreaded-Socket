@@ -2,13 +2,10 @@
 
 #include <cstddef>
 #include <functional>
-#include <iostream>
 #include <vector>
 
+#include "ByteStream.hpp"
 #include "FileTree.hpp"
-
-using InputByteStream = std::basic_istream<char>;
-using OutputByteStream = std::basic_ostream<char>;
 
 enum class MessageType {
     None = 0,
@@ -17,9 +14,6 @@ enum class MessageType {
     RequestFile = 3,
     ResponseFile = 4,
 };
-
-OutputByteStream& operator<<(OutputByteStream& stream, MessageType message);
-InputByteStream& operator>>(InputByteStream& stream, MessageType& message);
 
 struct Request {
     MessageType type;
@@ -43,6 +37,7 @@ public:
         , _inputStream(inputStream)
     {
     }
+
     /*void SendBytes(std::span<std::byte> bytes)
     {
         std::copy(bytes.begin(), bytes.end(), std::ostream_iterator<std::byte, std::byte>(outStream));
@@ -76,7 +71,7 @@ public:
 
         _inputStream >> type;
         FastTransport::FileSystem::FileTree newTree;
-        newTree.Deserialize(_inputStream);
+        newTree.Deserialize(_inputStream.get());
         int i = 0;
         i++;
         return;
@@ -96,7 +91,7 @@ public:
             }
             case MessageType::ResponseTree: {
                 FastTransport::FileSystem::FileTree newTree;
-                newTree.Deserialize(_inputStream);
+                newTree.Deserialize(_inputStream.get());
                 break;
             }
             case MessageType::RequestFile: {

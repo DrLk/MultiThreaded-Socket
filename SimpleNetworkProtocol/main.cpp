@@ -101,8 +101,10 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 int main(int argc, char** argv)
 {
-    std::stringstream stream;
-    Protocol protocol(stream, stream);
+    std::basic_stringstream<std::byte> stream;
+    OutputByteStream output(stream);
+    InputByteStream input(stream);
+    Protocol protocol(output, input);
     protocol.Run();
     return 0;
 

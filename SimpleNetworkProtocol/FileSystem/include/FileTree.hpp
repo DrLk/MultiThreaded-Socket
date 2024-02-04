@@ -7,10 +7,9 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <stdexcept>
-#include <string_view>
 #include <unordered_map>
 
+#include "ByteStream.hpp"
 #include "File.hpp"
 
 namespace FastTransport::FileSystem {
@@ -67,22 +66,22 @@ public:
         return {};
     }
 
-    void Serialize(std::ostream& stream) const
+    void Serialize(OutputByteStream& stream) const
     {
         file.Serialize(stream);
         int size = children.size();
-        stream.write((char*)&size, sizeof(size));
+        stream << size;
         for (auto& [name, child] : children) {
             child.Serialize(stream);
         }
     }
 
-    void Deserialize(std::istream& stream, Leaf* parent)
+    void Deserialize(InputByteStream& stream, Leaf* parent)
     {
         this->parent = parent;
         file.Deserialize(stream);
         int size;
-        stream.read((char*)&size, sizeof(size));
+        stream >> size;
         for (int i = 0; i < size; i++) {
             Leaf leaf;
             leaf.Deserialize(stream, this);
@@ -113,12 +112,12 @@ public:
         _root.file = std::move(file);
     }
 
-    void Deserialize(std::istream& in)
+    void Deserialize(InputByteStream& in)
     {
         _root.Deserialize(in, nullptr);
     }
 
-    void Serialize(std::ostream& stream) const
+    void Serialize(OutputByteStream& stream) const
     {
         _root.Serialize(stream);
     }
@@ -165,11 +164,6 @@ public:
             .name = "file2",
             .size = 2 * 1024 * 1024,
             .type = std::filesystem::file_type::regular });
-
-        std::ostringstream out;
-        tree.Serialize(out);
-
-        FileTree deserializedTree;
 
         return tree;
     }
