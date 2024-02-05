@@ -76,7 +76,7 @@ private:
             break;
 
         default:
-            throw std::runtime_error("Not Implemented");
+            throw std::runtime_error("Not implemented");
         }
     }
 

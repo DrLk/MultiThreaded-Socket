@@ -91,7 +91,7 @@ ConnectionContext& Connection::GetContext()
 
 IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 {
-    {
+    if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
     }
 
@@ -297,7 +297,6 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
-
         _freeUserSendPackets.NotifyAll();
     }
 }
