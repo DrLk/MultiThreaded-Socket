@@ -15,14 +15,10 @@ namespace FastTransport::Protocol {
 template <class T>
 concept trivial = std::is_trivial_v<T>;
 
-class ConnectionWriter {
+class ConnectionWriter final {
 public:
-    explicit ConnectionWriter(const IConnection::Ptr& connection, IPacket::List&& packet)
-        : _connection(connection)
-        , _packets(std::move(packet))
-        , _packet(_packets.begin())
-    {
-    }
+    ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection, IPacket::List&& packet);
+    ~ConnectionWriter();
 
     template <trivial T>
     ConnectionWriter& operator<<(const T& trivial)
@@ -36,7 +32,7 @@ public:
         _offset += writeSize;
 
         auto b = sizeof(trivial) - writeSize;
-        if (b) {
+        if (b != 0) {
             IPacket::Ptr& nextPacket = GetNextPacket(_stop);
             if (!nextPacket) {
                 _error = true;
@@ -45,7 +41,6 @@ public:
             std::memcpy(nextPacket->GetPayload().data(), ((std::byte*)&trivial) + writeSize, b);
             _offset = b;
         }
-        _offset += sizeof(trivial);
 
         return *this;
     }
@@ -56,11 +51,9 @@ public:
             return;
         }
 
-        _packetsToSend.LockedPushBack(std::move(*_packet));
+        GetNextPacket(_stop);
         _packetsToSend.LockedSplice(std::move(packets));
         _packetsToSend.NotifyAll();
-
-        GetNextPacket(_stop);
     }
 
     void Flush()
@@ -69,9 +62,9 @@ public:
             return;
         }
 
-        _packetsToSend.LockedPushBack(std::move(*_packet));
-        _packetsToSend.NotifyAll();
         GetNextPacket(_stop);
+
+        _packetsToSend.WaitEmpty(_stop);
     }
 
     std::size_t GetFreeSize()
@@ -91,10 +84,11 @@ private:
 
     IPacket::Ptr& GetNextPacket(std::stop_token stop)
     {
+        _packetsToSend.LockedPushBack(std::move(*_packet));
+        _packetsToSend.NotifyAll();
         auto previouseIterator = _packet;
         _packet++;
         if (_packet == _packets.end()) {
-            _packetsToSend.LockedPushBack(std::move(*_packet));
             if (!_freePackets.Wait(stop)) {
                 static IPacket::Ptr null;
                 return null;
@@ -117,12 +111,13 @@ private:
         IPacket::List result;
         _packetsToSend.Wait(stop);
         _packetsToSend.LockedSwap(result);
+        _packetsToSend.NotifyAll();
         return result;
     }
 
-    static void SendThread(std::stop_token stop, IConnection& connection, ConnectionWriter& writer)
+    static void SendThread(std::stop_token stop, ConnectionWriter& writer, IConnection& connection)
     {
-        while (stop.stop_requested()) {
+        while (!stop.stop_requested()) {
             IPacket::List packets = writer.GetPacketToSend(stop);
             IPacket::List freePackets = connection.Send(stop, std::move(packets));
 
@@ -139,6 +134,7 @@ private:
     std::ptrdiff_t _offset { 0 };
     std::stop_token _stop;
     bool _error = false;
+    std::jthread _sendThread;
 };
 
 class PacketReader {

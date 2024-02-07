@@ -26,6 +26,7 @@ public:
     bool Wait(std::stop_token stop);
     template <class Predicate>
     bool Wait(std::stop_token stop, const Predicate& predicate);
+    bool WaitEmpty(std::stop_token stop);
     bool WaitFor(std::stop_token stop);
     template <class Predicate>
     bool WaitFor(std::stop_token stop, const Predicate& predicate);
@@ -36,13 +37,14 @@ public:
     MultiList<T> LockedTryGenerate(size_t size);
     void LockedPushBack(T&& element);
     T LockedGetBack();
+    [[nodiscard]] bool LockedEmpty() const;
 
 private:
     MultiList<T> _list;
 
     using Mutex = FastTransport::Thread::SpinLock;
 
-    Mutex _mutex;
+    mutable Mutex _mutex;
     std::condition_variable_any _condition {};
 };
 
@@ -79,6 +81,13 @@ bool LockedList<T>::Wait(std::stop_token stop, const Predicate& predicate)
     auto fullPredicate = [this, &predicate]() { return !_list.empty() || predicate(); };
     std::unique_lock<Mutex> lock(_mutex);
     return _condition.wait(lock, stop, std::move(fullPredicate));
+}
+
+template <class T>
+bool LockedList<T>::WaitEmpty(std::stop_token stop)
+{
+    std::unique_lock<Mutex> lock(_mutex);
+    return _condition.wait(lock, stop, [this]() { return _list.empty(); });
 }
 
 template <class T>
@@ -149,5 +158,13 @@ T LockedList<T>::LockedGetBack()
     T result = std::move(_list.back());
     _list.pop_back();
     return result;
+}
+
+template <class T>
+bool LockedList<T>::LockedEmpty() const
+{
+    const std::scoped_lock<Mutex> lock(_mutex);
+
+    return _list.empty();
 }
 } // namespace FastTransport::Containers

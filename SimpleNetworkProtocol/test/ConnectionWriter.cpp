@@ -1,4 +1,5 @@
 #include "ConnectionWriter.hpp"
+#include <array>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <stop_token>
@@ -29,27 +30,66 @@ public:
 
 TEST(ConnectionWriter, Payload)
 {
-    MockConnection connection;
-    IPacket::List packets;
-    for (int i = 0; i < 100; i++) {
-        packets.push_back(std::make_unique<Packet>(1500));
-    }
+    std::stop_source stopSource;
+    std::stop_token stop = stopSource.get_token();
+    auto connection = std::make_shared<MockConnection>();
+    {
+        IPacket::List packets;
+        for (int i = 0; i < 100; i++) {
+            auto packet = std::make_unique<Packet>(1500);
+            std::array<std::byte, 1000> payload {};
+            packet->SetPayload(payload);
+            packets.push_back(std::move(packet));
+        }
 
-    return;
-    ConnectionWriter writer(std::unique_ptr<IConnection>(&connection), std::move(packets));
+        ConnectionWriter writer(stop, connection, std::move(packets));
 
-    EXPECT_CALL(connection, Send)
+        IPacket::List list;
+        /*EXPECT_CALL(*connection, Send(_, _))*/
+        /* .WillOnce(DoAll(SaveArg<0>(&stop), SaveArg<1>(&list), Return(std::move(list)))); */
+        /*.Times(2)
         .WillRepeatedly(
-            [](std::stop_token /*stop*/, IPacket::List&& packets) {
+            [](std::stop_token stop, IPacket::List&& packets) {
                 return std::move(packets);
-            });
-    int value = 957;
-    writer << value;
+            });*/
 
-    /*writer.Flush();
+        /*EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token stop, IPacket::List&& packets) {
+                    return std::move(packets);
+                });*/
+        EXPECT_CALL(*connection, Send)
+            .Times(4)
+            .WillRepeatedly(
+                [](std::stop_token stop, IPacket::List&& packets) {
+                    return std::move(packets);
+                });
 
-    IPacket::List writePackets;
+        int value = 957;
+        writer << value;
 
-    writer.Write(std::move(writePackets));*/
+        writer.Flush();
+
+        /*EXPECT_CALL(*connection, Send)
+            .Times(2)
+            .WillRepeatedly(
+                [](std::stop_token stop, IPacket::List&& packets) {
+                    return std::move(packets);
+                });*/
+
+        /* std::this_thread::sleep_for(std::chrono::seconds(1)); */
+        writer << value;
+        writer.Flush();
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
+        writer << value;
+        writer.Flush();
+        /* std::this_thread::sleep_for(std::chrono::seconds(1)); */
+        int i = 0;
+        i++;
+
+        /*IPacket::List writePackets;
+
+        writer.Write(std::move(writePackets));*/
+    }
 }
 } // namespace FastTransport::Protocol
