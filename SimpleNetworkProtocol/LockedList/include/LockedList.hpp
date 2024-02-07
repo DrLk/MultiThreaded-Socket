@@ -114,6 +114,10 @@ void LockedList<T>::NotifyAll() noexcept
 template <class T>
 void LockedList<T>::LockedSplice(MultiList<T>&& list)
 {
+    if (list.empty()) {
+        return;
+    }
+
     const std::scoped_lock<Mutex> lock(_mutex);
 
     _list.splice(std::move(list));

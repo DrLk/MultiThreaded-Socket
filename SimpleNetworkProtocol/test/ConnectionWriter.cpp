@@ -92,4 +92,71 @@ TEST(ConnectionWriter, Payload)
         writer.Write(std::move(writePackets));*/
     }
 }
+
+TEST(ConnectionWriter, EmptyFlush)
+{
+    std::stop_source stopSource;
+    std::stop_token stop = stopSource.get_token();
+    auto connection = std::make_shared<MockConnection>();
+    {
+        IPacket::List packets;
+        for (int i = 0; i < 100; i++) {
+            auto packet = std::make_unique<Packet>(1500);
+            std::array<std::byte, 1000> payload {};
+            packet->SetPayload(payload);
+            packets.push_back(std::move(packet));
+        }
+
+        ConnectionWriter writer(stop, connection, std::move(packets));
+
+        writer.Flush();
+        writer.Flush();
+        writer.Flush();
+        writer.Flush();
+        writer.Flush();
+        writer.Flush();
+    }
+}
+
+TEST(ConnectionWriter, WriteIPacketList)
+{
+    std::stop_source stopSource;
+    std::stop_token stop = stopSource.get_token();
+    auto connection = std::make_shared<MockConnection>();
+    {
+        IPacket::List packets;
+        for (int i = 0; i < 100; i++) {
+            auto packet = std::make_unique<Packet>(1500);
+            std::array<std::byte, 1000> payload {};
+            packet->SetPayload(payload);
+            packets.push_back(std::move(packet));
+        }
+
+        ConnectionWriter writer(stop, connection, std::move(packets));
+
+        std::array<std::byte, 1000> testData {};
+        for (auto& byte : testData) {
+            byte = std::byte { 64 };
+        }
+        IPacket::List sendPackets;
+        sendPackets.push_back(std::make_unique<Packet>(1200));
+        sendPackets.back()->SetPayload(testData);
+
+        EXPECT_TRUE(std::equal(testData.begin(), testData.end(), sendPackets.back()->GetPayload().begin(), sendPackets.back()->GetPayload().end()));
+
+        IPacket::List result;
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [&result, &testData](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(std::equal(testData.begin(), testData.end(), packets.back()->GetPayload().begin(), packets.back()->GetPayload().end()));
+                    result = std::move(packets);
+                    return IPacket::List();
+                });
+
+        writer << std::move(sendPackets);
+        writer.Flush();
+
+        EXPECT_TRUE(std::equal(testData.begin(), testData.end(), result.back()->GetPayload().begin(), result.back()->GetPayload().end()));
+    }
+}
 } // namespace FastTransport::Protocol

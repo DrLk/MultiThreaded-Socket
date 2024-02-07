@@ -45,15 +45,16 @@ public:
         return *this;
     }
 
-    void Write(IPacket::List&& packets)
+    ConnectionWriter& operator<<(IPacket::List&& packets)
     {
         if (_stop.stop_requested()) {
-            return;
+            return *this;
         }
 
-        GetNextPacket(_stop);
+        Flush();
         _packetsToSend.LockedSplice(std::move(packets));
         _packetsToSend.NotifyAll();
+        return *this;
     }
 
     void Flush()
@@ -62,9 +63,19 @@ public:
             return;
         }
 
-        GetNextPacket(_stop);
+        IPacket::List packets;
+        packets.splice(std::move(_packets), _packets.begin(), _packet);
+        _packetsToSend.LockedSplice(std::move(packets));
 
+        auto packet = _packet;
+        if (_offset != 0) {
+            _packetsToSend.LockedPushBack(std::move(*packet));
+        }
+
+        _packetsToSend.NotifyAll();
         _packetsToSend.WaitEmpty(_stop);
+        GetNextPacket(_stop);
+        packets.erase(packet);
     }
 
     std::size_t GetFreeSize()
@@ -84,8 +95,6 @@ private:
 
     IPacket::Ptr& GetNextPacket(std::stop_token stop)
     {
-        _packetsToSend.LockedPushBack(std::move(*_packet));
-        _packetsToSend.NotifyAll();
         auto previouseIterator = _packet;
         _packet++;
         if (_packet == _packets.end()) {

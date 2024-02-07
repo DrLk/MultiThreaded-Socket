@@ -84,6 +84,7 @@ public:
 
     void push_back(T&& element);
     void splice(MultiList<T>&& that); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+    void splice(MultiList<T>&& that, Iterator begin, Iterator end); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
     [[nodiscard]] bool empty() const noexcept;
     [[nodiscard]] T& front();
     [[nodiscard]] T& back();
@@ -340,6 +341,46 @@ void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalu
         }
     }
     _lists.splice(_lists.end(), std::move(that._lists));
+}
+
+template <class T>
+void MultiList<T>::splice(MultiList<T>&& that, Iterator begin, Iterator end) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+{
+    std::list<std::list<T>> lists;
+    if (begin._it1 == end._it1) {
+        std::list<T> items;
+        items.splice(items.end(), *begin._it1, begin._it2, end._it2);
+        _lists.push_back(std::move(items));
+        return;
+    }
+
+    {
+        std::list<T> items;
+        items.splice(items.end(), *begin._it1, begin._it2, begin._it1->end());
+        _lists.push_back(std::move(items));
+        begin._it1++;
+    }
+
+    if (begin._it1 == end._it1) {
+        std::list<T> items;
+        items.splice(items.end(), *begin._it1, begin._it1->begin(), end._it2);
+        _lists.push_back(std::move(items));
+        return;
+    }
+
+    {
+        auto preEnd = end._it1;
+        preEnd--;
+        _lists.splice(_lists.end(), that._lists, begin._it1, preEnd);
+    }
+
+    {
+        std::list<T> items;
+        items.splice(items.end(), *end._it1, end._it1->begin(), begin._it2);
+        _lists.push_back(std::move(items));
+    }
+
+    _lists.splice(_lists.end(), that._lists, begin._it1, end._it1);
 }
 
 template <class T>
