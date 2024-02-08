@@ -376,11 +376,9 @@ void MultiList<T>::splice(MultiList<T>&& that, Iterator begin, Iterator end) // 
 
     {
         std::list<T> items;
-        items.splice(items.end(), *end._it1, end._it1->begin(), begin._it2);
+        items.splice(items.end(), *end._it1, end._it1->begin(), end._it2);
         _lists.push_back(std::move(items));
     }
-
-    _lists.splice(_lists.end(), that._lists, begin._it1, end._it1);
 }
 
 template <class T>

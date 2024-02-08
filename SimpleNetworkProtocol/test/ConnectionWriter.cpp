@@ -59,37 +59,21 @@ TEST(ConnectionWriter, Payload)
                     return std::move(packets);
                 });*/
         EXPECT_CALL(*connection, Send)
-            .Times(4)
+            .Times(3)
             .WillRepeatedly(
-                [](std::stop_token stop, IPacket::List&& packets) {
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     return std::move(packets);
                 });
 
         int value = 957;
         writer << value;
-
         writer.Flush();
 
-        /*EXPECT_CALL(*connection, Send)
-            .Times(2)
-            .WillRepeatedly(
-                [](std::stop_token stop, IPacket::List&& packets) {
-                    return std::move(packets);
-                });*/
-
-        /* std::this_thread::sleep_for(std::chrono::seconds(1)); */
         writer << value;
         writer.Flush();
-        //std::this_thread::sleep_for(std::chrono::seconds(1));
+
         writer << value;
         writer.Flush();
-        /* std::this_thread::sleep_for(std::chrono::seconds(1)); */
-        int i = 0;
-        i++;
-
-        /*IPacket::List writePackets;
-
-        writer.Write(std::move(writePackets));*/
     }
 }
 
@@ -106,6 +90,9 @@ TEST(ConnectionWriter, EmptyFlush)
             packet->SetPayload(payload);
             packets.push_back(std::move(packet));
         }
+
+        EXPECT_CALL(*connection, Send)
+            .Times(0);
 
         ConnectionWriter writer(stop, connection, std::move(packets));
 
@@ -147,16 +134,13 @@ TEST(ConnectionWriter, WriteIPacketList)
         IPacket::List result;
         EXPECT_CALL(*connection, Send)
             .WillOnce(
-                [&result, &testData](std::stop_token /*stop*/, IPacket::List&& packets) {
+                [&testData](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(std::equal(testData.begin(), testData.end(), packets.back()->GetPayload().begin(), packets.back()->GetPayload().end()));
-                    result = std::move(packets);
                     return IPacket::List();
                 });
 
         writer << std::move(sendPackets);
         writer.Flush();
-
-        EXPECT_TRUE(std::equal(testData.begin(), testData.end(), result.back()->GetPayload().begin(), result.back()->GetPayload().end()));
     }
 }
 } // namespace FastTransport::Protocol

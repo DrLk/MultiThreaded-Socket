@@ -63,19 +63,21 @@ public:
             return;
         }
 
-        IPacket::List packets;
-        packets.splice(std::move(_packets), _packets.begin(), _packet);
-        _packetsToSend.LockedSplice(std::move(packets));
+        if (_packets.begin() != _packet) {
+            IPacket::List packets;
+            packets.splice(std::move(_packets), _packets.begin(), _packet);
+            _packetsToSend.LockedSplice(std::move(packets));
+        }
 
         auto packet = _packet;
         if (_offset != 0) {
             _packetsToSend.LockedPushBack(std::move(*packet));
+            GetNextPacket(_stop);
+            _packets.erase(packet);
         }
 
         _packetsToSend.NotifyAll();
         _packetsToSend.WaitEmpty(_stop);
-        GetNextPacket(_stop);
-        packets.erase(packet);
     }
 
     std::size_t GetFreeSize()
@@ -106,10 +108,11 @@ private:
             _freePackets.LockedSwap(freePackets);
 
             _packets.splice(std::move(freePackets));
-            previouseIterator++;
             _packet = previouseIterator;
+            _packet++;
         }
 
+        _offset = 0;
         assert(_packet != _packets.end());
 
         return *_packet;
