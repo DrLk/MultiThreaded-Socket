@@ -15,11 +15,13 @@ InputByteStream::InputByteStream(std::basic_istream<std::byte>& stream)
     : _inStream(stream)
 {
 }
+
 InputByteStream& InputByteStream::Read(void* pointer, std::size_t size)
 {
     _inStream.get().read((std::byte*)pointer, size);
     return *this;
 }
+
 OutputByteStream& operator<<(OutputByteStream& stream, const std::filesystem::path& path)
 {
     stream << path.u8string();

@@ -19,7 +19,6 @@ std::wstring DecodeStringFrom(std::string_view utf8EncodedStr)
     int status = 1;
     std::wstring result;
 
-    int a = std::ssize(utf8EncodedStr);
     size_t length = utf8EncodedStr.size();
     if (length) {
         int lengthSigned = length == -1 ? (int)-1 : (int)length;

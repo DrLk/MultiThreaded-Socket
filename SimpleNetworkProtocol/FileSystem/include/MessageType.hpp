@@ -109,8 +109,6 @@ public:
         _inputStream >> type;
         FastTransport::FileSystem::FileTree newTree;
         newTree.Deserialize(_inputStream.get());
-        int i = 0;
-        i++;
         return;
 
         while (true) {

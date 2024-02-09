@@ -136,7 +136,7 @@ TEST(ConnectionWriter, WriteIPacketList)
             .WillOnce(
                 [&testData](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(std::equal(testData.begin(), testData.end(), packets.back()->GetPayload().begin(), packets.back()->GetPayload().end()));
-                    return IPacket::List();
+                    return std::move(packets);
                 });
 
         writer << std::move(sendPackets);
