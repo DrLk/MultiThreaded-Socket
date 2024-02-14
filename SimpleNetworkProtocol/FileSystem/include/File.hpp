@@ -12,7 +12,13 @@ struct File {
     std::uintmax_t size;
     std::filesystem::file_type type;
 
-    void Serialize(OutputByteStream& stream) const;
+    template <OutputStream Stream>
+    void Serialize(OutputByteStream<Stream>& stream) const
+    {
+        stream << name;
+        stream << size;
+        stream << type;
+    }
 
     template <InputStream Stream>
     void Deserialize(InputByteStream<Stream>& stream)

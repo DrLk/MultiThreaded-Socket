@@ -101,7 +101,7 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 int main(int argc, char** argv)
 {
     std::basic_stringstream<std::byte> stream;
-    FastTransport::FileSystem::OutputByteStream output(stream);
+    FastTransport::FileSystem::OutputByteStream<std::basic_stringstream<std::byte>> output(stream);
     FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>> input(stream);
     Protocol protocol(output, input);
     protocol.Run();

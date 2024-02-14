@@ -16,19 +16,44 @@ namespace FastTransport::FileSystem {
 template <class T>
 concept trivial = std::is_trivial_v<T>;
 
+template <OutputStream Stream>
 class OutputByteStream {
 public:
-    OutputByteStream(std::basic_ostream<std::byte>& stream);
+    OutputByteStream(Stream& stream)
+        : _outStream(stream)
+    {
+    }
 
-    OutputByteStream& Write(void* pointer, std::size_t size);
-
-private:
-    std::reference_wrapper<std::basic_ostream<std::byte>> _outStream;
+    OutputByteStream& Write(void* pointer, std::size_t size)
+    {
+        _outStream.get().write((std::byte*)pointer, size);
+        return *this;
+    }
 
     template <class T>
-    friend OutputByteStream& operator<<(OutputByteStream& stream, const std::basic_string<T>& string);
+    OutputByteStream& operator<<(const std::basic_string<T>& string)
+    {
+        std::uint32_t size = string.size();
+        _outStream.get().write((std::byte*)(&size), sizeof(size));
+        _outStream.get().write((std::byte*)string.c_str(), string.size());
+        return *this;
+    }
+
     template <trivial T>
-    friend OutputByteStream& operator<<(OutputByteStream& stream, const T& trivial);
+    OutputByteStream& operator<<(const T& trivial)
+    {
+        _outStream.get().write((std::byte*)(&trivial), sizeof(trivial));
+        return *this;
+    }
+
+    OutputByteStream& operator<<(const std::filesystem::path& path)
+    {
+        operator<<(path.u8string());
+        return *this;
+    }
+
+private:
+    std::reference_wrapper<Stream> _outStream;
 };
 
 template <FastTransport::FileSystem::InputStream Stream>
@@ -72,23 +97,5 @@ public:
 private:
     std::reference_wrapper<Stream> _inStream;
 };
-
-template <class T>
-OutputByteStream& operator<<(OutputByteStream& stream, const std::basic_string<T>& string)
-{
-    std::uint32_t size = string.size();
-    stream._outStream.get().write((std::byte*)(&size), sizeof(size));
-    stream._outStream.get().write((std::byte*)string.c_str(), string.size());
-    return stream;
-}
-
-template <trivial T>
-OutputByteStream& operator<<(OutputByteStream& stream, const T& trivial)
-{
-    stream._outStream.get().write((std::byte*)(&trivial), sizeof(trivial));
-    return stream;
-}
-
-OutputByteStream& operator<<(OutputByteStream& stream, const std::filesystem::path& path);
 
 } // namespace FastTransport::FileSystem

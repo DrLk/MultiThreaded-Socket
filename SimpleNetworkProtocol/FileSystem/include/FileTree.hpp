@@ -67,7 +67,8 @@ public:
         return {};
     }
 
-    void Serialize(OutputByteStream& stream) const
+    template <OutputStream Stream>
+    void Serialize(OutputByteStream<Stream>& stream) const
     {
         file.Serialize(stream);
         int size = children.size();
@@ -120,7 +121,8 @@ public:
         _root.Deserialize(in, nullptr);
     }
 
-    void Serialize(OutputByteStream& stream) const
+    template <OutputStream Stream>
+    void Serialize(OutputByteStream<Stream>& stream) const
     {
         _root.Serialize(stream);
     }

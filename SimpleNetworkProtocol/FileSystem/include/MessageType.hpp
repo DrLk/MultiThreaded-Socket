@@ -66,7 +66,12 @@ struct ResponseCloseFile {
     FileID fileId;
 };
 
-FastTransport::FileSystem::OutputByteStream& operator<<(FastTransport::FileSystem::OutputByteStream& stream, const RequestTree& message);
+template <FastTransport::FileSystem::OutputStream Stream>
+FastTransport::FileSystem::OutputByteStream<Stream>& operator<<(FastTransport::FileSystem::OutputByteStream<Stream>& stream, const RequestTree& message)
+{
+    stream << message.path;
+    return stream;
+}
 
 template <FastTransport::FileSystem::InputStream Stream>
 FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::FileSystem::InputByteStream<Stream>& stream, RequestTree& message)
@@ -77,8 +82,8 @@ FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::Fi
 
 class Protocol {
 public:
-    template <FastTransport::FileSystem::InputStream Stream>
-    Protocol(FastTransport::FileSystem::OutputByteStream& outStream, FastTransport::FileSystem::InputByteStream<Stream>& inputStream)
+    template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
+    Protocol(FastTransport::FileSystem::OutputByteStream<OutputStream>& outStream, FastTransport::FileSystem::InputByteStream<InputStream>& inputStream)
         : _outStream(outStream)
         , _inputStream(inputStream)
     {
@@ -104,16 +109,16 @@ public:
             .path = "/mnt/test"
         };
 
-        _outStream << MessageType::RequestTree;
-        _outStream << request;
+        _outStream.get() << MessageType::RequestTree;
+        _outStream.get() << request;
 
         MessageType type;
         _inputStream.get() >> type;
         RequestTree newRequest;
         _inputStream.get() >> newRequest;
 
-        _outStream << MessageType::ResponseTree;
-        tree.Serialize(_outStream);
+        _outStream.get() << MessageType::ResponseTree;
+        tree.Serialize(_outStream.get());
 
         _inputStream.get() >> type;
         FastTransport::FileSystem::FileTree newTree;
@@ -129,8 +134,8 @@ public:
                 RequestTree request;
                 _inputStream.get() >> request;
 
-                _outStream << MessageType::ResponseTree;
-                tree.Serialize(_outStream);
+                _outStream.get() << MessageType::ResponseTree;
+                tree.Serialize(_outStream.get());
                 break;
             }
             case MessageType::ResponseTree: {
@@ -151,6 +156,6 @@ public:
     }
 
 private:
-    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream> _outStream;
+    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<std::basic_stringstream<std::byte>>> _outStream;
     std::reference_wrapper<FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>>> _inputStream;
 };
