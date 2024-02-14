@@ -9,6 +9,10 @@
 #include <string>
 #include <type_traits>
 
+#include "StreamConcept.hpp"
+
+namespace FastTransport::FileSystem {
+
 template <class T>
 concept trivial = std::is_trivial_v<T>;
 
@@ -27,19 +31,46 @@ private:
     friend OutputByteStream& operator<<(OutputByteStream& stream, const T& trivial);
 };
 
+template <FastTransport::FileSystem::InputStream Stream>
 class InputByteStream {
 public:
-    InputByteStream(std::basic_istream<std::byte>& stream);
+    InputByteStream(Stream& stream)
+        : _inStream(stream)
+    {
+    }
 
-    InputByteStream& Read(void* pointer, std::size_t size);
+    InputByteStream& Read(void* pointer, std::size_t size)
+    {
+        _inStream.get().read((std::byte*)pointer, size);
+        return *this;
+    }
+
+    template <trivial T>
+    InputByteStream<Stream>& operator>>(T& trivial)
+    {
+        _inStream.get().read((std::byte*)&trivial, sizeof(trivial));
+        return *this;
+    }
+    template <class T>
+    InputByteStream<Stream>& operator>>(std::basic_string<T>& string)
+    {
+        std::uint32_t size;
+        _inStream.get().read((std::byte*)&size, sizeof(size));
+        string.resize(size);
+        _inStream.get().read((std::byte*)string.data(), size);
+        return *this;
+    }
+
+    InputByteStream<Stream>& operator>>(std::filesystem::path& path)
+    {
+        std::u8string string;
+        operator>>(string);
+        path = string;
+        return *this;
+    }
 
 private:
-    std::reference_wrapper<std::basic_istream<std::byte>> _inStream;
-
-    template <class T>
-    friend InputByteStream& operator>>(InputByteStream& stream, std::basic_string<T>& string);
-    template <trivial T>
-    friend InputByteStream& operator>>(InputByteStream& stream, T& trivial);
+    std::reference_wrapper<Stream> _inStream;
 };
 
 template <class T>
@@ -51,16 +82,6 @@ OutputByteStream& operator<<(OutputByteStream& stream, const std::basic_string<T
     return stream;
 }
 
-template <class T>
-InputByteStream& operator>>(InputByteStream& stream, std::basic_string<T>& string)
-{
-    std::uint32_t size;
-    stream._inStream.get().read((std::byte*)&size, sizeof(size));
-    string.resize(size);
-    stream._inStream.get().read((std::byte*)string.data(), size);
-    return stream;
-}
-
 template <trivial T>
 OutputByteStream& operator<<(OutputByteStream& stream, const T& trivial)
 {
@@ -68,12 +89,6 @@ OutputByteStream& operator<<(OutputByteStream& stream, const T& trivial)
     return stream;
 }
 
-template <trivial T>
-InputByteStream& operator>>(InputByteStream& stream, T& trivial)
-{
-    stream._inStream.get().read((std::byte*)&trivial, sizeof(trivial));
-    return stream;
-}
-
 OutputByteStream& operator<<(OutputByteStream& stream, const std::filesystem::path& path);
-InputByteStream& operator>>(InputByteStream& stream, std::filesystem::path& path);
+
+} // namespace FastTransport::FileSystem

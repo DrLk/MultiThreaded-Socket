@@ -13,12 +13,11 @@
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
-#include <sstream>
 #include "FileSystem.hpp"
 #include "MessageType.hpp"
+#include <sstream>
 
 using namespace FastTransport::Protocol; // NOLINT
-
 
 constexpr int Source = 1;
 constexpr int Destination = 2;
@@ -102,8 +101,8 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 int main(int argc, char** argv)
 {
     std::basic_stringstream<std::byte> stream;
-    OutputByteStream output(stream);
-    InputByteStream input(stream);
+    FastTransport::FileSystem::OutputByteStream output(stream);
+    FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>> input(stream);
     Protocol protocol(output, input);
     protocol.Run();
     return 0;

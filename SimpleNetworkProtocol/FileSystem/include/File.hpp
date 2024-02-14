@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "ByteStream.hpp"
+#include "StreamConcept.hpp"
 
 namespace FastTransport::FileSystem {
 struct File {
@@ -12,6 +13,13 @@ struct File {
     std::filesystem::file_type type;
 
     void Serialize(OutputByteStream& stream) const;
-    void Deserialize(InputByteStream& stream);
+
+    template <InputStream Stream>
+    void Deserialize(InputByteStream<Stream>& stream)
+    {
+        stream >> name;
+        stream >> size;
+        stream >> type;
+    }
 };
 } // namespace FastTransport::FileSystem

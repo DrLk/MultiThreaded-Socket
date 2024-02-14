@@ -11,6 +11,7 @@
 
 #include "ByteStream.hpp"
 #include "File.hpp"
+#include "StreamConcept.hpp"
 
 namespace FastTransport::FileSystem {
 
@@ -76,7 +77,8 @@ public:
         }
     }
 
-    void Deserialize(InputByteStream& stream, Leaf* parent)
+    template <InputStream Stream>
+    void Deserialize(InputByteStream<Stream>& stream, Leaf* parent)
     {
         this->parent = parent;
         file.Deserialize(stream);
@@ -112,7 +114,8 @@ public:
         _root.file = std::move(file);
     }
 
-    void Deserialize(InputByteStream& in)
+    template <InputStream Stream>
+    void Deserialize(InputByteStream<Stream>& in)
     {
         _root.Deserialize(in, nullptr);
     }

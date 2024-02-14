@@ -11,11 +11,4 @@ void File::Serialize(OutputByteStream& stream) const
     stream << type;
 }
 
-void File::Deserialize(InputByteStream& stream)
-{
-    stream >> name;
-    stream >> size;
-    stream >> type;
-}
-
 } // namespace FastTransport::FileSystem

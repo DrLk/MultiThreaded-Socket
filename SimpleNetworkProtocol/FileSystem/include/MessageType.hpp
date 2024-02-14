@@ -3,11 +3,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
+#include "StreamConcept.hpp"
 
 enum class MessageType {
     None = 0,
@@ -64,12 +66,19 @@ struct ResponseCloseFile {
     FileID fileId;
 };
 
-OutputByteStream& operator<<(OutputByteStream& stream, const RequestTree& message);
-InputByteStream& operator>>(InputByteStream& stream, RequestTree& message);
+FastTransport::FileSystem::OutputByteStream& operator<<(FastTransport::FileSystem::OutputByteStream& stream, const RequestTree& message);
+
+template <FastTransport::FileSystem::InputStream Stream>
+FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::FileSystem::InputByteStream<Stream>& stream, RequestTree& message)
+{
+    stream >> message.path;
+    return stream;
+}
 
 class Protocol {
 public:
-    Protocol(OutputByteStream& outStream, InputByteStream& inputStream)
+    template <FastTransport::FileSystem::InputStream Stream>
+    Protocol(FastTransport::FileSystem::OutputByteStream& outStream, FastTransport::FileSystem::InputByteStream<Stream>& inputStream)
         : _outStream(outStream)
         , _inputStream(inputStream)
     {
@@ -99,26 +108,26 @@ public:
         _outStream << request;
 
         MessageType type;
-        _inputStream >> type;
+        _inputStream.get() >> type;
         RequestTree newRequest;
-        _inputStream >> newRequest;
+        _inputStream.get() >> newRequest;
 
         _outStream << MessageType::ResponseTree;
         tree.Serialize(_outStream);
 
-        _inputStream >> type;
+        _inputStream.get() >> type;
         FastTransport::FileSystem::FileTree newTree;
         newTree.Deserialize(_inputStream.get());
         return;
 
         while (true) {
             MessageType message;
-            _inputStream >> message;
+            _inputStream.get() >> message;
 
             switch (message) {
             case MessageType::RequestTree: {
                 RequestTree request;
-                _inputStream >> request;
+                _inputStream.get() >> request;
 
                 _outStream << MessageType::ResponseTree;
                 tree.Serialize(_outStream);
@@ -142,6 +151,6 @@ public:
     }
 
 private:
-    std::reference_wrapper<OutputByteStream> _outStream;
-    std::reference_wrapper<InputByteStream> _inputStream;
+    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream> _outStream;
+    std::reference_wrapper<FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>>> _inputStream;
 };
