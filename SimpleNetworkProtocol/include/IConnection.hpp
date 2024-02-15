@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stop_token>
+
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {

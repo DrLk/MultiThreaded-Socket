@@ -1,8 +1,6 @@
 #pragma once
 
-#include <concepts>
 #include <cstddef>
-#include <string>
 
 namespace FastTransport::FileSystem {
 
@@ -21,6 +19,5 @@ concept InputStream = requires(T stream, std::byte* data, std::ptrdiff_t size) {
     {
         stream.read(data, size)
     };
-    /* } -> std::same_as<T&>; */
 };
 } // namespace FastTransport::FileSystem

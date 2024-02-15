@@ -80,9 +80,9 @@ FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::Fi
     return stream;
 }
 
+template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
 class Protocol {
 public:
-    template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
     Protocol(FastTransport::FileSystem::OutputByteStream<OutputStream>& outStream, FastTransport::FileSystem::InputByteStream<InputStream>& inputStream)
         : _outStream(outStream)
         , _inputStream(inputStream)
@@ -156,6 +156,6 @@ public:
     }
 
 private:
-    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<std::basic_stringstream<std::byte>>> _outStream;
-    std::reference_wrapper<FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>>> _inputStream;
+    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _outStream;
+    std::reference_wrapper<FastTransport::FileSystem::InputByteStream<InputStream>> _inputStream;
 };

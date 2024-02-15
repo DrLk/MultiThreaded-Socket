@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 #include <functional>
 #include <span>
 #include <stop_token>
@@ -25,6 +26,7 @@ public:
     ConnectionWriter& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
     void Flush();
 
+    ConnectionWriter& write(const void* data, std::ptrdiff_t size);
     IPacket::List GetFreePackets();
 
 private:
@@ -39,7 +41,7 @@ private:
     Containers::LockedList<IPacket::Ptr> _packetsToSend;
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { 0 };
+    std::ptrdiff_t _offset { sizeof(std::uint32_t) };
     std::stop_token _stop;
     bool _error = false;
     std::jthread _sendThread;
@@ -83,26 +85,7 @@ private:
 template <trivial T>
 ConnectionWriter& ConnectionWriter::operator<<(const T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {
-    if (_stop.stop_requested()) {
-        return *this;
-    }
-
-    auto writeSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
-    std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, writeSize);
-    _offset += writeSize;
-
-    auto b = sizeof(trivial) - writeSize;
-    if (b != 0) {
-        IPacket::Ptr& nextPacket = GetNextPacket(_stop);
-        if (!nextPacket) {
-            _error = true;
-            return *this;
-        }
-        std::memcpy(nextPacket->GetPayload().data(), ((std::byte*)&trivial) + writeSize, b);
-        _offset = b;
-    }
-
-    return *this;
+    return write(&trivial, sizeof(trivial));
 }
 
 } // namespace FastTransport::Protocol

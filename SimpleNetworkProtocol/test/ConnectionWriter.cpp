@@ -1,5 +1,6 @@
 #include "ConnectionWriter.hpp"
 #include <array>
+#include <cstdint>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <stop_token>
@@ -62,10 +63,42 @@ TEST(ConnectionWriter, Payload)
             .Times(3)
             .WillRepeatedly(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.size() == 1);
+                    auto& packet = packets.back();
+                    std::uint32_t size = 0;
+                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
+                    EXPECT_TRUE(size == sizeof(int));
+                    int value = 0;
+                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
+                    EXPECT_TRUE(value == 957);
                     return std::move(packets);
                 });
 
         int value = 957;
+        writer << value;
+        writer.Flush();
+
+        writer << value;
+        writer.Flush();
+
+        writer << value;
+        writer.Flush();
+
+        EXPECT_CALL(*connection, Send)
+            .Times(3)
+            .WillRepeatedly(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.size() == 1);
+                    auto& packet = packets.back();
+                    std::uint32_t size = 0;
+                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
+                    EXPECT_TRUE(size == sizeof(int));
+                    int value = 0;
+                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
+                    EXPECT_TRUE(value == 958);
+                    return std::move(packets);
+                });
+        value = 958;
         writer << value;
         writer.Flush();
 

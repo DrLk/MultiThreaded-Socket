@@ -1,15 +1,16 @@
 #include "ConnectionWriter.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <thread>
 #include <utility>
 
 namespace FastTransport::Protocol {
-ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection, IPacket::List&& packet)
+ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection, IPacket::List&& packets)
     : _connection(connection)
-    , _packets(std::move(packet))
+    , _packets(std::move(packets))
     , _packet(_packets.begin())
-      ,_stop(std::move(stop))
+    , _stop(std::move(stop))
     , _sendThread(SendThread, std::ref(*this), std::ref(*connection))
 {
 }
@@ -44,7 +45,9 @@ void ConnectionWriter::Flush()
     }
 
     auto packet = _packet;
-    if (_offset != 0) {
+    if (_offset > sizeof(std::uint32_t)) {
+        _offset -= sizeof(std::uint32_t);
+        std::memcpy(GetPacket().GetPayload().data(), &_offset, sizeof(std::uint32_t));
         _packetsToSend.LockedPushBack(std::move(*packet));
         GetNextPacket(_stop);
         _packets.erase(packet);
@@ -52,6 +55,36 @@ void ConnectionWriter::Flush()
 
     _packetsToSend.NotifyAll();
     _packetsToSend.WaitEmpty(_stop);
+}
+
+ConnectionWriter& ConnectionWriter::write(const void* data, std::ptrdiff_t size)
+{
+    if (_stop.stop_requested()) {
+        return *this;
+    }
+
+    const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+
+    while (size > 0) {
+        auto writeSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
+        std::memcpy(GetPacket().GetPayload().data() + _offset, bytes, writeSize);
+        _offset += writeSize;
+
+        size -= writeSize;
+        bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
+        if (_offset == GetPacket().GetPayload().size()) {
+            _offset -= sizeof(std::uint32_t);
+            std::memcpy(GetPacket().GetPayload().data(), &_offset, sizeof(std::uint32_t));
+            IPacket::Ptr& nextPacket = GetNextPacket(_stop);
+            if (!nextPacket) {
+                _error = true;
+                return *this;
+            }
+        }
+    }
+
+    return *this;
 }
 
 IPacket::List ConnectionWriter::GetFreePackets()
@@ -81,7 +114,7 @@ IPacket::Ptr& ConnectionWriter::GetNextPacket(std::stop_token stop)
         _packet++;
     }
 
-    _offset = 0;
+    _offset = sizeof(std::uint32_t);
     assert(_packet != _packets.end());
 
     return *_packet;
@@ -100,6 +133,11 @@ void ConnectionWriter::SendThread(std::stop_token stop, ConnectionWriter& writer
 {
     while (!stop.stop_requested()) {
         IPacket::List packets = writer.GetPacketToSend(stop);
+
+        if (packets.empty()) {
+            continue;
+        }
+
         IPacket::List freePackets = connection.Send(stop, std::move(packets));
 
         writer._freePackets.LockedSplice(std::move(freePackets));
