@@ -26,7 +26,7 @@ public:
     ConnectionWriter& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
     void Flush();
 
-    ConnectionWriter& write(const void* data, std::ptrdiff_t size);
+    ConnectionWriter& write(const void* data, std::size_t size);
     IPacket::List GetFreePackets();
 
 private:

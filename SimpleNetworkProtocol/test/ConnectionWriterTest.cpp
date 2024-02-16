@@ -1,9 +1,11 @@
 #include "ConnectionWriter.hpp"
-#include <array>
-#include <cstdint>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <array>
+#include <cstdint>
 #include <stop_token>
+#include <vector>
 
 #include "IPacket.hpp"
 #include "Packet.hpp"
@@ -164,7 +166,6 @@ TEST(ConnectionWriter, WriteIPacketList)
 
         EXPECT_TRUE(std::equal(testData.begin(), testData.end(), sendPackets.back()->GetPayload().begin(), sendPackets.back()->GetPayload().end()));
 
-        IPacket::List result;
         EXPECT_CALL(*connection, Send)
             .WillOnce(
                 [&testData](std::stop_token /*stop*/, IPacket::List&& packets) {
@@ -174,6 +175,42 @@ TEST(ConnectionWriter, WriteIPacketList)
 
         writer << std::move(sendPackets);
         writer.Flush();
+    }
+}
+
+TEST(ConnectionWriter, WriteBigArray)
+{
+    std::stop_source stopSource;
+    std::stop_token stop = stopSource.get_token();
+    auto connection = std::make_shared<MockConnection>();
+    {
+        IPacket::List packets;
+        for (int i = 0; i < 100; i++) {
+            auto packet = std::make_unique<Packet>(1500);
+            std::array<std::byte, 1000> payload {};
+            packet->SetPayload(payload);
+            packets.push_back(std::move(packet));
+        }
+
+        ConnectionWriter writer(stop, connection, std::move(packets));
+
+        std::vector<std::byte> testData(2000, std::byte { 31 });
+
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.size() == 3);
+                    auto& packet = packets.front();
+                    std::uint32_t size = 0;
+                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
+                    EXPECT_TRUE(size == 996);
+                    /*int value = 0;
+                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
+                    EXPECT_TRUE(value == 958);*/
+                    return std::move(packets);
+                });
+
+        writer.write(testData.data(), testData.size());
     }
 }
 } // namespace FastTransport::Protocol

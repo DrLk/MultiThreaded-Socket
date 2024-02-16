@@ -57,7 +57,7 @@ void ConnectionWriter::Flush()
     _packetsToSend.WaitEmpty(_stop);
 }
 
-ConnectionWriter& ConnectionWriter::write(const void* data, std::ptrdiff_t size)
+ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)
 {
     if (_stop.stop_requested()) {
         return *this;
