@@ -107,6 +107,7 @@ IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
 
 IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets)
 {
+    if (!freePackets.empty())
     {
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }

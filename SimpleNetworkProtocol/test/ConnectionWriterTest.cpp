@@ -67,11 +67,8 @@ TEST(ConnectionWriter, Payload)
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.size() == 1);
                     auto& packet = packets.back();
-                    std::uint32_t size = 0;
-                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
-                    EXPECT_TRUE(size == sizeof(int));
                     int value = 0;
-                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
+                    std::memcpy(&value, packet->GetPayload().data(), sizeof(value));
                     EXPECT_TRUE(value == 957);
                     return std::move(packets);
                 });
@@ -92,11 +89,8 @@ TEST(ConnectionWriter, Payload)
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.size() == 1);
                     auto& packet = packets.back();
-                    std::uint32_t size = 0;
-                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
-                    EXPECT_TRUE(size == sizeof(int));
                     int value = 0;
-                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
+                    std::memcpy(&value, packet->GetPayload().data(), sizeof(value));
                     EXPECT_TRUE(value == 958);
                     return std::move(packets);
                 });
@@ -199,11 +193,7 @@ TEST(ConnectionWriter, WriteBigArray)
         EXPECT_CALL(*connection, Send)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
-                    EXPECT_TRUE(packets.size() == 3);
-                    auto& packet = packets.front();
-                    std::uint32_t size = 0;
-                    std::memcpy(&size, packet->GetPayload().data(), sizeof(size));
-                    EXPECT_TRUE(size == 996);
+                    EXPECT_TRUE(packets.size() == 2);
                     /*int value = 0;
                     std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
                     EXPECT_TRUE(value == 958);*/

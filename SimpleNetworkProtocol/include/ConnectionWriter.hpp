@@ -41,7 +41,7 @@ private:
     Containers::LockedList<IPacket::Ptr> _packetsToSend;
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { sizeof(std::uint32_t) };
+    std::ptrdiff_t _offset { 0 };
     std::stop_token _stop;
     bool _error = false;
     std::jthread _sendThread;

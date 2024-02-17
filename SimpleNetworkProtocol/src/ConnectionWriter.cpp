@@ -45,9 +45,7 @@ void ConnectionWriter::Flush()
     }
 
     auto packet = _packet;
-    if (_offset > sizeof(std::uint32_t)) {
-        _offset -= sizeof(std::uint32_t);
-        std::memcpy(GetPacket().GetPayload().data(), &_offset, sizeof(std::uint32_t));
+    if (_offset > 0) {
         _packetsToSend.LockedPushBack(std::move(*packet));
         GetNextPacket(_stop);
         _packets.erase(packet);
@@ -74,8 +72,6 @@ ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)
         bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         if (_offset == GetPacket().GetPayload().size()) {
-            _offset -= sizeof(std::uint32_t);
-            std::memcpy(GetPacket().GetPayload().data(), &_offset, sizeof(std::uint32_t));
             IPacket::Ptr& nextPacket = GetNextPacket(_stop);
             if (!nextPacket) {
                 _error = true;
@@ -114,7 +110,7 @@ IPacket::Ptr& ConnectionWriter::GetNextPacket(std::stop_token stop)
         _packet++;
     }
 
-    _offset = sizeof(std::uint32_t);
+    _offset = 0;
     assert(_packet != _packets.end());
 
     return *_packet;
