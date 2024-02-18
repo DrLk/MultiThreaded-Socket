@@ -2,9 +2,9 @@
 
 #include <cstddef>
 #include <cstring>
-#include <functional>
 #include <span>
 #include <stop_token>
+#include <thread>
 #include <type_traits>
 
 #include "IConnection.hpp"
@@ -18,7 +18,7 @@ concept trivial = std::is_trivial_v<T>;
 
 class ConnectionWriter final {
 public:
-    ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection, IPacket::List&& packet);
+    ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection);
     ~ConnectionWriter();
 
     template <trivial T>

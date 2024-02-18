@@ -107,8 +107,7 @@ int main(int argc, char** argv)
 
     IConnection::Ptr connection;
     std::stop_token stop;
-    IPacket::List packets;
-    ConnectionWriter writer(stop, connection, std::move(packets));
+    ConnectionWriter writer(stop, connection);
     FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output2(writer);
     Protocol protocol(output, input);
     protocol.Run();

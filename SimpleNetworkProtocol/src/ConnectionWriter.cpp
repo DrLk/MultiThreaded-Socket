@@ -6,13 +6,13 @@
 #include <utility>
 
 namespace FastTransport::Protocol {
-ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection, IPacket::List&& packets)
+ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection)
     : _connection(connection)
-    , _packets(std::move(packets))
-    , _packet(_packets.begin())
     , _stop(std::move(stop))
     , _sendThread(SendThread, std::ref(*this), std::ref(*connection))
 {
+    _packets = _connection->Send(stop, IPacket::List());
+    _packet = _packets.begin();
 }
 
 ConnectionWriter::~ConnectionWriter()

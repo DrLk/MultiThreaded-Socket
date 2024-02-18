@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <array>
-#include <cstdint>
 #include <stop_token>
 #include <vector>
 
@@ -37,15 +36,21 @@ TEST(ConnectionWriter, Payload)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        IPacket::List packets;
-        for (int i = 0; i < 100; i++) {
-            auto packet = std::make_unique<Packet>(1500);
-            std::array<std::byte, 1000> payload {};
-            packet->SetPayload(payload);
-            packets.push_back(std::move(packet));
-        }
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.empty());
+                    IPacket::List freePackets = std::move(packets);
+                    for (int i = 0; i < 100; i++) {
+                        auto packet = std::make_unique<Packet>(1500);
+                        std::array<std::byte, 1000> payload {};
+                        packet->SetPayload(payload);
+                        freePackets.push_back(std::move(packet));
+                    }
+                    return freePackets;
+                });
 
-        ConnectionWriter writer(stop, connection, std::move(packets));
+        ConnectionWriter writer(stop, connection);
 
         IPacket::List list;
         /*EXPECT_CALL(*connection, Send(_, _))*/
@@ -112,19 +117,24 @@ TEST(ConnectionWriter, EmptyFlush)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        IPacket::List packets;
-        for (int i = 0; i < 100; i++) {
-            auto packet = std::make_unique<Packet>(1500);
-            std::array<std::byte, 1000> payload {};
-            packet->SetPayload(payload);
-            packets.push_back(std::move(packet));
-        }
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.empty());
+                    IPacket::List freePackets = std::move(packets);
+                    for (int i = 0; i < 100; i++) {
+                        auto packet = std::make_unique<Packet>(1500);
+                        std::array<std::byte, 1000> payload {};
+                        packet->SetPayload(payload);
+                        packets.push_back(std::move(packet));
+                    }
+                    return freePackets;
+                });
+
+        ConnectionWriter writer(stop, connection);
 
         EXPECT_CALL(*connection, Send)
             .Times(0);
-
-        ConnectionWriter writer(stop, connection, std::move(packets));
-
         writer.Flush();
         writer.Flush();
         writer.Flush();
@@ -140,15 +150,21 @@ TEST(ConnectionWriter, WriteIPacketList)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        IPacket::List packets;
-        for (int i = 0; i < 100; i++) {
-            auto packet = std::make_unique<Packet>(1500);
-            std::array<std::byte, 1000> payload {};
-            packet->SetPayload(payload);
-            packets.push_back(std::move(packet));
-        }
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.empty());
+                    IPacket::List freePackets = std::move(packets);
+                    for (int i = 0; i < 100; i++) {
+                        auto packet = std::make_unique<Packet>(1500);
+                        std::array<std::byte, 1000> payload {};
+                        packet->SetPayload(payload);
+                        freePackets.push_back(std::move(packet));
+                    }
+                    return freePackets;
+                });
 
-        ConnectionWriter writer(stop, connection, std::move(packets));
+        ConnectionWriter writer(stop, connection);
 
         std::array<std::byte, 1000> testData {};
         for (auto& byte : testData) {
@@ -178,15 +194,21 @@ TEST(ConnectionWriter, WriteBigArray)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        IPacket::List packets;
-        for (int i = 0; i < 100; i++) {
-            auto packet = std::make_unique<Packet>(1500);
-            std::array<std::byte, 1000> payload {};
-            packet->SetPayload(payload);
-            packets.push_back(std::move(packet));
-        }
+        EXPECT_CALL(*connection, Send)
+            .WillOnce(
+                [](std::stop_token /*stop*/, IPacket::List&& packets) {
+                    EXPECT_TRUE(packets.empty());
+                    IPacket::List freePackets = std::move(packets);
+                    for (int i = 0; i < 100; i++) {
+                        auto packet = std::make_unique<Packet>(1500);
+                        std::array<std::byte, 1000> payload {};
+                        packet->SetPayload(payload);
+                        freePackets.push_back(std::move(packet));
+                    }
+                    return freePackets;
+                });
 
-        ConnectionWriter writer(stop, connection, std::move(packets));
+        ConnectionWriter writer(stop, connection);
 
         std::vector<std::byte> testData(2000, std::byte { 31 });
 
