@@ -14,9 +14,6 @@ concept OutputStream = requires(T stream, std::byte* data, std::ptrdiff_t size) 
 template <typename T>
 concept InputStream = requires(T stream, std::byte* data, std::ptrdiff_t size) {
     {
-        stream >> size
-    };
-    {
         stream.read(data, size)
     };
 };

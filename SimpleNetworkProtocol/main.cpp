@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "ConnectionAddr.hpp"
+#include "ConnectionReader.hpp"
 #include "ConnectionWriter.hpp"
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
@@ -105,10 +106,13 @@ int main(int argc, char** argv)
     FastTransport::FileSystem::OutputByteStream<std::basic_stringstream<std::byte>> output(stream);
     FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>> input(stream);
 
-    IConnection::Ptr connection;
+    IConnection::Ptr sourceConnection;
+    IConnection::Ptr destinationConnection;
     std::stop_token stop;
-    ConnectionWriter writer(stop, connection);
+    ConnectionWriter writer(stop, sourceConnection);
+    ConnectionReader reader(stop, sourceConnection);
     FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output2(writer);
+    FastTransport::FileSystem::InputByteStream<ConnectionReader> input2(reader);
     Protocol protocol(output, input);
     protocol.Run();
     return 0;

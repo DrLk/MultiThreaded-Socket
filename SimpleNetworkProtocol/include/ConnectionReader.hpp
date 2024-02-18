@@ -8,15 +8,11 @@
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
-template <class T>
-concept trivial = std::is_trivial_v<T>;
 
 class ConnectionReader final {
 public:
     ConnectionReader(std::stop_token stop, const IConnection::Ptr& connection);
 
-    template <trivial T>
-    ConnectionReader& operator<<(const T& trivial); // NOLINT(fuchsia-overloaded-operator)
     ConnectionReader& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
     void Flush();
 
