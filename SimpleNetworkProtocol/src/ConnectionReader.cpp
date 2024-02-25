@@ -13,9 +13,6 @@ ConnectionReader::ConnectionReader(std::stop_token stop, const IConnection::Ptr&
     : _connection(connection)
     , _stop(stop)
 {
-    IPacket::List packets = _connection->Recv(stop, std::move(_freePackets));
-    _packets.splice(std::move(packets));
-    _packet = _packets.begin();
 }
 
 ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
@@ -24,7 +21,11 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
         return *this;
     }
 
-    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (_packet == _packets.end()) {
+        IPacket::List packets = _connection->Recv(_stop, std::move(_freePackets));
+        _packets.splice(std::move(packets));
+        _packet = _packets.begin();
+    }
 
     if (_offset == GetPacket().GetPayload().size()) {
         IPacket::Ptr& nextPacket = GetNextPacket(_stop);
@@ -34,6 +35,7 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
         }
     }
 
+    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     while (size > 0) {
         auto readSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
         std::memcpy(bytes, GetPacket().GetPayload().data() + _offset, readSize);
@@ -42,6 +44,11 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
         size -= readSize;
         bytes += readSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+    return *this;
+}
+
+ConnectionReader& ConnectionReader::operator>>(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
+{
     return *this;
 }
 

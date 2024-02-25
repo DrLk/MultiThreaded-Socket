@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <iostream>
-#include <ostream>
 #include <string>
 #include <type_traits>
 
@@ -27,6 +25,12 @@ public:
     OutputByteStream& Write(void* pointer, std::size_t size)
     {
         _outStream.get().write((std::byte*)pointer, size);
+        return *this;
+    }
+
+    OutputByteStream& Flush()
+    {
+        _outStream.get().flush();
         return *this;
     }
 

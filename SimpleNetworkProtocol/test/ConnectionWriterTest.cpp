@@ -26,6 +26,8 @@ public:
 
     MOCK_METHOD(IPacket::List, Send, (std::stop_token stop, IPacket::List&&));
     MOCK_METHOD(IPacket::List, Recv, (std::stop_token stop, IPacket::List&&));
+    MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
+    MOCK_METHOD(void, AddFreeSendPackets, (IPacket::List&&));
     MOCK_METHOD(void, Close, ());
     MOCK_METHOD(bool, IsClosed, (), (const, override));
 };
@@ -80,13 +82,13 @@ TEST(ConnectionWriter, Payload)
 
         int value = 957;
         writer << value;
-        writer.Flush();
+        writer.flush();
 
         writer << value;
-        writer.Flush();
+        writer.flush();
 
         writer << value;
-        writer.Flush();
+        writer.flush();
 
         EXPECT_CALL(*connection, Send)
             .Times(3)
@@ -94,6 +96,7 @@ TEST(ConnectionWriter, Payload)
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.size() == 1);
                     auto& packet = packets.back();
+                    EXPECT_EQ(packet->GetPayload().size(), sizeof(value));
                     int value = 0;
                     std::memcpy(&value, packet->GetPayload().data(), sizeof(value));
                     EXPECT_TRUE(value == 958);
@@ -101,13 +104,13 @@ TEST(ConnectionWriter, Payload)
                 });
         value = 958;
         writer << value;
-        writer.Flush();
+        writer.flush();
 
         writer << value;
-        writer.Flush();
+        writer.flush();
 
         writer << value;
-        writer.Flush();
+        writer.flush();
     }
 }
 
@@ -135,12 +138,12 @@ TEST(ConnectionWriter, EmptyFlush)
 
         EXPECT_CALL(*connection, Send)
             .Times(0);
-        writer.Flush();
-        writer.Flush();
-        writer.Flush();
-        writer.Flush();
-        writer.Flush();
-        writer.Flush();
+        writer.flush();
+        writer.flush();
+        writer.flush();
+        writer.flush();
+        writer.flush();
+        writer.flush();
     }
 }
 
@@ -184,7 +187,7 @@ TEST(ConnectionWriter, WriteIPacketList)
                 });
 
         writer << std::move(sendPackets);
-        writer.Flush();
+        writer.flush();
     }
 }
 

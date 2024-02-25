@@ -9,6 +9,9 @@ concept OutputStream = requires(T stream, std::byte* data, std::ptrdiff_t size) 
     {
         stream.write(data, size)
     };
+    {
+        stream.flush()
+    };
 };
 
 template <typename T>

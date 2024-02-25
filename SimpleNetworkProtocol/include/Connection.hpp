@@ -57,6 +57,9 @@ public:
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
 
+    void AddFreeRecvPackets(IPacket::List&& freePackets) override;
+    void AddFreeSendPackets(IPacket::List&& freePackets) override;
+
     void Close() override;
     [[nodiscard]] bool IsClosed() const override;
     [[nodiscard]] bool CanBeDeleted() const;

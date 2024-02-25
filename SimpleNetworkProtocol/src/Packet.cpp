@@ -96,6 +96,11 @@ void Packet::SetPayload(std::span<IPacket::ElementType> payload)
     Payload(_element.data(), _element.size()).SetPayload(payload);
 }
 
+void Packet::SetPayloadSize(std::size_t size)
+{
+    Payload(_element.data(), _element.size()).SetPayloadSize(size);
+}
+
 std::span<IPacket::ElementType> Packet::GetBuffer()
 {
     const PayloadSizeType payloadSize = Header(_element.data(), _element.size()).GetPayloadSize();

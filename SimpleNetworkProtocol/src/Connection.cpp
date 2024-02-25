@@ -123,6 +123,26 @@ IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets
     return result;
 }
 
+void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
+{
+    if (!freePackets.empty()) {
+        for (auto& packet : freePackets) {
+            std::array<std::byte, 1300> payload {};
+            packet->SetPayload(payload);
+        }
+        _freeRecvPackets.LockedSplice(std::move(freePackets));
+    }
+}
+
+void Connection::AddFreeSendPackets(IPacket::List&& freePackets)
+{
+    for (auto& packet : freePackets) {
+        std::array<std::byte, 1300> payload {};
+        packet->SetPayload(payload);
+    }
+    _freeUserSendPackets.LockedSplice(std::move(freePackets));
+}
+
 void Connection::Close()
 {
     _closed = true;

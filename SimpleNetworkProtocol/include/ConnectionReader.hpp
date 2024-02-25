@@ -13,10 +13,8 @@ class ConnectionReader final {
 public:
     ConnectionReader(std::stop_token stop, const IConnection::Ptr& connection);
 
-    ConnectionReader& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
-    void Flush();
-
     ConnectionReader& read(void* data, std::size_t size);
+    ConnectionReader& operator>>(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
 
 private:
     IPacket& GetPacket();
@@ -25,7 +23,7 @@ private:
     IConnection::Ptr _connection;
     IPacket::List _freePackets;
     IPacket::List _packets;
-    IPacket::List::Iterator _packet;
+    IPacket::List::Iterator _packet { _packets.end() };
     std::ptrdiff_t _offset { 0 };
     std::stop_token _stop;
     bool _error = false;

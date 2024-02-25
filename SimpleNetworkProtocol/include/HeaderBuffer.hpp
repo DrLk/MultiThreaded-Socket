@@ -141,6 +141,11 @@ public:
         std::memcpy(_start + HeaderSize, payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
+    void SetPayloadSize(std::size_t size)
+    {
+        Header(_start, _size).SetPayloadSize(size);
+    }
+
 private:
     std::byte* _start;
     PayloadSizeType _size;

@@ -144,7 +144,7 @@ void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char
     fuse_add_direntry(req, buffer->p + oldsize, buffer->size - oldsize, name, &stbuf, buffer->size);
 }
 
-int ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize,
+int FileSystem::ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize,
     off_t off, size_t maxSize)
 {
     if (off < bufferSize)

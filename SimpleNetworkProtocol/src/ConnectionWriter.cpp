@@ -17,7 +17,7 @@ ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr&
 
 ConnectionWriter::~ConnectionWriter()
 {
-    Flush();
+    flush();
 }
 
 ConnectionWriter& ConnectionWriter::operator<<(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
@@ -26,16 +26,16 @@ ConnectionWriter& ConnectionWriter::operator<<(IPacket::List&& packets) // NOLIN
         return *this;
     }
 
-    Flush();
+    flush();
     _packetsToSend.LockedSplice(std::move(packets));
     _packetsToSend.NotifyAll();
     return *this;
 }
 
-void ConnectionWriter::Flush()
+ConnectionWriter& ConnectionWriter::flush()
 {
     if (_stop.stop_requested()) {
-        return;
+        return *this;
     }
 
     if (_packets.begin() != _packet) {
@@ -46,6 +46,7 @@ void ConnectionWriter::Flush()
 
     auto packet = _packet;
     if (_offset > 0) {
+        GetPacket().SetPayloadSize(_offset);
         _packetsToSend.LockedPushBack(std::move(*packet));
         GetNextPacket(_stop);
         _packets.erase(packet);
@@ -53,6 +54,8 @@ void ConnectionWriter::Flush()
 
     _packetsToSend.NotifyAll();
     _packetsToSend.WaitEmpty(_stop);
+
+    return *this;
 }
 
 ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)

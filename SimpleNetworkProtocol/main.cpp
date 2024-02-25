@@ -16,6 +16,7 @@
 #include "UDPQueue.hpp"
 
 #include "FileSystem.hpp"
+#include "Logger.hpp"
 #include "MessageType.hpp"
 #include <sstream>
 
@@ -100,26 +101,123 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
     recvThread.join();
 }
 
+void TestConnection2()
+{
+    std::jthread recvThread([](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+
+        const IConnection::Ptr dstConnection = dst.Accept(stop);
+        if (dstConnection == nullptr) {
+            throw std::runtime_error("Accept return nullptr");
+        }
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        dstConnection->AddFreeRecvPackets(std::move(recvPackets));
+        dstConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        const auto& statistics = dstConnection->GetStatistics();
+        auto start = std::chrono::steady_clock::now();
+
+        ConnectionWriter writer(stop, dstConnection);
+        ConnectionReader reader(stop, dstConnection);
+        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
+        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+
+        int a = 0;
+        input >> a;
+        LOGGER() << "Read a: " << a;
+
+        int a2 = 0;
+        input >> a2;
+        LOGGER() << "Read a2: " << a2;
+
+        uint64_t b = 321;
+        output << b;
+        LOGGER() << "Write b: " << b;
+        output.Flush();
+        return 0;
+
+        /* Protocol protocol(output, input); */
+        /* protocol.Run(); */
+
+        while (!stop.stop_requested()) {
+            static size_t countPerSecond;
+            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
+            if (!recvPackets.empty()) {
+                countPerSecond += recvPackets.size();
+            }
+
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << '\n';
+                std::cout << "dst: " << statistics << '\n';
+                countPerSecond = 0;
+                start = std::chrono::steady_clock::now();
+            }
+        }
+    });
+
+    std::this_thread::sleep_for(1s);
+
+    std::jthread sendThread([](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        srcConnection->AddFreeRecvPackets(std::move(recvPackets));
+        srcConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        const auto& statistics = srcConnection->GetStatistics();
+        auto start = std::chrono::steady_clock::now();
+
+        ConnectionWriter writer(stop, srcConnection);
+        ConnectionReader reader(stop, srcConnection);
+        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
+        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+
+        int a = 123;
+        output << a;
+        LOGGER() << "Write a: " << a;
+        output.Flush();
+
+        int a2 = 124;
+        output << a2;
+        LOGGER() << "Write a2: " << a2;
+        output.Flush();
+
+        uint64_t b = 0;
+        input >> b;
+        LOGGER() << "Read b: " << b;
+        std::this_thread::sleep_for(500s);
+
+        /* Protocol protocol(output, input); */
+        /* protocol.Run(); */
+        /*  */
+        /* FastTransport::FileSystem::FileSystem filesystem; */
+        /* filesystem.Start(); */
+        return 0;
+
+        while (!stop.stop_requested()) {
+            sendPackets = srcConnection->Send(stop, std::move(sendPackets));
+            auto duration = std::chrono::steady_clock::now() - start;
+            if (duration > 1s) {
+                std::cout << "src: " << statistics << '\n';
+                start = std::chrono::steady_clock::now();
+            }
+        }
+    });
+
+    recvThread.join();
+    sendThread.join();
+}
+
 int main(int argc, char** argv)
 {
-    std::basic_stringstream<std::byte> stream;
-    FastTransport::FileSystem::OutputByteStream<std::basic_stringstream<std::byte>> output(stream);
-    FastTransport::FileSystem::InputByteStream<std::basic_stringstream<std::byte>> input(stream);
-
-    IConnection::Ptr sourceConnection;
-    IConnection::Ptr destinationConnection;
-    std::stop_token stop;
-    ConnectionWriter writer(stop, sourceConnection);
-    ConnectionReader reader(stop, sourceConnection);
-    FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output2(writer);
-    FastTransport::FileSystem::InputByteStream<ConnectionReader> input2(reader);
-    Protocol protocol(output, input);
-    protocol.Run();
-    return 0;
-
-    FastTransport::FileSystem::FileSystem filesystem;
-    filesystem.Start();
-    return 0;
+    TestConnection2();
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);

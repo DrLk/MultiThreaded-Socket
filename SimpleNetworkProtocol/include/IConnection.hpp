@@ -27,6 +27,9 @@ public:
     [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
 
+    virtual void AddFreeRecvPackets(IPacket::List&& freePackets) = 0;
+    virtual void AddFreeSendPackets(IPacket::List&& freePackets) = 0;
+
     virtual void Close() = 0;
     [[nodiscard]] virtual bool IsClosed() const = 0;
 };

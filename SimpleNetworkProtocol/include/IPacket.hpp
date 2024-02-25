@@ -48,6 +48,7 @@ public:
 
     virtual std::span<ElementType> GetPayload() = 0;
     virtual void SetPayload(std::span<ElementType> payload) = 0;
+    virtual void SetPayloadSize(std::size_t size) = 0;
 
     virtual std::vector<ElementType>& GetElement() = 0;
     virtual std::span<ElementType> GetBuffer() = 0;

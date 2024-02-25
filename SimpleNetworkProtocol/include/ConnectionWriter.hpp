@@ -24,7 +24,7 @@ public:
     template <trivial T>
     ConnectionWriter& operator<<(const T& trivial); // NOLINT(fuchsia-overloaded-operator)
     ConnectionWriter& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
-    void Flush();
+    ConnectionWriter& flush();
 
     ConnectionWriter& write(const void* data, std::size_t size);
     IPacket::List GetFreePackets();
