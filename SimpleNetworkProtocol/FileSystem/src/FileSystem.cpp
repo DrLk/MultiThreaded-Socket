@@ -1,33 +1,52 @@
 #include "FileSystem.hpp"
 
+#include <algorithm>
+#include <bits/stat.h>
+#include <cerrno>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
+#include <filesystem>
 #include <functional>
-#include <fuse3/fuse.h>
+#include <fuse3/fuse_lowlevel.h>
+#include <fuse3/fuse_opt.h>
+#include <stdexcept>
+#include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unordered_map>
+#include <vector>
 
+#include "File.hpp"
 #include "FileTree.hpp"
 
 namespace FastTransport::FileSystem {
 void FileSystem::Start()
 {
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
-    std::string mountpoint = "/mnt/test";
+    const std::string mountpoint = "/mnt/test";
     fuse_opt_add_arg(&args, mountpoint.c_str());
 
     fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), nullptr);
 
-    if (se == nullptr)
+    if (se == nullptr) {
         throw std::runtime_error("Failed to fuse_session_new");
+    }
 
-    if (fuse_set_signal_handlers(se) != 0)
+    if (fuse_set_signal_handlers(se) != 0) {
         throw std::runtime_error("Failed to fuse_set_signal_handlers");
+    }
 
-    if (fuse_session_mount(se, mountpoint.c_str()) != 0)
+    if (fuse_session_mount(se, mountpoint.c_str()) != 0) {
         throw std::runtime_error("Failed to fuse_session_mount");
+    }
 
-    fuse_daemonize(true);
+    fuse_daemonize(1);
 
     /* Block until ctrl+c or fusermount -u */
-    int result = fuse_session_loop(se);
+    const int result = fuse_session_loop(se);
 }
 
 std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> FileSystem::_openedFiles;
@@ -68,7 +87,7 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
              << " parent: " << parentId
              << " name: " << name;
 
-    fuse_entry_param entry;
+    fuse_entry_param entry {};
 
     auto& parent = parentId == FUSE_ROOT_ID ? _tree.GetRoot() : GetLeaf(parentId);
     memset(&entry, 0, sizeof(entry));
@@ -105,7 +124,7 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
              << " request: " << req
              << " inode: " << inode;
 
-    struct stat stbuf;
+    struct stat stbuf { };
 
     (void)fileInfo;
 
@@ -130,15 +149,15 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
 struct dirbuf {
     char* p;
     size_t size;
-};
+} __attribute__((aligned(16)));
 
 void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name,
     fuse_ino_t ino)
 {
-    struct stat stbuf;
-    size_t oldsize = buffer->size;
+    struct stat stbuf { };
+    const size_t oldsize = buffer->size;
     buffer->size += fuse_add_direntry(req, nullptr, 0, name, nullptr, 0);
-    buffer->p = (char*)realloc(buffer->p, buffer->size);
+    buffer->p = static_cast<char*>(realloc(buffer->p, buffer->size));
     memset(&stbuf, 0, sizeof(stbuf));
     stbuf.st_ino = ino;
     fuse_add_direntry(req, buffer->p + oldsize, buffer->size - oldsize, name, &stbuf, buffer->size);
@@ -147,11 +166,11 @@ void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char
 int FileSystem::ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize,
     off_t off, size_t maxSize)
 {
-    if (off < bufferSize)
+    if (off < bufferSize) {
         return fuse_reply_buf(req, buffer + off,
             std::min(bufferSize - off, maxSize));
-    else
-        return fuse_reply_buf(req, nullptr, 0);
+    }
+    return fuse_reply_buf(req, nullptr, 0);
 }
 
 void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo)
@@ -169,10 +188,8 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         currentINode = GetINode(directory);
     }
 
-    if (false)
-        fuse_reply_err(req, ENOENT);
-    else {
-        dirbuf buffer;
+    {
+        dirbuf buffer {};
 
         memset(&buffer, 0, sizeof(buffer));
         BufferAddFile(req, &buffer, ".", currentINode);
@@ -218,9 +235,9 @@ void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t o
     (void)fileInfo;
 
     auto file = _openedFiles.find(inode);
-    if (file == _openedFiles.end())
+    if (file == _openedFiles.end()) {
         fuse_reply_err(req, ENOENT);
-    else {
+    } else {
         std::vector<char> bytes;
         bytes.resize(file->second.get().file.size);
         ReplyBufferLimited(req, bytes.data(), bytes.size(), off, size);
@@ -248,7 +265,7 @@ void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
     fuse_reply_open(req, fileInfo);
 }
 
-void FileSystem::FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets)
+void FileSystem::FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* /*forgets*/)
 {
     TRACER() << "[forgetmulti]"
              << " request: " << req
@@ -256,7 +273,7 @@ void FileSystem::FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data*
     fuse_reply_none(req);
 }
 
-void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
+void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* /*fileInfo*/)
 {
     TRACER() << "[release]"
              << " request: " << req
@@ -266,7 +283,7 @@ void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_
     file.ReleaseRef();
 }
 
-void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
+void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* /*fileInfo*/)
 {
     TRACER() << "[releasedir]"
              << " request: " << req
