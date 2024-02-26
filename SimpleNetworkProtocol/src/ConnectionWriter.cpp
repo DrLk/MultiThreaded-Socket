@@ -1,7 +1,14 @@
 #include "ConnectionWriter.hpp"
+#include "IConnection.hpp"
+#include "IPacket.hpp"
 
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <functional>
+#include <stop_token>
 #include <thread>
 #include <utility>
 
@@ -75,7 +82,7 @@ ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)
         bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         if (_offset == GetPacket().GetPayload().size()) {
-            IPacket::Ptr& nextPacket = GetNextPacket(_stop);
+            const IPacket::Ptr& nextPacket = GetNextPacket(_stop);
             if (!nextPacket) {
                 _error = true;
                 return *this;

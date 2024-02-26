@@ -9,11 +9,13 @@
 #include <thread>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "Connection.hpp"
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
+#include "IConnection.hpp"
 #include "IConnectionState.hpp"
 #include "IPacket.hpp"
 #include "Logger.hpp"

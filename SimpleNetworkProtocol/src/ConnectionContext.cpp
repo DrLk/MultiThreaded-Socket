@@ -1,8 +1,12 @@
 #include "ConnectionContext.hpp"
 
+#include <atomic>
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 namespace FastTransport::Protocol {
 

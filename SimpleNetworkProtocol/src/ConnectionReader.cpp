@@ -1,5 +1,9 @@
 #include "ConnectionReader.hpp"
 
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <stop_token>
 #include <utility>
@@ -9,9 +13,9 @@
 
 namespace FastTransport::Protocol {
 
-ConnectionReader::ConnectionReader(std::stop_token stop, const IConnection::Ptr& connection)
-    : _connection(connection)
-    , _stop(stop)
+ConnectionReader::ConnectionReader(std::stop_token stop, IConnection::Ptr connection)
+    : _connection(std::move(connection))
+    , _stop(std::move(stop))
 {
 }
 
@@ -28,7 +32,7 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
     }
 
     if (_offset == GetPacket().GetPayload().size()) {
-        IPacket::Ptr& nextPacket = GetNextPacket(_stop);
+        const IPacket::Ptr& nextPacket = GetNextPacket(_stop);
         if (!nextPacket) {
             _error = true;
             return *this;
@@ -47,7 +51,7 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
     return *this;
 }
 
-ConnectionReader& ConnectionReader::operator>>(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
+ConnectionReader& ConnectionReader::operator>>(IPacket::List&& /*packets*/) // NOLINT(fuchsia-overloaded-operator)
 {
     return *this;
 }

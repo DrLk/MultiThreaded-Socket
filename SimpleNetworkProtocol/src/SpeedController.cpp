@@ -23,7 +23,6 @@ SpeedController::SpeedController(const std::shared_ptr<ConnectionContext>& conte
     _states.emplace(SpeedState::Fast, std::make_unique<FastAccelerationState>());
     _states.emplace(SpeedState::BBQ, std::make_unique<BBQState>());
     _states.emplace(SpeedState::Stable, std::make_unique<StableState>());
-
 }
 
 size_t SpeedController::GetNumberPacketToSend()

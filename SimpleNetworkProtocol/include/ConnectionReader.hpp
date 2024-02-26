@@ -11,7 +11,7 @@ namespace FastTransport::Protocol {
 
 class ConnectionReader final {
 public:
-    ConnectionReader(std::stop_token stop, const IConnection::Ptr& connection);
+    ConnectionReader(std::stop_token stop, IConnection::Ptr  connection);
 
     ConnectionReader& read(void* data, std::size_t size);
     ConnectionReader& operator>>(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
