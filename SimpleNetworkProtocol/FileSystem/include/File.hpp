@@ -4,7 +4,6 @@
 #include <filesystem>
 
 #include "ByteStream.hpp"
-#include "StreamConcept.hpp"
 
 namespace FastTransport::FileSystem {
 struct File {
@@ -27,5 +26,5 @@ struct File {
         stream >> size;
         stream >> type;
     }
-};
+} __attribute__((packed)) __attribute__((aligned(64)));
 } // namespace FastTransport::FileSystem

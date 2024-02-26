@@ -3,13 +3,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
-#include "StreamConcept.hpp"
 
 enum class MessageType {
     None = 0,
@@ -28,35 +27,35 @@ using FileID = std::uint64_t;
 struct Request {
     MessageType type;
     std::vector<std::byte> bytes;
-};
+} __attribute__((aligned(32)));
 
 struct RequestTree {
     std::string path;
-};
+} __attribute__((aligned(32)));
 
 struct RequestFile {
     std::u8string path;
     std::uint64_t offset;
     std::uint64_t size;
-};
+} __attribute__((aligned(64)));
 
 struct ResponseFile {
     std::u8string path;
     FileID fileId;
-};
+} __attribute__((aligned(64)));
 
 struct RequestFileBytes {
     FileID fileId;
     std::uint64_t offset;
     std::uint64_t size;
-};
+} __attribute__((aligned(32)));
 
 struct ResponseFileBytes {
     FileID fileId;
     std::uint64_t offset;
     std::uint64_t size;
     std::vector<std::byte> bytes;
-};
+} __attribute__((aligned(64)));
 
 struct RequestCloseFile {
     FileID fileId;

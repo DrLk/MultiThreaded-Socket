@@ -1,17 +1,18 @@
 #pragma once
 
 #include <cassert>
-#include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "ByteStream.hpp"
 #include "File.hpp"
-#include "StreamConcept.hpp"
 
 namespace FastTransport::FileSystem {
 
@@ -24,8 +25,8 @@ public:
     Leaf& operator=(const Leaf& that) = delete;
     Leaf& operator=(Leaf&& that) = default;
 
-    std::uint64_t inode;
-    Leaf* parent;
+    std::uint64_t inode {};
+    Leaf* parent {};
     std::map<std::string, Leaf> children; // TODO: use std::set
 
     File file;
@@ -61,8 +62,9 @@ public:
     std::optional<std::reference_wrapper<Leaf>> Find(const std::string& name)
     {
         auto file = children.find(name);
-        if (file != children.end())
+        if (file != children.end()) {
             return file->second;
+        }
 
         return {};
     }
@@ -71,9 +73,9 @@ public:
     void Serialize(OutputByteStream<Stream>& stream) const
     {
         file.Serialize(stream);
-        int size = children.size();
+        const int size = children.size();
         stream << size;
-        for (auto& [name, child] : children) {
+        for (const auto& [name, child] : children) {
             child.Serialize(stream);
         }
     }
@@ -83,7 +85,7 @@ public:
     {
         this->parent = parent;
         file.Deserialize(stream);
-        int size;
+        const int size = 0;
         stream >> size;
         for (int i = 0; i < size; i++) {
             Leaf leaf;
@@ -95,7 +97,7 @@ public:
 private:
     std::uint64_t _nlookup = 0;
     bool _deleted = false;
-};
+} __attribute__((packed)) __attribute__((aligned(128)));
 
 class FileTree {
 public:
@@ -173,16 +175,16 @@ public:
         return tree;
     }
 
-    void Scan(std::filesystem::path directoryPath)
+    void Scan(const std::filesystem::path& directoryPath)
     {
-        Scan(directoryPath, _root);
+        Scan(std::move(directoryPath), _root);
     }
 
 private:
     Leaf _root;
     std::unordered_map<std::uint64_t, std::shared_ptr<Leaf>> _openedFiles;
 
-    void Scan(std::filesystem::path directoryPath, Leaf& root)
+    void Scan(const std::filesystem::path& directoryPath, Leaf& root)
     {
         std::filesystem::directory_iterator itt(directoryPath);
 

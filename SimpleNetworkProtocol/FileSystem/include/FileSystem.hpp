@@ -1,18 +1,15 @@
 #pragma once
 
+#include <cstdint>
+#include <sys/types.h>
 #define FUSE_USE_VERSION 34
 
-#include <algorithm>
-#include <assert.h>
-#include <errno.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
-#include <filesystem>
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <unordered_map>
 
 #include "File.hpp"
@@ -35,7 +32,7 @@ private:
     struct dirbuf {
         char* p;
         size_t size;
-    };
+    } __attribute__((aligned(16)));
 
     static void BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name, fuse_ino_t ino);
     static int ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize, off_t off, size_t maxSize);
