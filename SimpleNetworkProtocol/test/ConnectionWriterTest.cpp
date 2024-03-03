@@ -54,20 +54,6 @@ TEST(ConnectionWriter, Payload)
 
         ConnectionWriter writer(stop, connection);
 
-        IPacket::List list;
-        /*EXPECT_CALL(*connection, Send(_, _))*/
-        /* .WillOnce(DoAll(SaveArg<0>(&stop), SaveArg<1>(&list), Return(std::move(list)))); */
-        /*.Times(2)
-        .WillRepeatedly(
-            [](std::stop_token stop, IPacket::List&& packets) {
-                return std::move(packets);
-            });*/
-
-        /*EXPECT_CALL(*connection, Send)
-            .WillOnce(
-                [](std::stop_token stop, IPacket::List&& packets) {
-                    return std::move(packets);
-                });*/
         EXPECT_CALL(*connection, Send)
             .Times(3)
             .WillRepeatedly(
@@ -219,9 +205,6 @@ TEST(ConnectionWriter, WriteBigArray)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.size() == 2);
-                    /*int value = 0;
-                    std::memcpy(&value, packet->GetPayload().data() + sizeof(size), sizeof(value));
-                    EXPECT_TRUE(value == 958);*/
                     return std::move(packets);
                 });
 

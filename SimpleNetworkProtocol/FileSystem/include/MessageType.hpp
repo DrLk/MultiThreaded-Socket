@@ -24,9 +24,11 @@ enum class MessageType {
 
 using FileID = std::uint64_t;
 
+using MessageID = std::uint32_t;
+
 struct Request {
     MessageType type;
-    std::vector<std::byte> bytes;
+    MessageID id;
 } __attribute__((aligned(32)));
 
 struct RequestTree {

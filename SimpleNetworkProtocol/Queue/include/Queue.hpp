@@ -11,7 +11,7 @@
 namespace TaskQueue {
 
 class ITaskQueue {
-    virtual std::future<void> Async(std::function<void()>&& function) = 0;
+    virtual std::future<void> Async(std::move_only_function<void()>&& function) = 0;
 public:
     ITaskQueue() = default;
     ITaskQueue(const ITaskQueue&) = delete;
@@ -23,7 +23,7 @@ public:
 
 class TaskQueue : public ITaskQueue {
 public:
-    std::future<void> Async(std::function<void()>&& function) override;
+    std::future<void> Async(std::move_only_function<void()>&& function) override;
 
 private:
     using LockedList = FastTransport::Containers::LockedList<std::packaged_task<void()>>;

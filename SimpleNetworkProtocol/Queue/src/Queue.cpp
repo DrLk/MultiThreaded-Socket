@@ -5,7 +5,7 @@
 
 namespace TaskQueue {
 
-std::future<void> TaskQueue::Async(std::function<void()>&& function)
+std::future<void> TaskQueue::Async(std::move_only_function<void()>&& function)
 {
     auto task = std::packaged_task<void()>(std::move(function));
     std::future<void> future = task.get_future();

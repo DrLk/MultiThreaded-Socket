@@ -1,6 +1,4 @@
 #include "ConnectionWriter.hpp"
-#include "IConnection.hpp"
-#include "IPacket.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -12,7 +10,12 @@
 #include <thread>
 #include <utility>
 
+#include "IConnection.hpp"
+#include "IPacket.hpp"
+
+
 namespace FastTransport::Protocol {
+
 ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection)
     : _connection(connection)
     , _stop(std::move(stop))

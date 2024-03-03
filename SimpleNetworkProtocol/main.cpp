@@ -18,6 +18,8 @@
 #include "FileSystem.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "Protocol.hpp"
+#include "TaskScheduler.hpp"
 #include <sstream>
 
 using namespace FastTransport::Protocol; // NOLINT
@@ -123,6 +125,11 @@ void TestConnection2()
         ConnectionReader reader(stop, dstConnection);
         FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
         FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+
+        TaskQueue::TaskScheduler taskScheduler;
+        FastTransport::FileSystem::FileTree fileTree;
+        Jobs::MergeOut mergeOut(fileTree, output);
+        Jobs::MergeIn mergeIn(fileTree, input);
 
         int a = 0;
         input >> a;

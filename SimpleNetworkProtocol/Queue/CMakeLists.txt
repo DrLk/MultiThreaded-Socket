@@ -35,8 +35,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         $<$<BOOL:${HTTPLIB_IS_USING_OPENSSL}>:CPPHTTPLIB_OPENSSL_SUPPORT>
         )
 
+    target_link_libraries(Queue PUBLIC LockedList)
 if(WIN32)
-  target_link_libraries(Queue PRIVATE wsock32 ws2_32 LockedList)
+  target_link_libraries(Queue PRIVATE wsock32 ws2_32)
 else()
-  target_link_libraries(Queue PRIVATE pthread LockedList)
+  target_link_libraries(Queue PRIVATE pthread)
 endif()
