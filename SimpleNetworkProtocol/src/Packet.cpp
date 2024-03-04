@@ -92,7 +92,7 @@ std::span<IPacket::ElementType> Packet::GetPayload()
     return Payload(_element.data(), _element.size()).GetPayload();
 }
 
-void Packet::SetPayload(std::span<IPacket::ElementType> payload)
+void Packet::SetPayload(std::span<const IPacket::ElementType> payload)
 {
     Payload(_element.data(), _element.size()).SetPayload(payload);
 }

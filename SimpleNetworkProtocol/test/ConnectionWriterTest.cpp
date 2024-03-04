@@ -24,8 +24,9 @@ public:
     MOCK_METHOD(IStatistics&, GetStatistics, (), (const, override));
     MOCK_METHOD(ConnectionContext&, GetContext, ());
 
-    MOCK_METHOD(IPacket::List, Send, (std::stop_token stop, IPacket::List&&));
-    MOCK_METHOD(IPacket::List, Recv, (std::stop_token stop, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Send, (std::stop_token, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Recv, (std::size_t, std::stop_token, IPacket::List&&));
     MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
     MOCK_METHOD(void, AddFreeSendPackets, (IPacket::List&&));
     MOCK_METHOD(void, Close, ());

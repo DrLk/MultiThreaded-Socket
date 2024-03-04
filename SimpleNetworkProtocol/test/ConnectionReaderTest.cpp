@@ -1,5 +1,6 @@
 #include "ConnectionReader.hpp"
 #include <array>
+#include <cstddef>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -23,8 +24,9 @@ public:
     MOCK_METHOD(IStatistics&, GetStatistics, (), (const, override));
     MOCK_METHOD(ConnectionContext&, GetContext, ());
 
-    MOCK_METHOD(IPacket::List, Send, (std::stop_token stop, IPacket::List&&));
-    MOCK_METHOD(IPacket::List, Recv, (std::stop_token stop, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Send, (std::stop_token, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Recv, (std::size_t, std::stop_token, IPacket::List&&));
     MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
     MOCK_METHOD(void, AddFreeSendPackets, (IPacket::List&&));
     MOCK_METHOD(void, Close, ());
@@ -38,13 +40,13 @@ TEST(ConnectionReader, Payload)
     auto connection = std::make_shared<MockConnection>();
     {
         std::array<std::byte, 1000> testData {};
-        EXPECT_CALL(*connection, Recv)
+        EXPECT_CALL(*connection, Recv(testing::_, testing::_))
             .WillOnce(
                 [&testData](std::stop_token /*stop*/, IPacket::List&& freePackets) {
                     EXPECT_TRUE(freePackets.empty());
                     IPacket::Ptr packet = std::make_unique<Packet>(1500);
                     packet->SetPayload(testData);
-                    IPacket::List packets;
+                    IPacket::List packets = std::move(freePackets);
                     packets.push_back(std::move(packet));
                     return packets;
                 });

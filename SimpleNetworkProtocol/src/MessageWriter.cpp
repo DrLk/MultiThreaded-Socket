@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <stdexcept>
 #include <utility>
 
 namespace FastTransport::Protocol {
@@ -37,6 +36,10 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
     const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
     while (size > 0) {
+        if (_offset == GetPacket().GetPayload().size()) {
+            GetNextPacket();
+        }
+
         auto writeSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
         std::memcpy(GetPacket().GetPayload().data() + _offset, bytes, writeSize);
         _offset += writeSize;
@@ -44,9 +47,6 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
         size -= writeSize;
         bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-        if (_offset == GetPacket().GetPayload().size()) {
-            GetNextPacket();
-        }
     }
 
     return *this;
@@ -65,12 +65,9 @@ IPacket& MessageWriter::GetPacket()
 void MessageWriter::GetNextPacket()
 {
     _packet++;
-    if (_packet == _packets.end()) {
-        throw std::runtime_error("No more free packets");
-    }
+    assert(_packet != _packets.end());
 
     _offset = 0;
-    assert(_packet != _packets.end());
 }
 
 } // namespace FastTransport::Protocol

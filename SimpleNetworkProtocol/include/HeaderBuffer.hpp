@@ -135,7 +135,7 @@ public:
         return { reinterpret_cast<PayloadType*>(_start + HeaderSize), Header(_start, HeaderSize).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
-    void SetPayload(std::span<PayloadType> payload)
+    void SetPayload(std::span<const PayloadType> payload)
     {
         Header(_start, _size).SetPayloadSize(payload.size());
         std::memcpy(_start + HeaderSize, payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)

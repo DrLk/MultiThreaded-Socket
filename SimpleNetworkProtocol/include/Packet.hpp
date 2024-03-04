@@ -39,7 +39,7 @@ public:
     [[nodiscard]] bool IsValid() const override;
 
     std::span<ElementType> GetPayload() override;
-    void SetPayload(std::span<ElementType> payload) override;
+    void SetPayload(std::span<const ElementType> payload) override;
     void SetPayloadSize(std::size_t size) override;
 
     [[nodiscard]] const ConnectionAddr& GetDstAddr() const override

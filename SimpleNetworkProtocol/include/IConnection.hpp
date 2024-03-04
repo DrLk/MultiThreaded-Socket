@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <stop_token>
 
 #include "IPacket.hpp"
@@ -26,6 +27,7 @@ public:
 
     [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
+    [[nodiscard]] virtual IPacket::List Recv(std::size_t size, std::stop_token stop, IPacket::List&& freePackets) = 0;
 
     virtual void AddFreeRecvPackets(IPacket::List&& freePackets) = 0;
     virtual void AddFreeSendPackets(IPacket::List&& freePackets) = 0;

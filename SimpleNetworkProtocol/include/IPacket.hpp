@@ -47,7 +47,7 @@ public:
     virtual void SetAddr(const ConnectionAddr& addr) = 0;
 
     virtual std::span<ElementType> GetPayload() = 0;
-    virtual void SetPayload(std::span<ElementType> payload) = 0;
+    virtual void SetPayload(std::span<const ElementType> payload) = 0;
     virtual void SetPayloadSize(std::size_t size) = 0;
 
     virtual std::vector<ElementType>& GetElement() = 0;

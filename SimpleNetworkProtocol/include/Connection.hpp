@@ -56,6 +56,7 @@ public:
 
     [[nodiscard]] IPacket::List Send(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;
+    [[nodiscard]] IPacket::List Recv(std::size_t size, std::stop_token stop, IPacket::List&& freePackets) override;
 
     void AddFreeRecvPackets(IPacket::List&& freePackets) override;
     void AddFreeSendPackets(IPacket::List&& freePackets) override;
