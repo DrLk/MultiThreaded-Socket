@@ -280,12 +280,12 @@ OutgoingPacket::List Connection::CheckTimeouts()
 void Connection::AddAcks(std::span<SeqNumberType> acks)
 {
     _statistics.AddAckReceivedPackets();
-    return _inFlightQueue->AddAcks(acks);
+    _inFlightQueue->AddAcks(acks);
 }
 
 void Connection::SetLastAck(SeqNumberType acks)
 {
-    return _inFlightQueue->SetLastAck(acks);
+    _inFlightQueue->SetLastAck(acks);
 }
 
 IRecvQueue& Connection::GetRecvQueue()

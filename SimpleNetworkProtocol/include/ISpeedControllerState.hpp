@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <numeric>
 #include <optional>
@@ -9,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "SampleStats.hpp"
 #include "TimeRangedStats.hpp"
 
 namespace FastTransport::Protocol {

@@ -8,7 +8,6 @@
 #include <numeric>
 #include <span>
 #include <stdexcept>
-#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -16,6 +15,7 @@
 #include <cassert>
 #include <iterator>
 #include <memory>
+#include <netinet/in.h>
 #include <netinet/udp.h>
 #include <ranges>
 #include <sys/socket.h>

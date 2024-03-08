@@ -5,9 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <stop_token>
+#include <utility>
 
-#include "IConnection.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {

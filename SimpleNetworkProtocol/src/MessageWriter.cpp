@@ -1,6 +1,5 @@
 #include "MessageWriter.hpp"
 
-#include "IConnection.hpp"
 #include "IPacket.hpp"
 
 #include <algorithm>

@@ -11,14 +11,14 @@ void TaskScheduler::Schedule(TaskType type, std::unique_ptr<Job>&& job)
     switch (type) {
     case TaskType::Main: {
         _mainQueue.Async([job = std::move(job), this]() mutable {
-            TaskType type = job->Execute(*this);
+            const TaskType type = job->Execute(*this);
             Schedule(type, std::move(job));
         });
         break;
     }
     case TaskType::Disk: {
         _diskQueue.Async([job = std::move(job), this]() mutable {
-            TaskType type = job->Execute(*this);
+            const TaskType type = job->Execute(*this);
             Schedule(type, std::move(job));
         });
         break;

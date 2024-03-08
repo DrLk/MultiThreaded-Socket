@@ -1,7 +1,6 @@
 #include "FileSystem.hpp"
 
 #include <algorithm>
-#include <bits/stat.h>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
