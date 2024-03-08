@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tracy.hpp>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -35,4 +36,3 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <Tracy.hpp>

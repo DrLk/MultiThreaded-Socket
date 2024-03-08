@@ -18,11 +18,11 @@ MessageWriter::MessageWriter(IPacket::List&& packets)
     operator<<(static_cast<int>(_packets.size()));
 }
 
-MessageWriter::MessageWriter(MessageWriter&&) = default;
+MessageWriter::MessageWriter(MessageWriter&&) noexcept = default;
 
 MessageWriter::~MessageWriter() = default;
 
-MessageWriter& MessageWriter::operator=(MessageWriter&&) = default;
+MessageWriter& MessageWriter::operator=(MessageWriter&&) noexcept = default;
 
 MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
 {

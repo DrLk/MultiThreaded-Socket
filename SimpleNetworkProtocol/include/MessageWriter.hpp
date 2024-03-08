@@ -17,11 +17,11 @@ concept trivial = std::is_trivial_v<T>;
 
 class MessageWriter final {
 public:
-    MessageWriter(IPacket::List&& packets);
+    explicit MessageWriter(IPacket::List&& packets);
     MessageWriter(const MessageWriter&) = delete;
-    MessageWriter(MessageWriter&&);
+    MessageWriter(MessageWriter&&) noexcept ;
     MessageWriter& operator=(const MessageWriter&) = delete;
-    MessageWriter& operator=(MessageWriter&&);
+    MessageWriter& operator=(MessageWriter&&) noexcept ;
     ~MessageWriter();
 
     template <trivial T>

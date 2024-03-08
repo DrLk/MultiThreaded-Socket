@@ -21,7 +21,7 @@ ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr&
     , _stop(std::move(stop))
     , _sendThread(SendThread, std::ref(*this), std::ref(*connection))
 {
-    _packets = _connection->Send(stop, IPacket::List());
+    _packets = _connection->Send(_stop, IPacket::List());
     _packet = _packets.begin();
 }
 

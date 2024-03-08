@@ -62,11 +62,11 @@ public:
         std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
         _offset += readSize;
 
-        auto b = sizeof(trivial) - readSize;
-        if (b) {
+        std::ptrdiff_t size = sizeof(trivial) - readSize;
+        if (size) {
             _packet++;
-            std::memcpy(((std::byte*)&trivial) + readSize, GetPacket().GetPayload().data(), b);
-            _offset = b;
+            std::memcpy(((std::byte*)&trivial) + readSize, GetPacket().GetPayload().data(), size);
+            _offset = size;
         }
         return *this;
     }
