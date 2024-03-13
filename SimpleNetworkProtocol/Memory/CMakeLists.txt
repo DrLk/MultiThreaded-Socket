@@ -10,8 +10,9 @@ set(INCLUDE_DIRS include)
 if (NOT TARGET Logger)
     add_subdirectory(../Logger Logger)
 endif()
-
-add_subdirectory(../Thread Thread)
+if (NOT TARGET Thread)
+    add_subdirectory(../Thread Thread)
+endif()
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp include/*.hpp)
 

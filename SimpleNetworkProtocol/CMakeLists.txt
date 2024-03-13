@@ -14,40 +14,13 @@ if(MSVC)
   add_compile_options(/MP)
 endif()
 
-add_subdirectory(Logger)
-add_subdirectory(Memory)
-add_subdirectory(Protocol)
-if (NOT TARGET Queue)
-  add_subdirectory(Queue)
-endif()
 if (NOT TARGET FileSystem)
   add_subdirectory(FileSystem)
 endif()
-if (NOT TARGET LockedList)
-  add_subdirectory(LockedList)
+if (NOT TARGET Protocol)
+  add_subdirectory(Protocol)
 endif()
-add_subdirectory(external/tracy EXCLUDDE_FROM_ALL SYSTEM)
-
-
-set(COMMON_INCLUDES include)
-
-file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
-
-
-include_directories(${COMMON_INCLUDES})
-
-add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib PUBLIC Queue LockedList Logger Memory Tracy Protocol)
-
-if(WIN32)
-  target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )
-else()
-  target_link_libraries(SimpleNetworkProtocolLib PRIVATE pthread)
-endif()
-
-if(ENABLE_PRECOMPILE_HEADERS)
-  target_precompile_headers(SimpleNetworkProtocolLib PRIVATE include/pch.hpp)
-endif()
+add_subdirectory(SimpleNetworkProtocolLib)
 
 add_executable(SimpleNetworkProtocol main.cpp)
 
@@ -84,7 +57,7 @@ if(ENABLE_TESTS)
       -static-libstdc++)
 
 if(ENABLE_PRECOMPILE_HEADERS)
-  target_precompile_headers(SimpleNetworkProtocolTest PRIVATE include/pch.hpp)
+    target_precompile_headers(SimpleNetworkProtocolTest PRIVATE SimpleNetworkProtocol/include/pch.hpp)
 endif()
 
 # include(GoogleTest)
