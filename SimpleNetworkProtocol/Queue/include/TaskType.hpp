@@ -5,7 +5,10 @@ namespace TaskQueue {
 enum class TaskType {
     None,
     Main,
-    Disk
+    NetworkRead,
+    NetworkWrite,
+    DiskRead,
+    DiskWrite
 };
 
 } // namespace TaskQueue

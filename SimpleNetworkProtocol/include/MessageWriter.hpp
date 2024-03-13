@@ -3,17 +3,11 @@
 
 #include <cstddef>
 #include <cstring>
-#include <stop_token>
-#include <type_traits>
 
-#include "IConnection.hpp"
+#include "Concepts.hpp"
 #include "IPacket.hpp"
-#include "LockedList.hpp"
 
 namespace FastTransport::Protocol {
-
-template <class T>
-concept trivial = std::is_trivial_v<T>;
 
 class MessageWriter final {
 public:
@@ -29,6 +23,7 @@ public:
     MessageWriter& operator<<(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
 
     MessageWriter& write(const void* data, std::size_t size);
+    MessageWriter& flush();
     [[nodiscard]] IPacket::List GetPackets();
 
 private:

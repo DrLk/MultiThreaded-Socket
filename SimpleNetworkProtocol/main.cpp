@@ -12,6 +12,9 @@
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
+#include "MessageReader.hpp"
+#include "MessageWriter.hpp"
+#include "NetworkStream.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
@@ -126,9 +129,20 @@ void TestConnection2()
         FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
         FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
 
-        TaskQueue::TaskScheduler taskScheduler;
+        FastTransport::Protocol::NetworkStream<ConnectionReader,ConnectionWriter> networkStream(reader, writer);
+        TaskQueue::TaskScheduler taskScheduler(networkStream, networkStream);
+
+
         FastTransport::FileSystem::FileTree fileTree;
-        Jobs::MergeOut mergeOut(fileTree, output);
+        IPacket::List freeSendPackets = dstConnection->Send(stop, IPacket::List());
+        IPacket::List messagePackets = freeSendPackets.TryGenerate(10);
+        MessageWriter message(std::move(messagePackets));
+        FastTransport::FileSystem::OutputByteStream<MessageWriter> output2(message);
+        IPacket::List recvPackets2 = dstConnection->Recv(stop, IPacket::List());
+        IPacket::List recvMessagePackets = recvPackets2.TryGenerate(10);
+        MessageReader messageReader(std::move(recvMessagePackets));
+        FastTransport::FileSystem::InputByteStream<MessageReader> input2(messageReader);
+        Jobs::MergeOut mergeOut(fileTree, output, IPacket::List());
         Jobs::MergeIn mergeIn(fileTree, input);
 
         int a = 0;

@@ -1,13 +1,13 @@
 #include "MessageWriter.hpp"
 
-#include "IPacket.hpp"
-
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <utility>
+
+#include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 
@@ -48,6 +48,11 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
 
     }
 
+    return *this;
+}
+
+MessageWriter& MessageWriter::flush()
+{
     return *this;
 }
 

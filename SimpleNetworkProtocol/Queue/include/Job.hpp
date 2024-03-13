@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+
+#include "Stream.hpp"
 #include "TaskType.hpp"
 
 namespace TaskQueue {
@@ -13,6 +16,8 @@ public:
     Job& operator=(const Job&) = delete;
     Job& operator=(Job&&) = default;
     virtual ~Job() = default;
-    virtual TaskType Execute(ITaskScheduler& scheduler) = 0;
+    virtual void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) = 0;
+    virtual TaskType Execute(ITaskScheduler& scheduler, Stream& stream) = 0;
 };
+
 } // namespace TaskQueue

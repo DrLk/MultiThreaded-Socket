@@ -5,16 +5,13 @@
 #include <span>
 #include <stop_token>
 #include <thread>
-#include <type_traits>
 
+#include "Concepts.hpp"
 #include "IConnection.hpp"
 #include "IPacket.hpp"
 #include "LockedList.hpp"
 
 namespace FastTransport::Protocol {
-
-template <class T>
-concept trivial = std::is_trivial_v<T>;
 
 class ConnectionWriter final {
 public:

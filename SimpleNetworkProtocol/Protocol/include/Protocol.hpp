@@ -3,10 +3,14 @@
 #include <functional>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
+#include "ITaskScheduler.hpp"
 #include "Job.hpp"
+#include "NetworkJob.hpp"
+#include "Stream.hpp"
 #include "TaskScheduler.hpp"
 
 namespace Jobs {
@@ -37,30 +41,65 @@ enum class MessageType {
     ResponseCloseFile = 8,
 };
 
-template <FastTransport::FileSystem::OutputStream OutputStream>
+template <class Message>
+class WriteNetowrkJob : public TaskQueue::NetworkJob {
+public:
+    static std::unique_ptr<WriteNetowrkJob<Message>> Create(Message&& message)
+    {
+        return std::make_unique<WriteNetowrkJob<Message>>(std::forward<Message>(message));
+    }
+
+    WriteNetowrkJob(Message&& message)
+        : _message(std::move(message))
+    {
+    }
+
+    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
+    {
+        //output << _message;
+        return TaskQueue::TaskType::Main;
+    }
+
+    void ExecuteNetwork(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& stream) override
+    {
+        //stream << _message;
+    }
+
+private:
+    Message _message;
+};
+
+template <FastTransport::FileSystem::OutputStream OutputStream, class Message>
 class MergeOut : public TaskQueue::Job {
 public:
-    static std::unique_ptr<MergeOut<OutputStream>> Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output)
+    static auto Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output)
     {
-        return std::make_unique<MergeOut<OutputStream>>(fileTree, output);
+        return std::make_unique<MergeOut<OutputStream, Message>>(fileTree, output);
     }
 
-    MergeOut(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output)
+    MergeOut(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output, Message&& messagae)
         : _fileTree(fileTree)
         , _output(output)
+        , _message(std::move(messagae))
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler) override
+    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    {
+    }
+
+    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
     {
         _output.get() << MessageType::ResponseTree;
         _fileTree.get().Serialize(_output.get());
+        scheduler.Schedule(WriteNetowrkJob<Message>::Create(std::move(_message)));
         return TaskQueue::TaskType::Main;
     }
 
 private:
     std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
     std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _output;
+    Message _message;
 };
 
 template <FastTransport::FileSystem::InputStream InputStream>
@@ -77,7 +116,11 @@ public:
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler) override
+    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    {
+    }
+
+    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& input) override
     {
         _fileTree.get().Deserialize(_input.get());
         return TaskQueue::TaskType::Main;
@@ -98,13 +141,17 @@ public:
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler) override
+    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    {
+    }
+
+    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
     {
         MessageType type;
         _input.get() >> type;
         switch (type) {
         case MessageType::RequestTree:
-            scheduler.Schedule(TaskQueue::TaskType::Main, MergeOut<OutputStream>::Create(_fileTree, _output));
+            // scheduler.Schedule(TaskQueue::TaskType::Main, MergeOut<OutputStream>::Create(_fileTree, _output));
             break;
         case MessageType::ResponseTree:
             scheduler.Schedule(TaskQueue::TaskType::Main, MergeIn<OutputStream>::Create(_fileTree, _input));
