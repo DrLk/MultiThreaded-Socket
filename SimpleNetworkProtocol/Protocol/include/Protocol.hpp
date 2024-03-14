@@ -12,6 +12,7 @@
 #include "NetworkJob.hpp"
 #include "Stream.hpp"
 #include "TaskScheduler.hpp"
+#include "IConnection.hpp"
 
 namespace Jobs {
 

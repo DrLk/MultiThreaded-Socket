@@ -7,11 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(INCLUDE_DIRS include)
 
-if (NOT TARGET Queue)
-  add_subdirectory(../Queue Queue)
-endif()
 if (NOT TARGET FileSystem)
     add_subdirectory(../FileSystem FileSystem)
+endif()
+if (NOT TARGET LockedList)
+    add_subdirectory(../LockedList LockdList)
+endif()
+if (NOT TARGET SimpleNetworkProtocolLib)
+    add_subdirectory(../SimpleNetworkProtocolLib SimpleNetworkProtocolLib)
 endif()
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
@@ -25,7 +28,7 @@ target_include_directories(Protocol
         ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(Protocol PRIVATE Queue FileSystem)
+target_link_libraries(Protocol PRIVATE FileSystem LockedList SimpleNetworkProtocolLib)
 if(WIN32)
     target_link_libraries(Protocol PRIVATE wsock32 ws2_32)
 else()

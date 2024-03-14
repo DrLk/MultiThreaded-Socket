@@ -20,7 +20,9 @@ endif()
 if (NOT TARGET Protocol)
   add_subdirectory(Protocol)
 endif()
-add_subdirectory(SimpleNetworkProtocolLib)
+if (NOT TARGET SimpleNetworkProtocolLib)
+  add_subdirectory(SimpleNetworkProtocolLib)
+endif()
 
 add_executable(SimpleNetworkProtocol main.cpp)
 
