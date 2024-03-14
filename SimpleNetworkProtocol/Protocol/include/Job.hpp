@@ -5,7 +5,7 @@
 #include "Stream.hpp"
 #include "TaskType.hpp"
 
-namespace TaskQueue {
+namespace FastTransport::TaskQueue {
 class ITaskScheduler;
 
 class Job {
@@ -20,4 +20,4 @@ public:
     virtual TaskType Execute(ITaskScheduler& scheduler, Stream& stream) = 0;
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

@@ -3,51 +3,28 @@
 #include <functional>
 #include <memory>
 #include <stdexcept>
+#include <stop_token>
 #include <utility>
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
+#include "IConnection.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
+#include "MessageType.hpp"
 #include "NetworkJob.hpp"
 #include "Stream.hpp"
 #include "TaskScheduler.hpp"
-#include "IConnection.hpp"
 
-namespace Jobs {
+namespace FastTransport::TaskQueue {
 
-template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
-class Dispatcher final {
-    void AddJob(std::unique_ptr<TaskQueue::Job>&& job)
-    {
-        _taskscheduler.Schedule(TaskQueue::TaskType::Main, std::move(job));
-    }
+class WriteNetowrkJob : public NetworkJob {
+    using Message = Protocol::IPacket::List;
 
-private:
-    TaskQueue::TaskScheduler _taskscheduler;
-    FastTransport::FileSystem::FileTree _fileTree;
-    FastTransport::FileSystem::InputByteStream<InputStream> _input;
-    FastTransport::FileSystem::OutputByteStream<OutputStream> _output;
-};
-
-enum class MessageType {
-    None = 0,
-    RequestTree = 1,
-    ResponseTree = 2,
-    RequestFile = 3,
-    ResponseFile = 4,
-    RequestFileBytes = 5,
-    ResponseFileBytes = 6,
-    RequestCloseFile = 7,
-    ResponseCloseFile = 8,
-};
-
-template <class Message>
-class WriteNetowrkJob : public TaskQueue::NetworkJob {
 public:
-    static std::unique_ptr<WriteNetowrkJob<Message>> Create(Message&& message)
+    static std::unique_ptr<WriteNetowrkJob> Create(Message&& message)
     {
-        return std::make_unique<WriteNetowrkJob<Message>>(std::forward<Message>(message));
+        return std::make_unique<WriteNetowrkJob>(std::move(message));
     }
 
     WriteNetowrkJob(Message&& message)
@@ -55,15 +32,16 @@ public:
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
+    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
     {
         //output << _message;
-        return TaskQueue::TaskType::Main;
+        return TaskType::Main;
     }
 
-    void ExecuteNetwork(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& stream) override
+    void ExecuteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override
     {
-        //stream << _message;
+        connection.Close();
+        auto freePackets = connection.Send(stop, std::move(_message));
     }
 
 private:
@@ -71,7 +49,7 @@ private:
 };
 
 template <FastTransport::FileSystem::OutputStream OutputStream, class Message>
-class MergeOut : public TaskQueue::Job {
+class MergeOut : public Job {
 public:
     static auto Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output)
     {
@@ -85,16 +63,16 @@ public:
     {
     }
 
-    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
+    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
     {
         _output.get() << MessageType::ResponseTree;
         _fileTree.get().Serialize(_output.get());
-        scheduler.Schedule(WriteNetowrkJob<Message>::Create(std::move(_message)));
-        return TaskQueue::TaskType::Main;
+        scheduler.Schedule(WriteNetowrkJob::Create(std::move(_message)));
+        return TaskType::Main;
     }
 
 private:
@@ -104,7 +82,7 @@ private:
 };
 
 template <FastTransport::FileSystem::InputStream InputStream>
-class MergeIn : public TaskQueue::Job {
+class MergeIn : public Job {
 public:
     static std::unique_ptr<MergeIn<InputStream>> Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::InputByteStream<InputStream>& input)
     {
@@ -117,14 +95,14 @@ public:
     {
     }
 
-    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& input) override
+    TaskType Execute(ITaskScheduler& scheduler, Stream& input) override
     {
         _fileTree.get().Deserialize(_input.get());
-        return TaskQueue::TaskType::Main;
+        return TaskType::Main;
     }
 
 private:
@@ -133,7 +111,7 @@ private:
 };
 
 template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
-class MessageTypeReadJob : public TaskQueue::Job {
+class MessageTypeReadJob : public Job {
 public:
     MessageTypeReadJob(FastTransport::FileSystem::InputByteStream<InputStream>& input, FastTransport::FileSystem::OutputByteStream<OutputStream>& output, FastTransport::FileSystem::FileTree& fileTree)
         : _input(input)
@@ -142,20 +120,20 @@ public:
     {
     }
 
-    void Accept(TaskQueue::ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
     {
     }
 
-    TaskQueue::TaskType Execute(TaskQueue::ITaskScheduler& scheduler, TaskQueue::Stream& output) override
+    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
     {
         MessageType type;
         _input.get() >> type;
         switch (type) {
         case MessageType::RequestTree:
-            // scheduler.Schedule(TaskQueue::TaskType::Main, MergeOut<OutputStream>::Create(_fileTree, _output));
+            // scheduler.Schedule(TaskType::Main, MergeOut<OutputStream>::Create(_fileTree, _output));
             break;
         case MessageType::ResponseTree:
-            scheduler.Schedule(TaskQueue::TaskType::Main, MergeIn<OutputStream>::Create(_fileTree, _input));
+            scheduler.Schedule(TaskType::Main, MergeIn<OutputStream>::Create(_fileTree, _input));
             break;
         case MessageType::RequestFile:
             break;
@@ -164,7 +142,7 @@ public:
         default:
             throw std::runtime_error("MessageTypeReadJob: unknown message type");
         }
-        return TaskQueue::TaskType::Main;
+        return TaskType::Main;
     }
 
 private:
@@ -172,4 +150,4 @@ private:
     std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _output;
     std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
 };
-}
+} // namespace FastTransport::TaskQueue

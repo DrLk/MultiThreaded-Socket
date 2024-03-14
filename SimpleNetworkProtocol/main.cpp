@@ -18,12 +18,9 @@
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
-#include "FileSystem.hpp"
 #include "Logger.hpp"
-#include "MessageType.hpp"
 #include "Protocol.hpp"
 #include "TaskScheduler.hpp"
-#include <sstream>
 
 using namespace FastTransport::Protocol; // NOLINT
 
@@ -130,7 +127,7 @@ void TestConnection2()
         FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
 
         FastTransport::Protocol::NetworkStream<ConnectionReader,ConnectionWriter> networkStream(reader, writer);
-        TaskQueue::TaskScheduler taskScheduler(networkStream, networkStream);
+        FastTransport::TaskQueue::TaskScheduler taskScheduler(networkStream, *dstConnection);
 
 
         FastTransport::FileSystem::FileTree fileTree;
@@ -142,8 +139,8 @@ void TestConnection2()
         IPacket::List recvMessagePackets = recvPackets2.TryGenerate(10);
         MessageReader messageReader(std::move(recvMessagePackets));
         FastTransport::FileSystem::InputByteStream<MessageReader> input2(messageReader);
-        Jobs::MergeOut mergeOut(fileTree, output, IPacket::List());
-        Jobs::MergeIn mergeIn(fileTree, input);
+        FastTransport::TaskQueue::MergeOut mergeOut(fileTree, output, IPacket::List());
+        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, input);
 
         int a = 0;
         input >> a;

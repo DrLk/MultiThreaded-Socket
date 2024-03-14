@@ -1,19 +1,20 @@
 #include "Queue.hpp"
 
+#include <stop_token>
 #include <utility>
 
+namespace FastTransport::TaskQueue {
 
-namespace TaskQueue {
-
-std::future<void> TaskQueue::Async(std::move_only_function<void()>&& function)
+std::future<void> TaskQueue::Async(std::move_only_function<void(std::stop_token)>&& function)
 {
-    auto task = std::packaged_task<void()>(std::move(function));
+    auto task = std::packaged_task<void(std::stop_token)>(std::move(function));
     std::future<void> future = task.get_future();
     _taskQueue.LockedPushBack(std::move(task));
     _taskQueue.NotifyAll();
 
     return future;
 }
+
 void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
 {
     List taskQueue;
@@ -26,35 +27,7 @@ void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
     queue._taskQueue.LockedSwap(taskQueue);
 
     for (auto& task : taskQueue) {
-        task();
+        task(stop);
     }
 }
-
-int64_t add(int64_t lhs, int64_t rhs)
-{
-    TaskQueue queue;
-    const std::future wait = queue.Async([]() { return; });
-    wait.wait();
-    return lhs + rhs;
-}
-
-int64_t substract(int64_t lhs, int64_t rhs)
-{
-    return lhs - rhs;
-}
-
-int64_t multiply(int64_t lhs, int64_t rhs)
-{
-    return lhs * rhs;
-}
-
-int64_t divide(int64_t lhs, int64_t rhs)
-{
-    return lhs / rhs;
-}
-
-int64_t square(int64_t value)
-{
-    return value * value;
-}
-}  // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

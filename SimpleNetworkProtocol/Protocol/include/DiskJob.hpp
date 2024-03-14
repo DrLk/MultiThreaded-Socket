@@ -3,7 +3,7 @@
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
 
-namespace TaskQueue {
+namespace FastTransport::TaskQueue {
 
 class DiskJob : public Job {
 public:
@@ -17,4 +17,4 @@ public:
     virtual void ExecuteDisk(ITaskScheduler& scheduler, float disk) = 0;
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

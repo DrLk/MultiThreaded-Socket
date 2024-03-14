@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace TaskQueue {
+namespace FastTransport::TaskQueue {
 
 class Stream {
 public:
@@ -18,4 +18,4 @@ public:
     virtual Stream& flush() = 0;
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

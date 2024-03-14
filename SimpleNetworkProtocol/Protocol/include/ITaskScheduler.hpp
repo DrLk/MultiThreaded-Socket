@@ -2,9 +2,7 @@
 
 #include <memory>
 
-#include "TaskType.hpp"
-
-namespace TaskQueue {
+namespace FastTransport::TaskQueue {
 
 class Job;
 class NetworkJob;
@@ -19,11 +17,10 @@ public:
     ITaskScheduler& operator=(ITaskScheduler&&) = delete;
     virtual ~ITaskScheduler() = default;
 
-    virtual void Schedule(TaskType type, std::unique_ptr<Job>&& job) = 0;
     virtual void Schedule(std::unique_ptr<Job>&& job) = 0;
 
     virtual void ScheduleNetworkJob(std::unique_ptr<NetworkJob>&& job) = 0;
     virtual void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) = 0;
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

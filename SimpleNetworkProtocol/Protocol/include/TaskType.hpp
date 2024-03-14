@@ -1,6 +1,6 @@
 #pragma once
 
-namespace TaskQueue {
+namespace FastTransport::TaskQueue {
 
 enum class TaskType {
     None,
@@ -11,4 +11,4 @@ enum class TaskType {
     DiskWrite
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue

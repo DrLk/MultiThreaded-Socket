@@ -1,12 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <stop_token>
 
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
-#include "Stream.hpp"
 
-namespace TaskQueue {
+namespace FastTransport::Protocol {
+class IConnection;
+}
+
+namespace FastTransport::TaskQueue {
+
+using IConnection = FastTransport::Protocol::IConnection;
 
 class NetworkJob : public Job {
 public:
@@ -17,7 +23,7 @@ public:
         scheduler.ScheduleNetworkJob(std::move(networkJob));
     }
 
-    virtual void ExecuteNetwork(ITaskScheduler& scheduler, Stream& stream) = 0;
+    virtual void ExecuteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& stream) = 0;
 };
 
-} // namespace TaskQueue
+} // namespace FastTransport::TaskQueue
