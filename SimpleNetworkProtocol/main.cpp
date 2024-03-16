@@ -50,7 +50,7 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
             if (!userData.empty()) {
                 packetsPerSecond += userData.size();
             }
-            userData = srcConnection->Send(stop, std::move(userData));
+            userData = srcConnection->Send2(stop, std::move(userData));
 
             auto now = std::chrono::steady_clock::now();
             if (now > endTestTime) { return;
@@ -131,7 +131,7 @@ void TestConnection2()
 
 
         FastTransport::FileSystem::FileTree fileTree;
-        IPacket::List freeSendPackets = dstConnection->Send(stop, IPacket::List());
+        IPacket::List freeSendPackets = dstConnection->Send2(stop, IPacket::List());
         IPacket::List messagePackets = freeSendPackets.TryGenerate(10);
         MessageWriter message(std::move(messagePackets));
         FastTransport::FileSystem::OutputByteStream<MessageWriter> output2(message);
@@ -220,7 +220,7 @@ void TestConnection2()
         return 0;
 
         while (!stop.stop_requested()) {
-            sendPackets = srcConnection->Send(stop, std::move(sendPackets));
+            sendPackets = srcConnection->Send2(stop, std::move(sendPackets));
             auto duration = std::chrono::steady_clock::now() - start;
             if (duration > 1s) {
                 std::cout << "src: " << statistics << '\n';

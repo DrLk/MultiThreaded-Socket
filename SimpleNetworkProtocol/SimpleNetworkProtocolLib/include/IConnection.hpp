@@ -25,9 +25,12 @@ public:
     [[nodiscard]] virtual const IStatistics& GetStatistics() const = 0;
     [[nodiscard]] virtual ConnectionContext& GetContext() = 0;
 
-    [[nodiscard]] virtual IPacket::List Send(std::stop_token stop, IPacket::List&& data) = 0;
+    [[nodiscard]] virtual IPacket::List GetFreeSendPackets(std::stop_token stop) = 0;
+    virtual void Send(IPacket::List&& data) = 0;
+    [[nodiscard]] virtual IPacket::List Send2(std::stop_token stop, IPacket::List&& data) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) = 0;
     [[nodiscard]] virtual IPacket::List Recv(std::size_t size, std::stop_token stop, IPacket::List&& freePackets) = 0;
+
 
     virtual void AddFreeRecvPackets(IPacket::List&& freePackets) = 0;
     virtual void AddFreeSendPackets(IPacket::List&& freePackets) = 0;

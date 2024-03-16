@@ -21,7 +21,7 @@ ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr&
     , _stop(std::move(stop))
     , _sendThread(SendThread, std::ref(*this), std::ref(*connection))
 {
-    _packets = _connection->Send(_stop, IPacket::List());
+    _packets = _connection->Send2(_stop, IPacket::List());
     _packet = _packets.begin();
 }
 
@@ -147,7 +147,7 @@ void ConnectionWriter::SendThread(std::stop_token stop, ConnectionWriter& writer
             continue;
         }
 
-        IPacket::List freePackets = connection.Send(stop, std::move(packets));
+        IPacket::List freePackets = connection.Send2(stop, std::move(packets));
 
         writer._freePackets.LockedSplice(std::move(freePackets));
         writer._freePackets.NotifyAll();

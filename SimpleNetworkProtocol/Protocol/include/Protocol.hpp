@@ -41,7 +41,7 @@ public:
     void ExecuteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override
     {
         connection.Close();
-        auto freePackets = connection.Send(stop, std::move(_message));
+        connection.Send(std::move(_message));
     }
 
 private:

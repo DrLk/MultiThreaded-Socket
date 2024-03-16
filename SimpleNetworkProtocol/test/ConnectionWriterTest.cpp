@@ -24,7 +24,9 @@ public:
     MOCK_METHOD(IStatistics&, GetStatistics, (), (const, override));
     MOCK_METHOD(ConnectionContext&, GetContext, ());
 
-    MOCK_METHOD(IPacket::List, Send, (std::stop_token, IPacket::List&&));
+    MOCK_METHOD(IPacket::List, GetFreeSendPackets, (std::stop_token));
+    MOCK_METHOD(void, Send, (IPacket::List&&));
+    MOCK_METHOD(IPacket::List, Send2, (std::stop_token, IPacket::List&&));
     MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));
     MOCK_METHOD(IPacket::List, Recv, (std::size_t, std::stop_token, IPacket::List&&));
     MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
@@ -39,7 +41,7 @@ TEST(ConnectionWriter, Payload)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.empty());
@@ -55,7 +57,7 @@ TEST(ConnectionWriter, Payload)
 
         ConnectionWriter writer(stop, connection);
 
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .Times(3)
             .WillRepeatedly(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
@@ -77,7 +79,7 @@ TEST(ConnectionWriter, Payload)
         writer << value;
         writer.flush();
 
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .Times(3)
             .WillRepeatedly(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
@@ -107,7 +109,7 @@ TEST(ConnectionWriter, EmptyFlush)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.empty());
@@ -123,7 +125,7 @@ TEST(ConnectionWriter, EmptyFlush)
 
         ConnectionWriter writer(stop, connection);
 
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .Times(0);
         writer.flush();
         writer.flush();
@@ -140,7 +142,7 @@ TEST(ConnectionWriter, WriteIPacketList)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.empty());
@@ -166,7 +168,7 @@ TEST(ConnectionWriter, WriteIPacketList)
 
         EXPECT_TRUE(std::equal(testData.begin(), testData.end(), sendPackets.back()->GetPayload().begin(), sendPackets.back()->GetPayload().end()));
 
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [&testData](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(std::equal(testData.begin(), testData.end(), packets.back()->GetPayload().begin(), packets.back()->GetPayload().end()));
@@ -184,7 +186,7 @@ TEST(ConnectionWriter, WriteBigArray)
     std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.empty());
@@ -202,7 +204,7 @@ TEST(ConnectionWriter, WriteBigArray)
 
         std::vector<std::byte> testData(2000, std::byte { 31 });
 
-        EXPECT_CALL(*connection, Send)
+        EXPECT_CALL(*connection, Send2)
             .WillOnce(
                 [](std::stop_token /*stop*/, IPacket::List&& packets) {
                     EXPECT_TRUE(packets.size() == 2);

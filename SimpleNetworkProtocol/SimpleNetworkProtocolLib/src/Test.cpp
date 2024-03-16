@@ -59,7 +59,7 @@ void TestConnection()
         const auto& statistics = srcConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
         while (!stop.stop_requested()) {
-            userData = srcConnection->Send(stop, std::move(userData));
+            userData = srcConnection->Send2(stop, std::move(userData));
             auto duration = std::chrono::steady_clock::now() - start;
             if (duration > 1s) {
                 std::cout << "src: " << statistics << '\n';

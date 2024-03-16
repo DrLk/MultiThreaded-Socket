@@ -94,7 +94,26 @@ ConnectionContext& Connection::GetContext()
     return *_context;
 }
 
-IPacket::List Connection::Send(std::stop_token stop, IPacket::List&& data)
+IPacket::List Connection::GetFreeSendPackets(std::stop_token stop)
+{
+    IPacket::List result;
+    {
+        if (_freeUserSendPackets.Wait(stop, [this]() { return IsClosed(); })) {
+            _freeUserSendPackets.LockedSwap(result);
+        }
+    }
+
+    return result;
+}
+
+void Connection::Send(IPacket::List&& data)
+{
+    if (!data.empty()) {
+        _sendUserData.LockedSplice(std::move(data));
+    }
+}
+
+IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 {
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));

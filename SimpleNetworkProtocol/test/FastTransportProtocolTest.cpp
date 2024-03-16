@@ -35,7 +35,7 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
             auto ping = UDPQueue::CreateBuffers(1000);
             ping = dstConnection->Recv(stop, std::move(ping));
             auto pong = UDPQueue::CreateBuffers(1);
-            pong = dstConnection->Send(stop, std::move(pong));
+            pong = dstConnection->Send2(stop, std::move(pong));
 
             connectionCount++;
         }
@@ -59,7 +59,7 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
         }
 
         auto ping = UDPQueue::CreateBuffers(1);
-        ping = srcConnection->Send(stop, std::move(ping));
+        ping = srcConnection->Send2(stop, std::move(ping));
 
         auto pong = UDPQueue::CreateBuffers(1000);
         while (!stop.stop_requested()) {
@@ -85,7 +85,7 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
             std::this_thread::sleep_for(100ms);
         }
         auto ping = UDPQueue::CreateBuffers(1);
-        ping = srcConnection->Send(stop, std::move(ping));
+        ping = srcConnection->Send2(stop, std::move(ping));
 
         auto pong = UDPQueue::CreateBuffers(1000);
         while (!stop.stop_requested()) {
@@ -199,7 +199,7 @@ TEST(FastTransportProtocolTest, PayloadTest)
 
         auto ping = UDPQueue::CreateBuffers(1);
         ping.front()->SetPayload(data);
-        ping = srcConnection->Send(stop, std::move(ping));
+        ping = srcConnection->Send2(stop, std::move(ping));
 
         auto pong = UDPQueue::CreateBuffers(1000);
         start = std::chrono::steady_clock::now();
@@ -246,7 +246,7 @@ TEST(FastTransportProtocolTest, PayloadTest)
 
                 auto pong = UDPQueue::CreateBuffers(1);
                 ping.front()->SetPayload(payload);
-                ping = dstConnection->Send(stop, std::move(ping));
+                ping = dstConnection->Send2(stop, std::move(ping));
 
                 break;
             }
