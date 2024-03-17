@@ -161,7 +161,6 @@ void TestConnection2()
         output << b;
         LOGGER() << "Write b: " << b;
         output.Flush();
-        return 0;
 
         /* Protocol protocol(output, input); */
         /* protocol.Run(); */
@@ -231,7 +230,6 @@ void TestConnection2()
         /*  */
         /* FastTransport::FileSystem::FileSystem filesystem; */
         /* filesystem.Start(); */
-        return 0;
 
         while (!stop.stop_requested()) {
             sendPackets = srcConnection->Send2(stop, std::move(sendPackets));
