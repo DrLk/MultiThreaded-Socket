@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stop_token>
 
 namespace FastTransport::TaskQueue {
 
@@ -21,6 +22,7 @@ public:
     virtual ~ITaskScheduler() = default;
 
     virtual void Schedule(std::unique_ptr<Job>&& job) = 0;
+    virtual void Wait(std::stop_token stop) = 0;
 
     virtual void ScheduleMainJob(std::unique_ptr<MainJob>&& job) = 0;
     virtual void ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job) = 0;

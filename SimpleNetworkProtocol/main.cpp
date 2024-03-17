@@ -12,15 +12,19 @@
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
+#include "MergeIn.hpp"
+#include "MergeOut.hpp"
 #include "MessageReader.hpp"
+#include "MessageTypeReadJob.hpp"
 #include "MessageWriter.hpp"
 #include "NetworkStream.hpp"
+#include "TaskScheduler.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
 
 #include "Logger.hpp"
-#include "Protocol.hpp"
-#include "TaskScheduler.hpp"
+
+using FastTransport::FileSystem::FileTree;
 
 using namespace FastTransport::Protocol; // NOLINT
 
@@ -118,6 +122,13 @@ void TestConnection2()
         dstConnection->AddFreeRecvPackets(std::move(recvPackets));
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
+        FastTransport::TaskQueue::TaskScheduler destinationTaskScheduler(*dstConnection);
+
+        FileTree fileTree;
+        destinationTaskScheduler.Schedule(FastTransport::TaskQueue::MessageTypeReadJob::Create(fileTree, IPacket::List()));
+
+        destinationTaskScheduler.Wait(stop);
+
         const auto& statistics = dstConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();
 
@@ -125,12 +136,8 @@ void TestConnection2()
         ConnectionReader reader(stop, dstConnection);
         FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
         FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+        FastTransport::Protocol::NetworkStream<ConnectionReader, ConnectionWriter> networkStream(reader, writer);
 
-        FastTransport::Protocol::NetworkStream<ConnectionReader,ConnectionWriter> networkStream(reader, writer);
-        FastTransport::TaskQueue::TaskScheduler taskScheduler(networkStream, *dstConnection);
-
-
-        FastTransport::FileSystem::FileTree fileTree;
         IPacket::List freeSendPackets = dstConnection->Send2(stop, IPacket::List());
         IPacket::List messagePackets = freeSendPackets.TryGenerate(10);
         MessageWriter message(std::move(messagePackets));
@@ -188,6 +195,13 @@ void TestConnection2()
         IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        FastTransport::TaskQueue::TaskScheduler sourceTaskScheduler(*srcConnection);
+
+        FileTree fileTree = FileTree::GetTestFileTree();
+        sourceTaskScheduler.Schedule(FastTransport::TaskQueue::MessageTypeReadJob::Create(fileTree, IPacket::List()));
+
+        sourceTaskScheduler.Wait(stop);
 
         const auto& statistics = srcConnection->GetStatistics();
         auto start = std::chrono::steady_clock::now();

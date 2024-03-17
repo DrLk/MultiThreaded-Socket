@@ -1,19 +1,22 @@
 #include "TaskScheduler.hpp"
+
+#include <chrono>
+#include <memory>
+#include <stop_token>
+#include <thread>
+
 #include "DiskJob.hpp"
 #include "ITaskScheduler.hpp"
-#include "Stream.hpp"
-
 #include "Job.hpp"
 #include "MainJob.hpp"
 #include "MainReadJob.hpp"
-#include "WriteNetworkJob.hpp"
 #include "ReadNetworkJob.hpp"
+#include "WriteNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
-TaskScheduler::TaskScheduler(Stream& diskStream, IConnection& connection)
-    : _diskStream(diskStream)
-    , _connection(connection)
+TaskScheduler::TaskScheduler(IConnection& connection)
+    : _connection(connection)
 {
 }
 
@@ -22,6 +25,13 @@ TaskScheduler::~TaskScheduler() = default;
 void TaskScheduler::Schedule(std::unique_ptr<Job>&& job)
 {
     job->Accept(*this, std::move(job));
+}
+
+void TaskScheduler::Wait(std::stop_token stop)
+{
+    while (!stop.stop_requested()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 }
 
 void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)

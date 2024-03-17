@@ -8,14 +8,12 @@
 
 namespace FastTransport::TaskQueue {
 
-class Stream;
-
 class TaskScheduler final : public ITaskScheduler {
     using IConnection = FastTransport::Protocol::IConnection;
     using Message = FastTransport::Protocol::IPacket::List;
 
 public:
-    TaskScheduler(Stream& diskStream, IConnection& connection);
+    TaskScheduler(IConnection& connection);
     TaskScheduler(const TaskScheduler&) = delete;
     TaskScheduler(TaskScheduler&&) = delete;
     TaskScheduler& operator=(const TaskScheduler&) = delete;
@@ -23,6 +21,9 @@ public:
     ~TaskScheduler() override;
 
     void Schedule(std::unique_ptr<Job>&& job) override;
+    void Wait(std::stop_token stop) override;
+
+
     void ScheduleMainJob(std::unique_ptr<MainJob>&& job) override;
     void ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job) override;
     void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) override;
@@ -31,7 +32,6 @@ public:
 
 private:
     TaskQueue _diskQueue;
-    std::reference_wrapper<Stream> _diskStream;
     TaskQueue _mainQueue;
     std::reference_wrapper<IConnection> _connection;
     Message _freeSendPackets;

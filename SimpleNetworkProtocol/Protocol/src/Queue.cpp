@@ -3,7 +3,14 @@
 #include <stop_token>
 #include <utility>
 
+#include "Logger.hpp"
+
 namespace FastTransport::TaskQueue {
+
+TaskQueue::TaskQueue()
+    : _workerThread(ProcessQueue, std::ref(*this))
+{
+}
 
 std::future<void> TaskQueue::Async(std::move_only_function<void(std::stop_token)>&& function)
 {
@@ -17,17 +24,17 @@ std::future<void> TaskQueue::Async(std::move_only_function<void(std::stop_token)
 
 void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
 {
-    List taskQueue;
+    while (queue._taskQueue.Wait(stop)) {
+        List taskQueue;
 
-    queue._taskQueue.Wait(stop);
-    if (stop.stop_requested()) {
-        return;
-    }
+        LOGGER() << "TASK QUEUE SIZE: " << taskQueue.size();
+        queue._taskQueue.LockedSwap(taskQueue);
+        LOGGER() << "TASK QUEUE SIZE 2: " << taskQueue.size();
 
-    queue._taskQueue.LockedSwap(taskQueue);
+        for (auto& task : taskQueue) {
+            task(stop);
+        }
 
-    for (auto& task : taskQueue) {
-        task(stop);
     }
 }
 } // namespace FastTransport::TaskQueue
