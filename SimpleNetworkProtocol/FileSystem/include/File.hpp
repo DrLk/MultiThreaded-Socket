@@ -6,6 +6,7 @@
 #include "ByteStream.hpp"
 
 namespace FastTransport::FileSystem {
+
 struct File {
     std::filesystem::path name;
     std::uintmax_t size;
@@ -26,5 +27,6 @@ struct File {
         stream >> size;
         stream >> type;
     }
-} __attribute__((packed)) __attribute__((aligned(64)));
+};
+
 } // namespace FastTransport::FileSystem

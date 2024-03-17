@@ -97,7 +97,7 @@ public:
 private:
     std::uint64_t _nlookup = 0;
     bool _deleted = false;
-} __attribute__((packed)) __attribute__((aligned(128)));
+};
 
 class FileTree {
 public:
