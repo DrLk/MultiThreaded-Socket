@@ -42,7 +42,6 @@ TEST(SocketTest, Socket)
     EXPECT_TRUE(data <=> data2 == std::weak_ordering::equivalent);
 }
 
-
 #ifdef __linux__
 
 TEST(SocketTest, GSOSendMsg)

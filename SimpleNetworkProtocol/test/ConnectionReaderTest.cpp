@@ -1,9 +1,9 @@
 #include "ConnectionReader.hpp"
-#include <array>
-#include <cstddef>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
 #include <stop_token>
 
 #include "IPacket.hpp"
@@ -37,8 +37,8 @@ public:
 
 TEST(ConnectionReader, Payload)
 {
-    std::stop_source stopSource;
-    std::stop_token stop = stopSource.get_token();
+    const std::stop_source stopSource;
+    const std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
         std::array<std::byte, 1000> testData {};

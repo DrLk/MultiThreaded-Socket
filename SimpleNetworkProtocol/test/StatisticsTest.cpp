@@ -67,7 +67,7 @@ TEST(StatisticaTest, BasicStatisticaTest)
         EXPECT_EQ(statistics.GetAckSendPackets(), 2);
     }
 
-    OutgoingPacket::List outgoingPackets;;
+    OutgoingPacket::List outgoingPackets;
     outgoingPackets.push_back(OutgoingPacket(std::make_unique<Packet>(1500), true));
     connection.ReSendPackets(std::move(outgoingPackets));
     EXPECT_EQ(statistics.GetLostPackets(), 1);

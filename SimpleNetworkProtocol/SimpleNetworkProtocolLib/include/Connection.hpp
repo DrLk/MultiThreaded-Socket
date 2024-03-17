@@ -92,7 +92,7 @@ public:
 
     IRecvQueue& GetRecvQueue() override;
     IPacket::List GetSendUserData() override;
- 
+
     void SetDestinationID(ConnectionID destinationId) override;
     [[nodiscard]] ConnectionID GetDestinationID() const override;
 

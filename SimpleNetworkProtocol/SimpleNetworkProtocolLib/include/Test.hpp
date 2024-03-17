@@ -32,5 +32,4 @@
 namespace FastTransport::Protocol {
 void TestConnection();
 
-
 } // namespace FastTransport::Protocol

@@ -57,7 +57,7 @@ TEST(MessageWriter, Payload)
 TEST(MessageWriter, Empty)
 {
     IPacket::List freePackets;
-    int packetsSize = 100;
+    const int packetsSize = 100;
     for (int i = 0; i < packetsSize; i++) {
         auto packet = std::make_unique<Packet>(1500);
         std::array<std::byte, 1000> payload {};

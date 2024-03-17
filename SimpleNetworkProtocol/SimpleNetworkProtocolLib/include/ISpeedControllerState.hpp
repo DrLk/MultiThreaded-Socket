@@ -242,8 +242,8 @@ public:
     {
         int newSpeed = state.realSpeed;
 
-        std::optional<int> const minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats.GetSamplesStats());
-        std::optional<int> const maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats.GetSamplesStats());
+        const std::optional<int> minLostSpeed = ISpeedControllerState::GetMinLostSpeed(stats.GetSamplesStats());
+        const std::optional<int> maxRealSpeed = ISpeedControllerState::GetMaxRealSpeed(stats.GetSamplesStats());
 
         if (!minLostSpeed.has_value()) {
             if (_up) {

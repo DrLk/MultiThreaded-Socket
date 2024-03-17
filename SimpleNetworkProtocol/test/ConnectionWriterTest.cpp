@@ -37,8 +37,8 @@ public:
 
 TEST(ConnectionWriter, Payload)
 {
-    std::stop_source stopSource;
-    std::stop_token stop = stopSource.get_token();
+    const std::stop_source stopSource;
+    const std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
         EXPECT_CALL(*connection, Send2)
@@ -105,8 +105,8 @@ TEST(ConnectionWriter, Payload)
 
 TEST(ConnectionWriter, EmptyFlush)
 {
-    std::stop_source stopSource;
-    std::stop_token stop = stopSource.get_token();
+    const std::stop_source stopSource;
+    const std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
         EXPECT_CALL(*connection, Send2)
@@ -138,8 +138,8 @@ TEST(ConnectionWriter, EmptyFlush)
 
 TEST(ConnectionWriter, WriteIPacketList)
 {
-    std::stop_source stopSource;
-    std::stop_token stop = stopSource.get_token();
+    const std::stop_source stopSource;
+    const std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
         EXPECT_CALL(*connection, Send2)
@@ -182,8 +182,8 @@ TEST(ConnectionWriter, WriteIPacketList)
 
 TEST(ConnectionWriter, WriteBigArray)
 {
-    std::stop_source stopSource;
-    std::stop_token stop = stopSource.get_token();
+    const std::stop_source stopSource;
+    const std::stop_token stop = stopSource.get_token();
     auto connection = std::make_shared<MockConnection>();
     {
         EXPECT_CALL(*connection, Send2)

@@ -13,9 +13,9 @@ class MessageWriter final {
 public:
     explicit MessageWriter(IPacket::List&& packets);
     MessageWriter(const MessageWriter&) = delete;
-    MessageWriter(MessageWriter&&) noexcept ;
+    MessageWriter(MessageWriter&&) noexcept;
     MessageWriter& operator=(const MessageWriter&) = delete;
-    MessageWriter& operator=(MessageWriter&&) noexcept ;
+    MessageWriter& operator=(MessageWriter&&) noexcept;
     ~MessageWriter();
 
     template <trivial T>

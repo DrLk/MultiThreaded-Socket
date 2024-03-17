@@ -120,7 +120,6 @@ private:
     int _socket { INVALID_SOCKET };
 #endif
     ConnectionAddr _address;
-
 };
 
 } // namespace FastTransport::Protocol

@@ -9,7 +9,7 @@ namespace FastTransport::Protocol {
 
 class MessageReader final {
 public:
-    explicit MessageReader(IPacket::List&&  packets);
+    explicit MessageReader(IPacket::List&& packets);
 
     MessageReader& read(void* data, std::size_t size);
 
