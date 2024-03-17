@@ -29,7 +29,7 @@ public:
         scheduler.ScheduleReadNetworkJob(std::move(networkJob));
     }
 
-    virtual Message ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) = 0;
+    virtual void ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

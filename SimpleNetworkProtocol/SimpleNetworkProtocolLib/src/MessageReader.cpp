@@ -40,6 +40,18 @@ MessageReader& MessageReader::operator>>(IPacket::List&& /*packets*/) // NOLINT(
     return *this;
 }
 
+IPacket::List MessageReader::GetPackets()
+{
+    return std::move(_packets);
+}
+
+IPacket::List MessageReader::GetFreePackets()
+{
+    IPacket::List freePackets;
+    freePackets.splice(std::move(_packets), _packets.begin(), _packet);
+    return freePackets;
+}
+
 IPacket& MessageReader::GetPacket()
 {
     return **_packet;

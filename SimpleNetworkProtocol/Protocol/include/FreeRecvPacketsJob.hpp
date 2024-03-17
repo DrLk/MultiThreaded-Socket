@@ -13,7 +13,7 @@ public:
 
     FreeRecvPacketsJob(Message&& message);
 
-    [[nodiscard]] Message ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override;
+    void ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override;
 
 private:
     Message _message;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -76,54 +77,79 @@ private:
 };
 
 class MergeIn : public MainReadJob {
+    using MessageReader = Protocol::MessageReader;
+
 public:
-    static std::unique_ptr<MergeIn> Create(FastTransport::FileSystem::FileTree& fileTree, Message&& message)
+    static std::unique_ptr<MergeIn> Create(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader)
     {
-        return std::make_unique<MergeIn>(fileTree, std::move(message));
+        return std::make_unique<MergeIn>(fileTree, std::move(reader));
     }
 
-    MergeIn(FastTransport::FileSystem::FileTree& fileTree, Message&& message)
+    MergeIn(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader)
         : _fileTree(fileTree)
-        , _message(std::move(message))
+        , _reader(std::move(reader))
     {
     }
 
     void ExecuteMainRead(std::stop_token stop, ITaskScheduler& scheduler) override
     {
-        Protocol::MessageReader reader(std::move(_message));
+        Protocol::MessageReader reader(std::move(_reader));
         FileSystem::InputByteStream<Protocol::MessageReader> input(reader);
 
         _fileTree.get().Deserialize(input);
 
-        scheduler.Schedule(FreeRecvPacketsJob::Create(std::move(_message)));
+        scheduler.Schedule(FreeRecvPacketsJob::Create(_reader.GetPackets()));
     }
 
 private:
     std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
-    Message _message;
+    MessageReader _reader;
 };
 
-template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
 class MessageTypeReadJob : public ReadNetworkJob {
 public:
-    MessageTypeReadJob(FastTransport::FileSystem::InputByteStream<InputStream>& input, FastTransport::FileSystem::OutputByteStream<OutputStream>& output, FastTransport::FileSystem::FileTree& fileTree)
-        : _input(input)
-        , _output(output)
-        , _fileTree(fileTree)
+    static std::unique_ptr<MessageTypeReadJob> Create(FastTransport::FileSystem::FileTree& fileTree, Message&& messages)
+    {
+        return std::make_unique<MessageTypeReadJob>(fileTree, std::move(messages));
+    }
+
+    MessageTypeReadJob(FastTransport::FileSystem::FileTree& fileTree, Message&& messages)
+        : _fileTree(fileTree)
+        , _messages(std::move(messages))
     {
     }
 
-    Message ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection)
+    void ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection)
     {
         MessageType type;
-        _input.get() >> type;
-        Message message;
+
+        auto messages = connection.Recv(stop, IPacket::List());
+        _messages.splice(std::move(messages));
+
+        if (_messages.empty()) {
+            scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
+            return;
+        }
+
+        std::uint32_t messageSize;
+        assert(_messages.front()->GetPayload().size() >= sizeof(messageSize));
+        std::memcpy(&messageSize, _messages.front()->GetPayload().data(), sizeof(messageSize));
+
+        if (messageSize < _messages.size()) {
+            scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
+            return;
+        }
+
+        auto message = _messages.TryGenerate(messageSize);
+        Protocol::MessageReader reader(std::move(message));
+        reader >> type;
         switch (type) {
         case MessageType::RequestTree:
             scheduler.Schedule(MergeOut::Create(_fileTree));
+            scheduler.Schedule(FreeRecvPacketsJob::Create(reader.GetPackets()));
             break;
         case MessageType::ResponseTree:
-            scheduler.Schedule(MergeIn::Create(_fileTree, std::move(message)));
+            scheduler.Schedule(MergeIn::Create(_fileTree, std::move(reader)));
             break;
         case MessageType::RequestFile:
             break;
@@ -132,12 +158,12 @@ public:
         default:
             throw std::runtime_error("MessageTypeReadJob: unknown message type");
         }
-        return message;
+
+        scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
     }
 
 private:
-    std::reference_wrapper<FastTransport::FileSystem::InputByteStream<InputStream>> _input;
-    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _output;
     std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
+    Message _messages;
 };
 } // namespace FastTransport::TaskQueue

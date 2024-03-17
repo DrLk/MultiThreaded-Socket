@@ -48,8 +48,7 @@ void TaskScheduler::ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& j
 void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
-        auto freePackets = job->ExecuteReadNetwork(stop, *this, _connection);
-        _freeRecvPackets.splice(std::move(freePackets));
+        job->ExecuteReadNetwork(stop, *this, _connection);
     });
 }
 

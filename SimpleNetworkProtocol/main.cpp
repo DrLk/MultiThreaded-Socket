@@ -140,7 +140,7 @@ void TestConnection2()
         MessageReader messageReader(std::move(recvMessagePackets));
         FastTransport::FileSystem::InputByteStream<MessageReader> input2(messageReader);
         FastTransport::TaskQueue::MergeOut mergeOut(fileTree);
-        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, IPacket::List());
+        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, std::move(messageReader));
 
         int a = 0;
         input >> a;

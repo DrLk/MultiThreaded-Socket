@@ -35,7 +35,6 @@ private:
     TaskQueue _mainQueue;
     std::reference_wrapper<IConnection> _connection;
     Message _freeSendPackets;
-    Message _freeRecvPackets;
 };
 
 } // namespace FastTransport::TaskQueue

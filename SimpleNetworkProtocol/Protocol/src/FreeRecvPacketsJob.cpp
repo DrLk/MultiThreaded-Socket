@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "IConnection.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::TaskQueue {
@@ -16,9 +17,9 @@ FreeRecvPacketsJob::FreeRecvPacketsJob(Message&& message)
 {
 }
 
-FreeRecvPacketsJob::Message FreeRecvPacketsJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection)
+void FreeRecvPacketsJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection)
 {
-    return std::move(_message);
+    connection.AddFreeRecvPackets(std::move(_message));
 }
 
 } // namespace FastTransport::TaskQueue
