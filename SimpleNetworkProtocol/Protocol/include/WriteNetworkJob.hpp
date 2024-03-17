@@ -13,7 +13,6 @@ class IConnection;
 
 namespace FastTransport::TaskQueue {
 
-using IConnection = FastTransport::Protocol::IConnection;
 using IPacket = FastTransport::Protocol::IPacket;
 
 class WriteNetworkJob : public Job {
@@ -25,7 +24,7 @@ public:
         scheduler.ScheduleWriteNetworkJob(std::move(networkJob));
     }
 
-    virtual void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) = 0;
+    virtual void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, Protocol::IConnection& connection) = 0;
 };
 
 } // namespace FastTransport::TaskQueue
