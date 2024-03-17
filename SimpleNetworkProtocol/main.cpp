@@ -139,8 +139,8 @@ void TestConnection2()
         IPacket::List recvMessagePackets = recvPackets2.TryGenerate(10);
         MessageReader messageReader(std::move(recvMessagePackets));
         FastTransport::FileSystem::InputByteStream<MessageReader> input2(messageReader);
-        FastTransport::TaskQueue::MergeOut mergeOut(fileTree, output, IPacket::List());
-        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, input);
+        FastTransport::TaskQueue::MergeOut mergeOut(fileTree);
+        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, IPacket::List());
 
         int a = 0;
         input >> a;

@@ -3,6 +3,7 @@
 #include <memory>
 #include <stop_token>
 
+#include "IPacket.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
 
@@ -13,17 +14,18 @@ class IConnection;
 namespace FastTransport::TaskQueue {
 
 using IConnection = FastTransport::Protocol::IConnection;
+using IPacket = FastTransport::Protocol::IPacket;
 
-class NetworkJob : public Job {
+class WriteNetworkJob : public Job {
 public:
     void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
     {
-        auto* pointer = dynamic_cast<NetworkJob*>(job.release());
-        std::unique_ptr<NetworkJob> networkJob(pointer);
-        scheduler.ScheduleNetworkJob(std::move(networkJob));
+        auto* pointer = dynamic_cast<WriteNetworkJob*>(job.release());
+        std::unique_ptr<WriteNetworkJob> networkJob(pointer);
+        scheduler.ScheduleWriteNetworkJob(std::move(networkJob));
     }
 
-    virtual void ExecuteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& stream) = 0;
+    virtual void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

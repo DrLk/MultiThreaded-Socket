@@ -1,9 +1,13 @@
 #include "TaskScheduler.hpp"
 #include "DiskJob.hpp"
+#include "ITaskScheduler.hpp"
 #include "Stream.hpp"
 
 #include "Job.hpp"
-#include "NetworkJob.hpp"
+#include "MainJob.hpp"
+#include "MainReadJob.hpp"
+#include "WriteNetworkJob.hpp"
+#include "ReadNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
@@ -20,10 +24,32 @@ void TaskScheduler::Schedule(std::unique_ptr<Job>&& job)
     job->Accept(*this, std::move(job));
 }
 
-void TaskScheduler::ScheduleNetworkJob(std::unique_ptr<NetworkJob>&& job)
+void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
-        job->ExecuteNetwork(stop, *this, _connection);
+        _freeSendPackets = job->ExecuteMain(stop, *this, std::move(_freeSendPackets));
+    });
+}
+
+void TaskScheduler::ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        job->ExecuteMainRead(stop, *this);
+    });
+}
+
+void TaskScheduler::ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        job->ExecuteWriteNetwork(stop, *this, _connection);
+    });
+}
+
+void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        auto freePackets = job->ExecuteReadNetwork(stop, *this, _connection);
+        _freeRecvPackets.splice(std::move(freePackets));
     });
 }
 

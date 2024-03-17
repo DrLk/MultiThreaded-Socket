@@ -25,6 +25,7 @@ public:
     MessageWriter& write(const void* data, std::size_t size);
     MessageWriter& flush();
     [[nodiscard]] IPacket::List GetPackets();
+    [[nodiscard]] IPacket::List GetWritedPackets();
 
 private:
     IPacket& GetPacket();

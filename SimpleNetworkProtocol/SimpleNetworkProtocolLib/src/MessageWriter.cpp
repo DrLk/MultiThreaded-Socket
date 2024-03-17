@@ -61,6 +61,11 @@ IPacket::List MessageWriter::GetPackets()
     return std::move(_packets);
 }
 
+IPacket::List MessageWriter::GetWritedPackets()
+{
+    return std::move(_packets);
+}
+
 IPacket& MessageWriter::GetPacket()
 {
     return **_packet;

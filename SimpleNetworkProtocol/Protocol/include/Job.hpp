@@ -17,7 +17,6 @@ public:
     Job& operator=(Job&&) = default;
     virtual ~Job() = default;
     virtual void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) = 0;
-    virtual TaskType Execute(ITaskScheduler& scheduler, Stream& stream) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

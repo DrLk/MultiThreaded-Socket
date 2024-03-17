@@ -8,37 +8,37 @@
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
+#include "FreeRecvPacketsJob.hpp"
 #include "IConnection.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
+#include "MainJob.hpp"
+#include "MainReadJob.hpp"
+#include "MessageReader.hpp"
 #include "MessageType.hpp"
-#include "NetworkJob.hpp"
+#include "MessageWriter.hpp"
+#include "ReadNetworkJob.hpp"
 #include "Stream.hpp"
 #include "TaskScheduler.hpp"
+#include "WriteNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
-class WriteNetowrkJob : public NetworkJob {
+class SendNetworkJob : public WriteNetworkJob {
     using Message = Protocol::IPacket::List;
 
 public:
-    static std::unique_ptr<WriteNetowrkJob> Create(Message&& message)
+    static std::unique_ptr<SendNetworkJob> Create(Message&& message)
     {
-        return std::make_unique<WriteNetowrkJob>(std::move(message));
+        return std::make_unique<SendNetworkJob>(std::move(message));
     }
 
-    WriteNetowrkJob(Message&& message)
+    SendNetworkJob(Message&& message)
         : _message(std::move(message))
     {
     }
 
-    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
-    {
-        //output << _message;
-        return TaskType::Main;
-    }
-
-    void ExecuteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override
+    void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override
     {
         connection.Close();
         connection.Send(std::move(_message));
@@ -48,70 +48,63 @@ private:
     Message _message;
 };
 
-template <FastTransport::FileSystem::OutputStream OutputStream, class Message>
-class MergeOut : public Job {
+class MergeOut : public MainJob {
 public:
-    static auto Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output)
+    static auto Create(FastTransport::FileSystem::FileTree& fileTree)
     {
-        return std::make_unique<MergeOut<OutputStream, Message>>(fileTree, output);
+        return std::make_unique<MergeOut>(fileTree);
     }
 
-    MergeOut(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::OutputByteStream<OutputStream>& output, Message&& messagae)
+    MergeOut(FastTransport::FileSystem::FileTree& fileTree)
         : _fileTree(fileTree)
-        , _output(output)
-        , _message(std::move(messagae))
     {
     }
 
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
+    Message ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Message&& message) override
     {
-    }
+        Protocol::MessageWriter writer(std::move(message));
+        writer << MessageType::ResponseTree;
+        FileSystem::OutputByteStream<Protocol::MessageWriter> output(writer);
+        _fileTree.get().Serialize(output);
 
-    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
-    {
-        _output.get() << MessageType::ResponseTree;
-        _fileTree.get().Serialize(_output.get());
-        scheduler.Schedule(WriteNetowrkJob::Create(std::move(_message)));
-        return TaskType::Main;
+        scheduler.Schedule(SendNetworkJob::Create(writer.GetWritedPackets()));
+        return message;
     }
 
 private:
     std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
-    std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _output;
+};
+
+class MergeIn : public MainReadJob {
+public:
+    static std::unique_ptr<MergeIn> Create(FastTransport::FileSystem::FileTree& fileTree, Message&& message)
+    {
+        return std::make_unique<MergeIn>(fileTree, std::move(message));
+    }
+
+    MergeIn(FastTransport::FileSystem::FileTree& fileTree, Message&& message)
+        : _fileTree(fileTree)
+        , _message(std::move(message))
+    {
+    }
+
+    void ExecuteMainRead(std::stop_token stop, ITaskScheduler& scheduler) override
+    {
+        Protocol::MessageReader reader(std::move(_message));
+        FileSystem::InputByteStream<Protocol::MessageReader> input(reader);
+
+        _fileTree.get().Deserialize(input);
+
+        scheduler.Schedule(FreeRecvPacketsJob::Create(std::move(_message)));
+    }
+
+private:
+    std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
     Message _message;
 };
 
-template <FastTransport::FileSystem::InputStream InputStream>
-class MergeIn : public Job {
-public:
-    static std::unique_ptr<MergeIn<InputStream>> Create(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::InputByteStream<InputStream>& input)
-    {
-        return std::make_unique<MergeIn<InputStream>>(fileTree, input);
-    }
-
-    MergeIn(FastTransport::FileSystem::FileTree& fileTree, FastTransport::FileSystem::InputByteStream<InputStream>& input)
-        : _fileTree(fileTree)
-        , _input(input)
-    {
-    }
-
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
-    {
-    }
-
-    TaskType Execute(ITaskScheduler& scheduler, Stream& input) override
-    {
-        _fileTree.get().Deserialize(_input.get());
-        return TaskType::Main;
-    }
-
-private:
-    std::reference_wrapper<FastTransport::FileSystem::FileTree> _fileTree;
-    std::reference_wrapper<FastTransport::FileSystem::InputByteStream<InputStream>> _input;
-};
-
 template <FastTransport::FileSystem::InputStream InputStream, FastTransport::FileSystem::OutputStream OutputStream>
-class MessageTypeReadJob : public Job {
+class MessageTypeReadJob : public ReadNetworkJob {
 public:
     MessageTypeReadJob(FastTransport::FileSystem::InputByteStream<InputStream>& input, FastTransport::FileSystem::OutputByteStream<OutputStream>& output, FastTransport::FileSystem::FileTree& fileTree)
         : _input(input)
@@ -120,20 +113,17 @@ public:
     {
     }
 
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override
-    {
-    }
-
-    TaskType Execute(ITaskScheduler& scheduler, Stream& output) override
+    Message ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection)
     {
         MessageType type;
         _input.get() >> type;
+        Message message;
         switch (type) {
         case MessageType::RequestTree:
-            // scheduler.Schedule(TaskType::Main, MergeOut<OutputStream>::Create(_fileTree, _output));
+            scheduler.Schedule(MergeOut::Create(_fileTree));
             break;
         case MessageType::ResponseTree:
-            scheduler.Schedule(TaskType::Main, MergeIn<OutputStream>::Create(_fileTree, _input));
+            scheduler.Schedule(MergeIn::Create(_fileTree, std::move(message)));
             break;
         case MessageType::RequestFile:
             break;
@@ -142,7 +132,7 @@ public:
         default:
             throw std::runtime_error("MessageTypeReadJob: unknown message type");
         }
-        return TaskType::Main;
+        return message;
     }
 
 private:
