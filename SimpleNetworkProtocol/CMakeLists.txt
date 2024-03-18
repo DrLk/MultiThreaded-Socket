@@ -62,6 +62,8 @@ if(ENABLE_TESTS)
       -static-libgcc
       -static-libstdc++)
 
+  target_compile_definitions(SimpleNetworkProtocolTest PRIVATE UNIT_TESTING=1)
+
 if(ENABLE_PRECOMPILE_HEADERS)
     target_precompile_headers(SimpleNetworkProtocolTest PRIVATE pch.hpp)
 endif()

@@ -36,3 +36,17 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#ifdef UNIT_TESTING
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+#endif
+
+#ifdef __linux__
+#include <netinet/in.h>
+#include <pthread.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
