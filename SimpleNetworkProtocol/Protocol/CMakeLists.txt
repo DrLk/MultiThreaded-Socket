@@ -34,3 +34,7 @@ if(WIN32)
 else()
   target_link_libraries(Protocol PRIVATE pthread)
 endif()
+
+if(ENABLE_PRECOMPILE_HEADERS)
+    target_precompile_headers(Protocol PRIVATE ../pch.hpp)
+endif()

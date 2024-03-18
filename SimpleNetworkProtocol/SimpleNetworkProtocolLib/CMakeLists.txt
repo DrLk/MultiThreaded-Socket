@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" OFF)
-option(ENABLE_TRACY "Enable Tracy" OFF)
-
 project(SimpleNetworkProtocolLib)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -19,7 +16,9 @@ endif()
 if (NOT TARGET LockedList)
     add_subdirectory(../LockedList LockdList)
 endif()
-add_subdirectory(../external/tracy Tracy)
+if (NOT TARGET Tracy)
+    add_subdirectory(../external/tracy Tracy)
+endif()
 
 set(COMMON_INCLUDES include)
 
@@ -43,5 +42,5 @@ target_include_directories(Memory
 )
 
 if(ENABLE_PRECOMPILE_HEADERS)
-  target_precompile_headers(SimpleNetworkProtocolLib PRIVATE include/pch.hpp)
+  target_precompile_headers(SimpleNetworkProtocolLib PRIVATE ../pch.hpp)
 endif()

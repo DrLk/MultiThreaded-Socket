@@ -14,6 +14,9 @@ endif()
 if (NOT TARGET Thread)
 	add_subdirectory(../Thread Thread)
 endif()
+if (NOT TARGET Tracy)
+    add_subdirectory(../external/tracy Tracy)
+endif()
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp include/*.hpp)
 
@@ -21,9 +24,13 @@ include_directories(${INCLUDE_DIRS})
 
 add_library(FileSystem STATIC ${SRC_FILES})
 
-target_link_libraries(FileSystem PRIVATE Logger Thread fuse3 pthread)
+target_link_libraries(FileSystem PRIVATE Logger Thread Tracy fuse3 pthread)
 
 target_include_directories(FileSystem
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 )
+
+if(ENABLE_PRECOMPILE_HEADERS)
+    target_precompile_headers(FileSystem PRIVATE ../pch.hpp)
+endif()

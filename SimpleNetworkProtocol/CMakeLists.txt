@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" OFF)
+option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
 
 project(SimpleNetworkProtocol)
@@ -28,6 +28,10 @@ add_executable(SimpleNetworkProtocol main.cpp)
 
 target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib FileSystem)
 target_link_options(SimpleNetworkProtocol PRIVATE -static-libgcc -static-libstdc++)
+
+if(ENABLE_PRECOMPILE_HEADERS)
+    target_precompile_headers(SimpleNetworkProtocol PRIVATE pch.hpp)
+endif()
 
 
 ##############
@@ -59,7 +63,7 @@ if(ENABLE_TESTS)
       -static-libstdc++)
 
 if(ENABLE_PRECOMPILE_HEADERS)
-    target_precompile_headers(SimpleNetworkProtocolTest PRIVATE SimpleNetworkProtocol/include/pch.hpp)
+    target_precompile_headers(SimpleNetworkProtocolTest PRIVATE pch.hpp)
 endif()
 
 # include(GoogleTest)
