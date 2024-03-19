@@ -5,11 +5,12 @@
 #include <utility>
 
 #include "FileTree.hpp"
+#include "ITaskScheduler.hpp"
+#include "Logger.hpp"
 #include "MainJob.hpp"
 #include "MessageType.hpp"
 #include "MessageWriter.hpp"
 #include "SendNetworkJob.hpp"
-#include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[MergeOout] " // NOLINT(cppcoreguidelines-macro-usage)
 

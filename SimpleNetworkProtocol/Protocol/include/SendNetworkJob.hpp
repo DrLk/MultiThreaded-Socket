@@ -1,10 +1,12 @@
 #pragma once
 
 #include "IPacket.hpp"
-#include "ITaskScheduler.hpp"
 #include "WriteNetworkJob.hpp"
 
+
 namespace FastTransport::TaskQueue {
+
+class ITaskScheduler;
 
 class SendNetworkJob : public WriteNetworkJob {
     using Message = Protocol::IPacket::List;

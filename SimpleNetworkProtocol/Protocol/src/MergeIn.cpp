@@ -1,11 +1,13 @@
 #include "MergeIn.hpp"
 
 #include <memory>
+#include <stop_token>
 #include <utility>
 
 #include "ByteStream.hpp"
 #include "FileTree.hpp"
 #include "FreeRecvPacketsJob.hpp"
+#include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[MergeIn] " // NOLINT(cppcoreguidelines-macro-usage)

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "ITaskScheduler.hpp"
 #include "Job.hpp"
 
 namespace FastTransport::TaskQueue {
+
+class ITaskScheduler;
 
 class DiskJob : public Job {
 public:

@@ -4,7 +4,6 @@
 #include <stop_token>
 
 #include "IPacket.hpp"
-#include "ITaskScheduler.hpp"
 #include "Job.hpp"
 
 namespace FastTransport::Protocol {
@@ -12,6 +11,8 @@ class IConnection;
 }
 
 namespace FastTransport::TaskQueue {
+
+class ITaskScheduler;
 
 class WriteNetworkJob : public Job {
 public:

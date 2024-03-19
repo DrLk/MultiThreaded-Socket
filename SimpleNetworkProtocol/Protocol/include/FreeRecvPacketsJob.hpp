@@ -2,10 +2,11 @@
 
 #include <memory>
 
-#include "ITaskScheduler.hpp"
 #include "ReadNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
+
+class ITaskScheduler;
 
 class FreeRecvPacketsJob : public ReadNetworkJob {
 public:

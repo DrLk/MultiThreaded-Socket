@@ -1,11 +1,13 @@
 #include "MessageTypeReadJob.hpp"
 
 #include <cstring>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
 #include "FreeRecvPacketsJob.hpp"
 #include "IConnection.hpp"
+#include "ITaskScheduler.hpp"
 #include "MergeIn.hpp"
 #include "MergeOut.hpp"
 #include "MessageReader.hpp"
