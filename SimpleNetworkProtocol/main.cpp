@@ -14,6 +14,7 @@
 #include "IStatistics.hpp"
 #include "MergeIn.hpp"
 #include "MergeOut.hpp"
+#include "MergeRequest.hpp"
 #include "MessageReader.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "MessageWriter.hpp"
@@ -109,6 +110,8 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 void TestConnection2()
 {
+    using namespace FastTransport::TaskQueue;
+
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
 
@@ -122,10 +125,12 @@ void TestConnection2()
         dstConnection->AddFreeRecvPackets(std::move(recvPackets));
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FastTransport::TaskQueue::TaskScheduler destinationTaskScheduler(*dstConnection);
+        TaskScheduler destinationTaskScheduler(*dstConnection);
 
         FileTree fileTree;
-        destinationTaskScheduler.Schedule(FastTransport::TaskQueue::MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+
+        destinationTaskScheduler.Schedule(MergeRequest::Create());
 
         destinationTaskScheduler.Wait(stop);
 
@@ -195,10 +200,10 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FastTransport::TaskQueue::TaskScheduler sourceTaskScheduler(*srcConnection);
+        TaskScheduler sourceTaskScheduler(*srcConnection);
 
         FileTree fileTree = FileTree::GetTestFileTree();
-        sourceTaskScheduler.Schedule(FastTransport::TaskQueue::MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
         sourceTaskScheduler.Wait(stop);
 

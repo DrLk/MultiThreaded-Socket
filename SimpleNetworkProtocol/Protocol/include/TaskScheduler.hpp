@@ -33,6 +33,8 @@ public:
 private:
     TaskQueue _diskQueue;
     TaskQueue _mainQueue;
+    TaskQueue _readNetworkQueue;
+    TaskQueue _writeNetworkQueue;
     std::reference_wrapper<IConnection> _connection;
     Message _freeSendPackets;
 };

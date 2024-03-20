@@ -37,6 +37,8 @@ void TaskScheduler::Wait(std::stop_token stop)
 void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        auto freePackets = _connection.get().Send2(stop, IPacket::List());
+        _freeSendPackets.splice(std::move(freePackets));
         _freeSendPackets = job->ExecuteMain(stop, *this, std::move(_freeSendPackets));
     });
 }
@@ -50,14 +52,14 @@ void TaskScheduler::ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job)
 
 void TaskScheduler::ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    _writeNetworkQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         job->ExecuteWriteNetwork(stop, *this, _connection);
     });
 }
 
 void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    _readNetworkQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         job->ExecuteReadNetwork(stop, *this, _connection);
     });
 }

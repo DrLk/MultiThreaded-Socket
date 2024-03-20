@@ -9,7 +9,7 @@
 #include "MessageWriter.hpp"
 #include "SendNetworkJob.hpp"
 
-#define TRACER() LOGGER() << "[MergeOout] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[MergeRequest] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 

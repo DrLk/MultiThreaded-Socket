@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <stop_token>
+
 #include "MainJob.hpp"
 
 namespace FastTransport::TaskQueue {

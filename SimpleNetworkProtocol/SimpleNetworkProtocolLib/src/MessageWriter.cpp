@@ -64,7 +64,17 @@ IPacket::List MessageWriter::GetPackets()
 
 IPacket::List MessageWriter::GetWritedPackets()
 {
-    return std::move(_packets);
+    IPacket::List writedPackets;
+    if (_offset == 0) {
+        return writedPackets;
+    }
+
+    if (_offset == sizeof(int) && _packet == _packets.begin()) {
+        return writedPackets;
+    }
+
+    writedPackets.splice(std::move(_packets), _packets.begin(), _packet);
+    return writedPackets;
 }
 
 IPacket& MessageWriter::GetPacket()
