@@ -16,7 +16,6 @@ MessageWriter::MessageWriter(IPacket::List&& packets)
     : _packets(std::move(packets))
     , _packet(_packets.begin())
 {
-    operator<<(static_cast<int>(_packets.size()));
 }
 
 MessageWriter::MessageWriter(MessageWriter&&) noexcept = default;
@@ -65,7 +64,7 @@ IPacket::List MessageWriter::GetPackets()
 IPacket::List MessageWriter::GetWritedPackets()
 {
     IPacket::List writedPackets;
-    if (_offset == 0) {
+    if (_offset == 0 && _packet != _packets.begin()) {
         return writedPackets;
     }
 
@@ -73,6 +72,9 @@ IPacket::List MessageWriter::GetWritedPackets()
         return writedPackets;
     }
 
+    assert(_packet != _packets.end());
+    std::memcpy(_packets.front()->GetPayload().data(), &_writedPacketNumber, sizeof(_writedPacketNumber));
+    _packet++;
     writedPackets.splice(std::move(_packets), _packets.begin(), _packet);
     return writedPackets;
 }
@@ -84,6 +86,7 @@ IPacket& MessageWriter::GetPacket()
 
 void MessageWriter::GetNextPacket()
 {
+    _writedPacketNumber++;
     _packet++;
     assert(_packet != _packets.end());
 

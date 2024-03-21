@@ -17,7 +17,7 @@ public:
     MessageReader& operator>>(T& trivial)
     {
         auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
-        std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
+        std::memcpy(&trivial, GetPacket().GetPayload().data() + _offset, readSize);
         _offset += readSize;
 
         std::ptrdiff_t size = sizeof(trivial) - readSize;

@@ -363,6 +363,11 @@ void MultiList<T>::splice(MultiList<T>&& that, Iterator begin, Iterator end) // 
     }
 
     if (begin._it1 == end._it1) {
+
+        if (begin._it1 == that.end()._it1) {
+            return;
+        }
+
         std::list<T> items;
         items.splice(items.end(), *begin._it1, begin._it1->begin(), end._it2);
         _lists.push_back(std::move(items));

@@ -22,7 +22,6 @@ void SendNetworkJob::ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& s
 {
     TRACER() << "Execute";
 
-    connection.Close();
     connection.Send(std::move(_message));
 }
 } // namespace FastTransport::TaskQueue

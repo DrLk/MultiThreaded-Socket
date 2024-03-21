@@ -33,7 +33,7 @@ TEST(MessageWriter, Payload)
     writer << value;
     writer << value;
 
-    auto packets = writer.GetPackets();
+    auto packets = writer.GetWritedPackets();
     EXPECT_EQ(packets.size(), 1);
 
     auto& packet = packets.front();
@@ -67,14 +67,11 @@ TEST(MessageWriter, Empty)
 
     MessageWriter writer(std::move(freePackets));
 
+    auto writedPackets = writer.GetWritedPackets();
+    EXPECT_TRUE(writedPackets.empty());
+
     auto packets = writer.GetPackets();
     EXPECT_EQ(packets.size(), packetsSize);
-
-    auto& packet = packets.front();
-    const auto& payload = packet->GetPayload();
-    int size = 0;
-    std::memcpy(&size, payload.data(), sizeof(size));
-    EXPECT_EQ(size, packetsSize);
 }
 
 TEST(MessageWriter, WriteIPacketList)
