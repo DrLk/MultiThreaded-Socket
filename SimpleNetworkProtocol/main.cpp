@@ -10,6 +10,7 @@
 #include "ConnectionReader.hpp"
 #include "ConnectionWriter.hpp"
 #include "FastTransportProtocol.hpp"
+#include "FileSystem.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
 #include "MergeIn.hpp"
@@ -167,9 +168,6 @@ void TestConnection2()
         LOGGER() << "Write b: " << b;
         output.Flush();
 
-        /* Protocol protocol(output, input); */
-        /* protocol.Run(); */
-
         while (!stop.stop_requested()) {
             static size_t countPerSecond;
             recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
@@ -230,11 +228,8 @@ void TestConnection2()
         LOGGER() << "Read b: " << b;
         std::this_thread::sleep_for(500s);
 
-        /* Protocol protocol(output, input); */
-        /* protocol.Run(); */
-        /*  */
-        /* FastTransport::FileSystem::FileSystem filesystem; */
-        /* filesystem.Start(); */
+        FastTransport::FileSystem::FileSystem filesystem("/mnt/test");
+        filesystem.Start();
 
         while (!stop.stop_requested()) {
             sendPackets = srcConnection->Send2(stop, std::move(sendPackets));

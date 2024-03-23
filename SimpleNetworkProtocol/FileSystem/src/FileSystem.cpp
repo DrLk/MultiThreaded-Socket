@@ -13,6 +13,7 @@
 #include <fuse3/fuse_opt.h>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unordered_map>
@@ -22,11 +23,54 @@
 #include "FileTree.hpp"
 
 namespace FastTransport::FileSystem {
+
+namespace {
+    fuse_ino_t GetINode(const Leaf& leaf)
+    {
+        return (fuse_ino_t)(&leaf);
+    }
+
+    Leaf& GetLeaf(fuse_ino_t ino)
+    {
+        return *((Leaf*)ino);
+    }
+}
+
+FileSystem::FileSystem(std::string_view mountpoint)
+    : _fuseLookup(std::bind(&FileSystem::FuseLookup, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseForget(std::bind(&FileSystem::FuseForget, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseGetAttr(std::bind(&FileSystem::FuseGetattr, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseReadDir(std::bind(&FileSystem::FuseReaddir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5))
+    , _fuseOpen(std::bind(&FileSystem::FuseOpen, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseRead(std::bind(&FileSystem::FuseRead, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5))
+    , _fuseOpenDir(std::bind(&FileSystem::FuseOpendir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseRelease(std::bind(&FileSystem::FuseRelease, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseReleaseDir(std::bind(&FileSystem::FuseReleasedir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+    , _fuseOperations {
+        .lookup = _fuseLookup.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::lookup)>>(),
+        .forget = _fuseForget.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget)>>(),
+        .getattr = _fuseGetAttr.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::getattr)>>(),
+        .open = _fuseOpen.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::open)>>(),
+        .read = _fuseRead.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::read)>>(),
+        .release = _fuseRelease.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::release)>>(),
+        .opendir = _fuseReleaseDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::releasedir)>>(),
+        .readdir = _fuseReadDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::readdir)>>(),
+        .releasedir = _fuseReleaseDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::releasedir)>>(),
+        .forget_multi = _fuseForgetMulti.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget_multi)>>(),
+        /*.setxattr = FuseSetxattr,
+        .getxattr = FuseGetxattr,
+        .removexattr = FuseRemovexattr,*/
+    }
+    , _tree(FileTree::GetTestFileTree())
+    , _mountpoint(mountpoint)
+
+{
+}
+
 void FileSystem::Start()
 {
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
-    const std::string mountpoint = "/mnt/test";
-    fuse_opt_add_arg(&args, mountpoint.c_str());
+    fuse_opt_add_arg(&args, _mountpoint.c_str());
 
     fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), nullptr);
 
@@ -38,7 +82,7 @@ void FileSystem::Start()
         throw std::runtime_error("Failed to fuse_set_signal_handlers");
     }
 
-    if (fuse_session_mount(se, mountpoint.c_str()) != 0) {
+    if (fuse_session_mount(se, _mountpoint.c_str()) != 0) {
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
@@ -49,16 +93,6 @@ void FileSystem::Start()
 }
 
 std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> FileSystem::_openedFiles;
-
-fuse_ino_t FileSystem::GetINode(const Leaf& leaf)
-{
-    return (fuse_ino_t)(&leaf);
-}
-
-Leaf& FileSystem::GetLeaf(fuse_ino_t ino)
-{
-    return *((Leaf*)ino);
-}
 void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, File& file)
 {
     stbuf->st_ino = ino;
@@ -295,7 +329,5 @@ void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_fi
     auto& file = GetLeaf(inode);
     file.ReleaseRef();
 }
-
-FileTree FileSystem::_tree = FileTree::GetTestFileTree();
 
 } // namespace FastTransport::FileSystem
