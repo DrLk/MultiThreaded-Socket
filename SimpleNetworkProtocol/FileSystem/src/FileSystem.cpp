@@ -11,6 +11,7 @@
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -21,6 +22,10 @@
 
 #include "File.hpp"
 #include "FileTree.hpp"
+#include "Leaf.hpp"
+#include "Logger.hpp"
+
+#define TRACER() LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -37,26 +42,17 @@ namespace {
 }
 
 FileSystem::FileSystem(std::string_view mountpoint)
-    : _fuseLookup(std::bind(&FileSystem::FuseLookup, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseForget(std::bind(&FileSystem::FuseForget, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseGetAttr(std::bind(&FileSystem::FuseGetattr, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseReadDir(std::bind(&FileSystem::FuseReaddir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5))
-    , _fuseOpen(std::bind(&FileSystem::FuseOpen, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseRead(std::bind(&FileSystem::FuseRead, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5))
-    , _fuseOpenDir(std::bind(&FileSystem::FuseOpendir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseRelease(std::bind(&FileSystem::FuseRelease, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseReleaseDir(std::bind(&FileSystem::FuseReleasedir, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
-    , _fuseOperations {
-        .lookup = _fuseLookup.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::lookup)>>(),
-        .forget = _fuseForget.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget)>>(),
-        .getattr = _fuseGetAttr.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::getattr)>>(),
-        .open = _fuseOpen.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::open)>>(),
-        .read = _fuseRead.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::read)>>(),
-        .release = _fuseRelease.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::release)>>(),
-        .opendir = _fuseReleaseDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::releasedir)>>(),
-        .readdir = _fuseReadDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::readdir)>>(),
-        .releasedir = _fuseReleaseDir.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::releasedir)>>(),
-        .forget_multi = _fuseForgetMulti.target<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget_multi)>>(),
+    : _fuseOperations {
+        .lookup = FuseLookup,
+        .forget = FuseForget,
+        .getattr = FuseGetattr,
+        .open = FuseOpen,
+        .read = FuseRead,
+        .release = FuseRelease,
+        .opendir = FuseOpendir,
+        .readdir = FuseReaddir,
+        .releasedir = FuseReleasedir,
+        .forget_multi = FuseForgetmulti,
         /*.setxattr = FuseSetxattr,
         .getxattr = FuseGetxattr,
         .removexattr = FuseRemovexattr,*/
@@ -72,7 +68,7 @@ void FileSystem::Start()
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
     fuse_opt_add_arg(&args, _mountpoint.c_str());
 
-    fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), nullptr);
+    fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), &_tree);
 
     if (se == nullptr) {
         throw std::runtime_error("Failed to fuse_session_new");
@@ -93,7 +89,7 @@ void FileSystem::Start()
 }
 
 std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> FileSystem::_openedFiles;
-void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, File& file)
+void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
 {
     stbuf->st_ino = ino;
     switch (file.type) {
@@ -122,7 +118,11 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
 
     fuse_entry_param entry {};
 
-    auto& parent = parentId == FUSE_ROOT_ID ? _tree.GetRoot() : GetLeaf(parentId);
+    FileTree* tree = nullptr;
+    if (parentId == FUSE_ROOT_ID) {
+        tree = static_cast<FileTree*>(fuse_req_userdata(req));
+    }
+    const auto& parent = FUSE_ROOT_ID == parentId ? tree->GetRoot() : GetLeaf(parentId);
     memset(&entry, 0, sizeof(entry));
     auto file = parent.Find(name);
     if (!file) {
@@ -133,7 +133,7 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
         entry.ino = GetINode(*file);
         entry.attr_timeout = 1.0;
         entry.entry_timeout = 1.0;
-        Stat(entry.ino, &entry.attr, (*file).get().file);
+        Stat(entry.ino, &entry.attr, (*file).get().GetFile());
 
         fuse_reply_entry(req, &entry);
     }
@@ -162,20 +162,16 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
     (void)fileInfo;
 
     if (inode == FUSE_ROOT_ID) {
+        FileTree* tree = static_cast<FileTree*>(fuse_req_userdata(req));
         memset(&stbuf, 0, sizeof(stbuf));
-        File file {
-            .name = "test",
-            .size = 0,
-            .type = std::filesystem::file_type::directory,
-        };
-        Stat(inode, &stbuf, file);
+        Stat(inode, &stbuf, tree->GetRoot().GetFile());
         fuse_reply_attr(req, &stbuf, 1.0);
         return;
     }
 
     auto& file = GetLeaf(inode);
     memset(&stbuf, 0, sizeof(stbuf));
-    Stat(inode, &stbuf, file.file);
+    Stat(inode, &stbuf, file.GetFile());
     fuse_reply_attr(req, &stbuf, 1.0);
 }
 
@@ -215,7 +211,12 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
              << " off: " << off;
 
     (void)fileInfo;
-    auto& directory = inode == FUSE_ROOT_ID ? _tree.GetRoot() : GetLeaf(inode);
+    FileTree* tree = nullptr;
+    if (inode == FUSE_ROOT_ID) {
+        tree = static_cast<FileTree*>(fuse_req_userdata(req));
+    }
+
+    auto& directory = inode == FUSE_ROOT_ID ? tree->GetRoot() : GetLeaf(inode);
     fuse_ino_t currentINode = FUSE_ROOT_ID;
     if (inode != FUSE_ROOT_ID) {
         currentINode = GetINode(directory);
@@ -229,7 +230,7 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         BufferAddFile(req, &buffer, "..", 1);
         for (auto& [name, file] : directory.children) {
             auto inode = GetINode(file);
-            BufferAddFile(req, &buffer, file.file.name.c_str(), inode);
+            BufferAddFile(req, &buffer, file.GetFile().GetName().c_str(), inode);
             _openedFiles.insert({ inode, file });
         }
 
@@ -244,17 +245,38 @@ void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* file
              << " request: " << req
              << " inode: " << inode;
 
+
+    const auto& leaf = GetLeaf(inode);
+    leaf.AddRef();
+
+    std::filesystem::path root = "/tmp";
+    std::filesystem::path path = root / leaf.GetFullPath();
+
     if ((fileInfo->flags & O_ACCMODE) != O_RDONLY) {
         fuse_reply_err(req, EACCES);
     }
 
-    auto file = _openedFiles.find(inode);
-    if (file == _openedFiles.end()) {
-        _openedFiles.insert({ inode, GetLeaf(inode) });
-        fuse_reply_open(req, fileInfo);
-    } else {
-        fuse_reply_open(req, fileInfo);
+
+	int fd = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
+	if (fd == -1)
+    {
+		fuse_reply_err(req, errno);
+        return;
     }
+
+	fileInfo->fh = fd;
+    /* fi->direct_io = 1; */
+    /* fi->keep_cache = 1; */
+
+	if (fileInfo->flags & O_DIRECT)
+		fileInfo->direct_io = 1;
+
+	fuse_reply_open(req, fileInfo);
+}
+
+static fuse_buf_flags operator|(fuse_buf_flags a, fuse_buf_flags b)
+{
+    return static_cast<fuse_buf_flags>(static_cast<int>(a) | static_cast<int>(b));
 }
 
 void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo)
@@ -267,14 +289,25 @@ void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t o
 
     (void)fileInfo;
 
+
+    struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
+
+    buf.buf[0].flags = fuse_buf_flags::FUSE_BUF_IS_FD | fuse_buf_flags::FUSE_BUF_FD_SEEK;
+	buf.buf[0].fd = fileInfo->fh;
+	buf.buf[0].pos = off;
+
+	fuse_reply_data(req, &buf, FUSE_BUF_SPLICE_MOVE);
+
+    /*
     auto file = _openedFiles.find(inode);
     if (file == _openedFiles.end()) {
         fuse_reply_err(req, ENOENT);
     } else {
         std::vector<char> bytes;
-        bytes.resize(file->second.get().file.size);
-        ReplyBufferLimited(req, bytes.data(), bytes.size(), off, size);
-    }
+        auto writedSize = GetLeaf(inode).Read(off, std::as_writable_bytes(std::span(bytes)));
+        bytes.resize(file->second.get().GetFile().size);
+        ReplyBufferLimited(req, bytes.data(), bytes.size(), off, writedSize);
+    }*/
 }
 
 void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -306,11 +339,17 @@ void FileSystem::FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data*
     fuse_reply_none(req);
 }
 
-void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* /*fileInfo*/)
+void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
 {
     TRACER() << "[release]"
              << " request: " << req
              << " inode: " << inode;
+
+    int error = close(fileInfo->fh);
+    if (error != 0) {
+        fuse_reply_err(req, errno);
+        return;
+    }
 
     auto& file = GetLeaf(inode);
     file.ReleaseRef();

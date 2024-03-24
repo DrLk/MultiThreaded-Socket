@@ -8,6 +8,7 @@
 #include "FileTree.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "ITaskScheduler.hpp"
+#include "LeafSerializer.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[MergeIn] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -33,7 +34,7 @@ void MergeIn::ExecuteMainRead(std::stop_token stop, ITaskScheduler& scheduler)
     Protocol::MessageReader reader(std::move(_reader));
     FileSystem::InputByteStream<Protocol::MessageReader> input(reader);
 
-    _fileTree.get().Deserialize(input);
+    FileSystem::LeafSerializer::Deserialize(_fileTree.get().GetRoot(), input, nullptr);
 
     scheduler.Schedule(FreeRecvPacketsJob::Create(_reader.GetPackets()));
 }

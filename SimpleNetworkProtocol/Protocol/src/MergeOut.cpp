@@ -6,6 +6,7 @@
 
 #include "FileTree.hpp"
 #include "ITaskScheduler.hpp"
+#include "LeafSerializer.hpp"
 #include "Logger.hpp"
 #include "MainJob.hpp"
 #include "MessageType.hpp"
@@ -34,7 +35,7 @@ MergeOut::Message MergeOut::ExecuteMain(std::stop_token stop, ITaskScheduler& sc
     Protocol::MessageWriter writer(std::move(message));
     writer << MessageType::ResponseTree;
     FileSystem::OutputByteStream<Protocol::MessageWriter> output(writer);
-    _fileTree.get().Serialize(output);
+    FileSystem::LeafSerializer::Serialize(_fileTree.get().GetRoot(), output);
 
     scheduler.Schedule(SendNetworkJob::Create(writer.GetWritedPackets()));
     return writer.GetPackets();

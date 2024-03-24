@@ -2,9 +2,6 @@
 
 #include "FileTree.hpp"
 #include "ReadNetworkJob.hpp"
-#include "Logger.hpp"
-
-#define TRACER() LOGGER() << "[MessageTypeReadJob] "
 
 namespace FastTransport::TaskQueue {
 

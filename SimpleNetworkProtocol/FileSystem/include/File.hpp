@@ -7,10 +7,20 @@
 
 namespace FastTransport::FileSystem {
 
-struct File {
+class File {
+public:
+    File();
+    File(const std::filesystem::path& name, std::uintmax_t size, std::filesystem::file_type type);
+    virtual ~File();
+
     std::filesystem::path name;
     std::uintmax_t size;
     std::filesystem::file_type type;
+
+    const std::filesystem::path& GetName() const
+    {
+        return name;
+    }
 
     template <OutputStream Stream>
     void Serialize(OutputByteStream<Stream>& stream) const
@@ -27,6 +37,8 @@ struct File {
         stream >> size;
         stream >> type;
     }
+
+    virtual void Read() {};
 };
 
 } // namespace FastTransport::FileSystem

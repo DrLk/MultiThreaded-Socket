@@ -8,10 +8,13 @@
 #include "FreeRecvPacketsJob.hpp"
 #include "IConnection.hpp"
 #include "ITaskScheduler.hpp"
+#include "Logger.hpp"
 #include "MergeIn.hpp"
 #include "MergeOut.hpp"
 #include "MessageReader.hpp"
 #include "MessageType.hpp"
+
+#define TRACER() LOGGER() << "[MessageTypeReadJob] "
 
 namespace FastTransport::TaskQueue {
 std::unique_ptr<MessageTypeReadJob> MessageTypeReadJob::Create(FileTree& fileTree, Message&& messages)

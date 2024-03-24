@@ -102,7 +102,7 @@ public:
         return result;
     }*/
 
-    void Run()
+    /*void Run()
     {
         FastTransport::FileSystem::FileTree tree = FastTransport::FileSystem::FileTree::GetTestFileTree();
 
@@ -154,7 +154,7 @@ public:
                 throw std::runtime_error("Unknown message type");
             }
         }
-    }
+    }*/
 
 private:
     std::reference_wrapper<FastTransport::FileSystem::OutputByteStream<OutputStream>> _outStream;

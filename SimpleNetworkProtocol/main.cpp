@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -23,6 +24,8 @@
 #include "TaskScheduler.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
+
+#include "NativeFile.hpp"
 
 #include "Logger.hpp"
 
@@ -128,7 +131,12 @@ void TestConnection2()
 
         TaskScheduler destinationTaskScheduler(*dstConnection);
 
-        FileTree fileTree;
+        FileTree fileTree(
+            std::make_unique<FastTransport::FileSystem::NativeFile>(
+                "test",
+                0,
+                std::filesystem::file_type::directory));
+
         destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
         destinationTaskScheduler.Schedule(MergeRequest::Create());
@@ -228,9 +236,6 @@ void TestConnection2()
         LOGGER() << "Read b: " << b;
         std::this_thread::sleep_for(500s);
 
-        FastTransport::FileSystem::FileSystem filesystem("/mnt/test");
-        filesystem.Start();
-
         while (!stop.stop_requested()) {
             sendPackets = srcConnection->Send2(stop, std::move(sendPackets));
             auto duration = std::chrono::steady_clock::now() - start;
@@ -245,9 +250,18 @@ void TestConnection2()
     sendThread.join();
 }
 
+void TestConnection3()
+{
+    using namespace FastTransport::FileSystem;
+
+    FileSystem filesystem("/mnt/test");
+    filesystem.Start();
+    NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
+}
+
 int main(int argc, char** argv)
 {
-    TestConnection2();
+    TestConnection3();
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);

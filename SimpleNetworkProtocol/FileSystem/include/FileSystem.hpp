@@ -17,10 +17,10 @@
 #include "FileTree.hpp"
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
-
 namespace FastTransport::FileSystem {
 class FileSystem final {
+    using FilePtr = std::unique_ptr<File>;
+
 public:
     FileSystem(std::string_view mountpoint);
     void Start();
@@ -35,29 +35,18 @@ private:
 
     static void BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name, fuse_ino_t ino);
     static int ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize, off_t off, size_t maxSize);
-    static void Stat(fuse_ino_t ino, struct stat* stbuf, File& file);
+    static void Stat(fuse_ino_t ino, struct stat* stbuf, const File& file);
 
-    void FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name);
-    void FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup);
-    void FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
-    void FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
-    void FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
-    void FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
-    void FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
-    void FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets);
-    void FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
-    void FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
-
-    std::function<void(fuse_req_t req, fuse_ino_t parentId, const char* name)> _fuseLookup;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget)>> _fuseForget;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::getattr)>> _fuseGetAttr;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::readdir)>> _fuseReadDir;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::open)>> _fuseOpen;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::read)>> _fuseRead;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::opendir)>> _fuseOpenDir;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::forget_multi)>> _fuseForgetMulti;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::release)>> _fuseRelease;
-    std::function<std::remove_pointer_t<decltype(fuse_lowlevel_ops::releasedir)>> _fuseReleaseDir;
+    static void FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name);
+    static void FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup);
+    static void FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
+    static void FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
+    static void FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
+    static void FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
+    static void FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
+    static void FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets);
+    static void FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
+    static void FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
 
     fuse_lowlevel_ops _fuseOperations;
     FileTree _tree;
