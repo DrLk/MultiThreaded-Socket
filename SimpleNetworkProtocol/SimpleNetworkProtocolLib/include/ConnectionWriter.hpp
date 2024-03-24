@@ -16,6 +16,10 @@ namespace FastTransport::Protocol {
 class ConnectionWriter final {
 public:
     ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection);
+    ConnectionWriter(const ConnectionWriter&) = delete;
+    ConnectionWriter(ConnectionWriter&&) = delete;
+    ConnectionWriter& operator=(const ConnectionWriter&) = delete;
+    ConnectionWriter& operator=(ConnectionWriter&&) = delete;
     ~ConnectionWriter();
 
     template <trivial T>
@@ -53,11 +57,11 @@ public:
     }
 
     template <trivial T>
-    PacketReader& operator>>(T& trivial)
+    PacketReader& operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
     {
         auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
         std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
-        _offset += readSize;
+        _offset += readSize; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 
         std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {

@@ -118,7 +118,7 @@ TEST(ConnectionWriter, EmptyFlush)
                         auto packet = std::make_unique<Packet>(1500);
                         std::array<std::byte, 1000> payload {};
                         packet->SetPayload(payload);
-                        packets.push_back(std::move(packet));
+                        freePackets.push_back(std::move(packet));
                     }
                     return freePackets;
                 });

@@ -30,7 +30,7 @@ public:
         FilePtr file(new NativeFile());
         file->Deserialize(stream);
         leaf.SetFile(std::move(file));
-        const int size = 0;
+        int size = 0;
         stream >> size;
         for (int i = 0; i < size; i++) {
             Leaf childLeaf;

@@ -46,7 +46,7 @@ private:
     using Mutex = FastTransport::Thread::SpinLock;
 
     mutable Mutex _mutex;
-    std::condition_variable_any _condition {};
+    std::condition_variable_any _condition;
 };
 
 template <class T>
