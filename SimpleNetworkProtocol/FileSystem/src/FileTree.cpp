@@ -61,7 +61,7 @@ FileTree FileTree::GetTestFileTree()
     folder1.AddFile(
         FilePtr(new NativeFile {
             "file1",
-            1 * 1024 * 1024,
+            10L * 1024L * 1024L * 1024L,
             std::filesystem::file_type::regular }));
 
     auto& folder2 = root.AddFile(

@@ -11,7 +11,7 @@ public:
     {
     }
 
-    NativeFile(const std::filesystem::path& name, std::uintmax_t size, std::filesystem::file_type type)
+    NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
         : File(name, size, type)
     {
     }

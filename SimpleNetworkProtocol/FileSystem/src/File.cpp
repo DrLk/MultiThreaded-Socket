@@ -10,7 +10,7 @@ File::File()
 {
 }
 
-File::File(const std::filesystem::path& name, std::uintmax_t size, std::filesystem::file_type type)
+File::File(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
     : name(name)
     , size(size)
     , type(type)

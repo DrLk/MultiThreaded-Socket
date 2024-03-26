@@ -11,21 +11,19 @@
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
-#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unordered_map>
-#include <vector>
 
 #include "File.hpp"
 #include "FileTree.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() if ( 1 > 0) LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -35,14 +33,20 @@ namespace {
         return (fuse_ino_t)(&leaf);
     }
 
-    Leaf& GetLeaf(fuse_ino_t ino)
+    Leaf& GetLeaf(fuse_ino_t inode, fuse_req_t req)
     {
-        return *((Leaf*)ino);
+        FileTree* tree = nullptr;
+        if (inode == FUSE_ROOT_ID) {
+            tree = static_cast<FileTree*>(fuse_req_userdata(req));
+        }
+
+        return inode == FUSE_ROOT_ID ? tree->GetRoot() : *((Leaf*)inode);
     }
 }
 
 FileSystem::FileSystem(std::string_view mountpoint)
     : _fuseOperations {
+        .init = FuseInit,
         .lookup = FuseLookup,
         .forget = FuseForget,
         .getattr = FuseGetattr,
@@ -52,7 +56,9 @@ FileSystem::FileSystem(std::string_view mountpoint)
         .opendir = FuseOpendir,
         .readdir = FuseReaddir,
         .releasedir = FuseReleasedir,
+        .write_buf = FuseWriteBuf,
         .forget_multi = FuseForgetmulti,
+        .copy_file_range = FuseCopyFileRange,
         /*.setxattr = FuseSetxattr,
         .getxattr = FuseGetxattr,
         .removexattr = FuseRemovexattr,*/
@@ -67,6 +73,7 @@ void FileSystem::Start()
 {
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
     fuse_opt_add_arg(&args, _mountpoint.c_str());
+    fuse_opt_add_arg(&args, "-oauto_unmount");
 
     fuse_session* se = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), &_tree);
 
@@ -116,13 +123,9 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
              << " parent: " << parentId
              << " name: " << name;
 
-    fuse_entry_param entry {};
 
-    FileTree* tree = nullptr;
-    if (parentId == FUSE_ROOT_ID) {
-        tree = static_cast<FileTree*>(fuse_req_userdata(req));
-    }
-    const auto& parent = FUSE_ROOT_ID == parentId ? tree->GetRoot() : GetLeaf(parentId);
+    const auto& parent = GetLeaf(parentId, req);
+    fuse_entry_param entry {};
     memset(&entry, 0, sizeof(entry));
     auto file = parent.Find(name);
     if (!file) {
@@ -146,7 +149,7 @@ void FileSystem::FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup)
              << " inode: " << inode
              << " nlookup: " << nlookup;
 
-    auto& file = GetLeaf(inode);
+    auto& file = GetLeaf(inode, req);
     file.ReleaseRef(nlookup);
     fuse_reply_none(req);
 }
@@ -161,15 +164,7 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
 
     (void)fileInfo;
 
-    if (inode == FUSE_ROOT_ID) {
-        FileTree* tree = static_cast<FileTree*>(fuse_req_userdata(req));
-        memset(&stbuf, 0, sizeof(stbuf));
-        Stat(inode, &stbuf, tree->GetRoot().GetFile());
-        fuse_reply_attr(req, &stbuf, 1.0);
-        return;
-    }
-
-    auto& file = GetLeaf(inode);
+    auto& file = GetLeaf(inode, req);
     memset(&stbuf, 0, sizeof(stbuf));
     Stat(inode, &stbuf, file.GetFile());
     fuse_reply_attr(req, &stbuf, 1.0);
@@ -179,6 +174,29 @@ struct dirbuf {
     char* p;
     size_t size;
 } __attribute__((aligned(16)));
+
+void FileSystem::FuseInit(void* userdata, struct fuse_conn_info* conn)
+{
+    TRACER() << "[init]"
+             << " userdata: " << userdata
+             << " conn: " << conn;
+
+    if (conn->capable & FUSE_CAP_SPLICE_READ) {
+        conn->want |= FUSE_CAP_SPLICE_READ;
+    }
+
+    if (conn->capable & FUSE_CAP_SPLICE_WRITE) {
+        conn->want |= FUSE_CAP_SPLICE_WRITE;
+    }
+
+    if (conn->capable & FUSE_CAP_SPLICE_MOVE) {
+        conn->want |= FUSE_CAP_SPLICE_MOVE;
+    }
+
+    if (conn->capable & FUSE_CAP_SPLICE_MOVE) {
+        conn->want |= FUSE_CAP_SPLICE_MOVE;
+    }
+}
 
 void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name,
     fuse_ino_t ino)
@@ -216,7 +234,7 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         tree = static_cast<FileTree*>(fuse_req_userdata(req));
     }
 
-    auto& directory = inode == FUSE_ROOT_ID ? tree->GetRoot() : GetLeaf(inode);
+    auto& directory = GetLeaf(inode, req);
     fuse_ino_t currentINode = FUSE_ROOT_ID;
     if (inode != FUSE_ROOT_ID) {
         currentINode = GetINode(directory);
@@ -246,25 +264,23 @@ void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* file
              << " inode: " << inode;
 
 
-    const auto& leaf = GetLeaf(inode);
+    const auto& leaf = GetLeaf(inode, req);
     leaf.AddRef();
 
     std::filesystem::path root = "/tmp";
     std::filesystem::path path = root / leaf.GetFullPath();
 
-    if ((fileInfo->flags & O_ACCMODE) != O_RDONLY) {
+    /*if ((fileInfo->flags & O_ACCMODE) != O_RDONLY) {
         fuse_reply_err(req, EACCES);
-    }
+    }*/
 
-
-	int fd = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
-	if (fd == -1)
-    {
-		fuse_reply_err(req, errno);
+    int fd = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
+    if (fd == -1) {
+        fuse_reply_err(req, errno);
         return;
     }
 
-	fileInfo->fh = fd;
+    fileInfo->fh = fd;
     /* fi->direct_io = 1; */
     /* fi->keep_cache = 1; */
 
@@ -289,25 +305,35 @@ void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t o
 
     (void)fileInfo;
 
-
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
     buf.buf[0].flags = fuse_buf_flags::FUSE_BUF_IS_FD | fuse_buf_flags::FUSE_BUF_FD_SEEK;
 	buf.buf[0].fd = fileInfo->fh;
 	buf.buf[0].pos = off;
 
-	fuse_reply_data(req, &buf, FUSE_BUF_SPLICE_MOVE);
+	fuse_reply_data(req, &buf, FUSE_BUF_FORCE_SPLICE);
+}
 
-    /*
-    auto file = _openedFiles.find(inode);
-    if (file == _openedFiles.end()) {
-        fuse_reply_err(req, ENOENT);
-    } else {
-        std::vector<char> bytes;
-        auto writedSize = GetLeaf(inode).Read(off, std::as_writable_bytes(std::span(bytes)));
-        bytes.resize(file->second.get().GetFile().size);
-        ReplyBufferLimited(req, bytes.data(), bytes.size(), off, writedSize);
-    }*/
+void FileSystem::FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fi)
+{
+    TRACER() << "[write_buf]"
+             << " request: " << req
+             << " inode: " << ino
+             << " bufv: " << bufv
+             << " off: " << off;
+
+    (void)fi;
+    fuse_bufvec destination = FUSE_BUFVEC_INIT(bufv->buf[0].size);
+    destination.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+    destination.buf[0].fd = fi->fh;
+
+    ssize_t written = fuse_buf_copy(&destination, bufv, FUSE_BUF_SPLICE_NONBLOCK);
+    if (written < 0) {
+        fuse_reply_err(req, errno);
+        return;
+    }
+
+    fuse_reply_write(req, written);
 }
 
 void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -316,17 +342,22 @@ void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
              << " request: " << req
              << " inode: " << inode;
 
-    if ((fileInfo->flags & O_ACCMODE) != O_RDONLY) {
-        fuse_reply_err(req, EACCES);
+    auto& leaf = GetLeaf(inode, req);
+    auto path = leaf.GetFullPath();
+    leaf.AddRef();
+
+    int fd = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
+    if (fd == -1) {
+        fuse_reply_err(req, errno);
+        return;
     }
+
+    fileInfo->fh = fd;
 
     if (inode == FUSE_ROOT_ID) {
         fuse_reply_open(req, fileInfo);
         return;
     }
-
-    auto& file = GetLeaf(inode);
-    file.AddRef();
 
     fuse_reply_open(req, fileInfo);
 }
@@ -351,11 +382,11 @@ void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_
         return;
     }
 
-    auto& file = GetLeaf(inode);
+    auto& file = GetLeaf(inode, req);
     file.ReleaseRef();
 }
 
-void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* /*fileInfo*/)
+void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
 {
     TRACER() << "[releasedir]"
              << " request: " << req
@@ -365,8 +396,35 @@ void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_fi
         return;
     }
 
-    auto& file = GetLeaf(inode);
+    int error = close(fileInfo->fh);
+    if (error != 0) {
+        fuse_reply_err(req, errno);
+        return;
+    }
+
+    auto& file = GetLeaf(inode, req);
     file.ReleaseRef();
+}
+
+void FileSystem::FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
+    off_t off_in, struct fuse_file_info* fi_in,
+    fuse_ino_t ino_out, off_t off_out,
+    struct fuse_file_info* fi_out, size_t len,
+    int flags)
+{
+    TRACER() << "[copy_file_range]"
+             << " request: " << req
+             << " ino_in: " << ino_in
+             << " off_in: " << off_in
+             << " fi_in: " << fi_in
+             << " ino_out: " << ino_out
+             << " off_out: " << off_out
+             << " fi_out: " << fi_out
+             << " len: " << len
+             << " flags: " << flags;
+    int i = 0;
+    i++;
+    return;
 }
 
 } // namespace FastTransport::FileSystem

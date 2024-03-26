@@ -18,8 +18,8 @@
     "generator": "Ninja",
 
     "compilers": {
-      "C": "/usr/bin/clang",
-      "CXX": "/usr/bin/clang++"
+      "C": "clang",
+      "CXX": "clang++"
     },
     "linker": "/usr/bin/mold",
     "toochainFile": "xxx"

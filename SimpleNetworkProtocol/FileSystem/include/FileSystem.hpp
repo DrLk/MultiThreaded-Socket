@@ -2,8 +2,7 @@
 
 #include <cstdint>
 #include <sys/types.h>
-#include <type_traits>
-#define FUSE_USE_VERSION 34
+#define FUSE_USE_VERSION 35
 
 #include <cstdio>
 #include <cstdlib>
@@ -15,7 +14,6 @@
 
 #include "File.hpp"
 #include "FileTree.hpp"
-#include "Logger.hpp"
 
 namespace FastTransport::FileSystem {
 class FileSystem final {
@@ -33,6 +31,7 @@ private:
         size_t size;
     } __attribute__((aligned(16)));
 
+    static void FuseInit(void* userdata, struct fuse_conn_info* conn);
     static void BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name, fuse_ino_t ino);
     static int ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize, off_t off, size_t maxSize);
     static void Stat(fuse_ino_t ino, struct stat* stbuf, const File& file);
@@ -43,10 +42,16 @@ private:
     static void FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
     static void FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
+    static void FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fi);
     static void FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets);
     static void FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
     static void FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);
+    static void FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
+        off_t off_in, struct fuse_file_info* fi_in,
+        fuse_ino_t ino_out, off_t off_out,
+        struct fuse_file_info* fi_out, size_t len,
+        int flags);
 
     fuse_lowlevel_ops _fuseOperations;
     FileTree _tree;
