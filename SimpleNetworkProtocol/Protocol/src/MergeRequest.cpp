@@ -5,15 +5,16 @@
 
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
+#include "MainJob.hpp"
 #include "MessageType.hpp"
 #include "MessageWriter.hpp"
-#include "SendNetworkJob.hpp"
+#include "SendMessageJob.hpp"
 
 #define TRACER() LOGGER() << "[MergeRequest] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-std::unique_ptr<MergeRequest> MergeRequest::Create()
+std::unique_ptr<MainJob> MergeRequest::Create()
 {
     return std::make_unique<MergeRequest>();
 }
@@ -30,7 +31,7 @@ MergeRequest::Message MergeRequest::ExecuteMain(std::stop_token stop, ITaskSched
     Protocol::MessageWriter writer(std::move(message));
     writer << MessageType::RequestTree;
 
-    scheduler.Schedule(SendNetworkJob::Create(writer.GetWritedPackets()));
+    scheduler.Schedule(SendMessageJob::Create(writer.GetWritedPackets()));
     return writer.GetPackets();
 }
 

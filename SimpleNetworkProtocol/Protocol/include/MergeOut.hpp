@@ -13,7 +13,7 @@ class ITaskScheduler;
 
 class MergeOut : public MainJob {
 public:
-    static std::unique_ptr<MergeOut> Create(FastTransport::FileSystem::FileTree& fileTree);
+    static std::unique_ptr<MainJob> Create(FastTransport::FileSystem::FileTree& fileTree);
 
     MergeOut(FastTransport::FileSystem::FileTree& fileTree);
 

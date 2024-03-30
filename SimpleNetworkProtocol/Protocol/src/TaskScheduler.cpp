@@ -39,6 +39,7 @@ void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         auto freePackets = _connection.get().Send2(stop, IPacket::List());
         _freeSendPackets.splice(std::move(freePackets));
+        assert(!_freeSendPackets.empty());
         _freeSendPackets = job->ExecuteMain(stop, *this, std::move(_freeSendPackets));
     });
 }

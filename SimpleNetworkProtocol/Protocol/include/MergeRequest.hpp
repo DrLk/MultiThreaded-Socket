@@ -11,7 +11,7 @@ class ITaskScheduler;
 
 class MergeRequest : public MainJob {
 public:
-    static std::unique_ptr<MergeRequest> Create();
+    static std::unique_ptr<MainJob> Create();
 
     MergeRequest();
 

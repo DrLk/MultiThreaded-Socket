@@ -8,13 +8,13 @@ namespace FastTransport::TaskQueue {
 
 class ITaskScheduler;
 
-class SendNetworkJob : public WriteNetworkJob {
+class SendMessageJob : public WriteNetworkJob {
     using Message = Protocol::IPacket::List;
 
 public:
-    static std::unique_ptr<SendNetworkJob> Create(Message&& message);
+    static std::unique_ptr<WriteNetworkJob> Create(Message&& message);
 
-    SendNetworkJob(Message&& message);
+    SendMessageJob(Message&& message);
 
     void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, Protocol::IConnection& connection) override;
 

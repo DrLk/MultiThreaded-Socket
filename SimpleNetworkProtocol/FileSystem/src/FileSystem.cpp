@@ -95,7 +95,6 @@ void FileSystem::Start()
     const int result = fuse_session_loop(se);
 }
 
-std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> FileSystem::_openedFiles;
 void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
 {
     stbuf->st_ino = ino;
@@ -249,7 +248,6 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         for (auto& [name, file] : directory.children) {
             auto inode = GetINode(file);
             BufferAddFile(req, &buffer, file.GetFile().GetName().c_str(), inode);
-            _openedFiles.insert({ inode, file });
         }
 
         ReplyBufferLimited(req, buffer.p, buffer.size, off, size);
@@ -329,6 +327,7 @@ void FileSystem::FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec
 
     ssize_t written = fuse_buf_copy(&destination, bufv, FUSE_BUF_SPLICE_NONBLOCK);
     if (written < 0) {
+        assert(errno == -written);
         fuse_reply_err(req, errno);
         return;
     }
@@ -422,8 +421,19 @@ void FileSystem::FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
              << " fi_out: " << fi_out
              << " len: " << len
              << " flags: " << flags;
-    int i = 0;
-    i++;
+
+    auto fdIn = fi_in->fh;
+    auto fdOut = fi_out->fh;
+
+    ssize_t size = copy_file_range(fdIn, &off_in, fdOut, &off_out, len, flags);
+    if (size < 0) {
+        assert(errno == -size);
+        fuse_reply_err(req, errno);
+        return;
+    }
+
+    fuse_reply_write(req, size);
+
     return;
 }
 

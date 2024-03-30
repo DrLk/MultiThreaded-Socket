@@ -10,7 +10,7 @@ class ITaskScheduler;
 
 class FreeRecvPacketsJob : public ReadNetworkJob {
 public:
-    static std::unique_ptr<FreeRecvPacketsJob> Create(Message&& message);
+    static std::unique_ptr<ReadNetworkJob> Create(Message&& message);
 
     FreeRecvPacketsJob(Message&& message);
 

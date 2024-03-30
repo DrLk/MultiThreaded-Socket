@@ -8,7 +8,7 @@ namespace FastTransport::TaskQueue {
 class MessageTypeReadJob : public ReadNetworkJob {
     using FileTree = FastTransport::FileSystem::FileTree;
 public:
-    static std::unique_ptr<MessageTypeReadJob> Create(FileTree& fileTree, Message&& messages);
+    static std::unique_ptr<ReadNetworkJob> Create(FileTree& fileTree, Message&& messages);
 
     MessageTypeReadJob(FastTransport::FileSystem::FileTree& fileTree, Message&& messages);
 

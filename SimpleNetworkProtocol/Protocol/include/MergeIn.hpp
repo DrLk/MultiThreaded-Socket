@@ -13,7 +13,7 @@ class MergeIn : public MainReadJob {
     using MessageReader = Protocol::MessageReader;
 
 public:
-    static std::unique_ptr<MergeIn> Create(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader);
+    static std::unique_ptr<MainReadJob> Create(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader);
 
     MergeIn(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader);
 

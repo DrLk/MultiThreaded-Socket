@@ -13,11 +13,12 @@
 #include "MergeOut.hpp"
 #include "MessageReader.hpp"
 #include "MessageType.hpp"
+#include "ReadNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[MessageTypeReadJob] "
 
 namespace FastTransport::TaskQueue {
-std::unique_ptr<MessageTypeReadJob> MessageTypeReadJob::Create(FileTree& fileTree, Message&& messages)
+std::unique_ptr<ReadNetworkJob> MessageTypeReadJob::Create(FileTree& fileTree, Message&& messages)
 {
     return std::make_unique<MessageTypeReadJob>(fileTree, std::move(messages));
 }
@@ -57,7 +58,6 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     switch (type) {
     case MessageType::RequestTree:
         scheduler.Schedule(MergeOut::Create(_fileTree));
-        scheduler.Schedule(FreeRecvPacketsJob::Create(reader.GetPackets()));
         break;
     case MessageType::ResponseTree:
         scheduler.Schedule(MergeIn::Create(_fileTree, std::move(reader)));

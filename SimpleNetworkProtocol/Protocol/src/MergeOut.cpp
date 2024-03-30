@@ -11,13 +11,13 @@
 #include "MainJob.hpp"
 #include "MessageType.hpp"
 #include "MessageWriter.hpp"
-#include "SendNetworkJob.hpp"
+#include "SendMessageJob.hpp"
 
 #define TRACER() LOGGER() << "[MergeOout] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-std::unique_ptr<MergeOut> MergeOut::Create(FastTransport::FileSystem::FileTree& fileTree)
+std::unique_ptr<MainJob> MergeOut::Create(FastTransport::FileSystem::FileTree& fileTree)
 {
     return std::make_unique<MergeOut>(fileTree);
 }
@@ -37,7 +37,7 @@ MergeOut::Message MergeOut::ExecuteMain(std::stop_token stop, ITaskScheduler& sc
     FileSystem::OutputByteStream<Protocol::MessageWriter> output(writer);
     FileSystem::LeafSerializer::Serialize(_fileTree.get().GetRoot(), output);
 
-    scheduler.Schedule(SendNetworkJob::Create(writer.GetWritedPackets()));
+    scheduler.Schedule(SendMessageJob::Create(writer.GetWritedPackets()));
     return writer.GetPackets();
 }
 

@@ -10,12 +10,13 @@
 #include "ITaskScheduler.hpp"
 #include "LeafSerializer.hpp"
 #include "Logger.hpp"
+#include "MainReadJob.hpp"
 
 #define TRACER() LOGGER() << "[MergeIn] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-std::unique_ptr<MergeIn> MergeIn::Create(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader)
+std::unique_ptr<MainReadJob> MergeIn::Create(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& reader)
 {
     return std::make_unique<MergeIn>(fileTree, std::move(reader));
 }

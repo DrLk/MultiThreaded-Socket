@@ -8,9 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
-#include <functional>
 #include <fuse3/fuse_lowlevel.h>
-#include <unordered_map>
 
 #include "File.hpp"
 #include "FileTree.hpp"
@@ -24,7 +22,6 @@ public:
     void Start();
 
 private:
-    static std::unordered_map<fuse_ino_t, std::reference_wrapper<Leaf>> _openedFiles;
 
     struct dirbuf {
         char* p;

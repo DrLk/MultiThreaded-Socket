@@ -263,7 +263,7 @@ void TestConnection3()
 
 int main(int argc, char** argv)
 {
-    TestConnection3();
+    TestConnection2();
     return 0;
 #ifdef WIN32
     WSADATA wsaData;

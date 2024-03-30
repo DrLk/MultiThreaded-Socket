@@ -4,10 +4,11 @@
 
 #include "IConnection.hpp"
 #include "IPacket.hpp"
+#include "ReadNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
-std::unique_ptr<FreeRecvPacketsJob> FreeRecvPacketsJob::Create(Message&& message)
+std::unique_ptr<ReadNetworkJob> FreeRecvPacketsJob::Create(Message&& message)
 {
     return std::make_unique<FreeRecvPacketsJob>(std::move(message));
 }
