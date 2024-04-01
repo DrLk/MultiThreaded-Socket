@@ -66,7 +66,7 @@ public:
         std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {
             _packet++;
-            std::memcpy(((std::byte*)&trivial) + readSize, GetPacket().GetPayload().data(), size);
+            std::memcpy(static_cast<std::byte*>(&trivial) + readSize, GetPacket().GetPayload().data(), size);
             _offset = size;
         }
         return *this;

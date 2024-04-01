@@ -22,7 +22,7 @@ public:
     {
     }
 
-    virtual fuse_bufvec Read(size_t size, off_t off) override
+    fuse_bufvec Read(size_t size, off_t off) override
     {
         fuse_bufvec buffer = FUSE_BUFVEC_INIT(size);
 

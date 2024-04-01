@@ -53,7 +53,7 @@ static void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-r
 
 TEST(LeafTest, LeafSerializationTest)
 {
-    Leaf root = GetTestLeaf();
+    const Leaf root = GetTestLeaf();
 
     std::basic_stringstream<std::byte> stream;
     OutputByteStream<std::basic_stringstream<std::byte>> out(stream);
@@ -61,7 +61,7 @@ TEST(LeafTest, LeafSerializationTest)
     LeafSerializer::Serialize(root, out);
 
     InputByteStream<std::basic_stringstream<std::byte>> input(stream);
-    Leaf deserializedRoot = LeafSerializer::Deserialize(input);
+    const Leaf deserializedRoot = LeafSerializer::Deserialize(input, nullptr);
 
     CompareLeaf(root, deserializedRoot);
 }

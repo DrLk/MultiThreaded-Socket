@@ -14,7 +14,7 @@ public:
     MessageReader& read(std::byte* data, std::size_t size);
 
     template <trivial T>
-    MessageReader& operator>>(T& trivial)
+    MessageReader& operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
     {
         auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
         std::memcpy(&trivial, GetPacket().GetPayload().data() + _offset, readSize);
@@ -23,7 +23,7 @@ public:
         std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {
             _packet++;
-            std::memcpy(((std::byte*)&trivial) + readSize, GetPacket().GetPayload().data(), size);
+            std::memcpy((reinterpret_cast<std::byte*>(&trivial)) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _offset = size;
         }
         return *this;

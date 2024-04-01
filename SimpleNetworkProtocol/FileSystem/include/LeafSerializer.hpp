@@ -13,7 +13,7 @@ class LeafSerializer final {
 
 public:
     template <OutputStream Stream>
-    static void Serialize(const Leaf& leaf, OutputByteStream<Stream>& stream)
+    static void Serialize(const Leaf& leaf, OutputByteStream<Stream>& stream) // NOLINT(misc-no-recursion)
     {
         stream << leaf.GetName();
         stream << leaf.GetType();
@@ -25,7 +25,7 @@ public:
     }
 
     template <InputStream Stream>
-    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent = nullptr)
+    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent)
     {
         std::filesystem::path name;
         stream >> name;
@@ -35,7 +35,7 @@ public:
         Leaf leaf(name, type, parent);
         leaf.SetFile(std::move(file));
 
-        int size = 0;
+         int size;
         stream >> size;
         for (int i = 0; i < size; i++) {
             Leaf childLeaf = Deserialize(stream, &leaf);
