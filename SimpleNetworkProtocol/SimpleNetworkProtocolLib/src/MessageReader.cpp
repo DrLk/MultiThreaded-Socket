@@ -17,13 +17,13 @@ MessageReader::MessageReader(IPacket::List&& packets)
 {
 }
 
-MessageReader& MessageReader::read(void* data, std::size_t size)
+MessageReader& MessageReader::read(std::byte* data, std::size_t size)
 {
     if (_offset == GetPacket().GetPayload().size()) {
         GetNextPacket();
     }
 
-    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto* bytes = data;
     while (size > 0) {
         auto readSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
         std::memcpy(bytes, GetPacket().GetPayload().data() + _offset, readSize);
@@ -35,7 +35,7 @@ MessageReader& MessageReader::read(void* data, std::size_t size)
     return *this;
 }
 
-MessageReader& MessageReader::operator>>(IPacket::List&& /*packets*/) // NOLINT(fuchsia-overloaded-operator)
+MessageReader& MessageReader::operator>>(IPacket::List& /*packets*/) // NOLINT(fuchsia-overloaded-operator)
 {
     return *this;
 }

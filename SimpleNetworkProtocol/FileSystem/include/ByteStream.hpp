@@ -100,9 +100,10 @@ public:
     InputByteStream<Stream>& operator>>(std::basic_string<T>& string) // NONLIN(fuchsia-overloaded-operator)
     {
         std::uint32_t size = 0;
-        _inStream.get().read(reinterpret_cast<std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        _inStream.get().read(reinterpret_cast<std::byte*>(&size), sizeof(size)); // nolint(cppcoreguidelines-pro-type-reinterpret-cast)
         string.resize(size);
-        _inStream.get().read(string.data(), size);
+        _inStream.get().read(reinterpret_cast<std::byte*>(string.data()), size); // nolint(cppcoreguidelines-pro-type-reinterpret-cast)
+
         return *this;
     }
 

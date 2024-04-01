@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <sys/types.h>
-#define FUSE_USE_VERSION 35
 
 #include <cstdio>
 #include <cstdlib>

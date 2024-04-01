@@ -31,6 +31,10 @@ target_include_directories(FileSystem
         ${PROJECT_SOURCE_DIR}/include
 )
 
+target_compile_definitions(FileSystem PUBLIC
+    FUSE_USE_VERSION=35
+)
+
 if(ENABLE_PRECOMPILE_HEADERS)
     target_precompile_headers(FileSystem PRIVATE ../pch.hpp)
 endif()

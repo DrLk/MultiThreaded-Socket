@@ -11,7 +11,7 @@ class MessageReader final {
 public:
     explicit MessageReader(IPacket::List&& packets);
 
-    MessageReader& read(void* data, std::size_t size);
+    MessageReader& read(std::byte* data, std::size_t size);
 
     template <trivial T>
     MessageReader& operator>>(T& trivial)
@@ -28,7 +28,7 @@ public:
         }
         return *this;
     }
-    MessageReader& operator>>(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
+    MessageReader& operator>>(IPacket::List& packets); // NOLINT(fuchsia-overloaded-operator)
 
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetFreePackets();

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <fuse3/fuse_lowlevel.h>
 
 #include "ByteStream.hpp"
 
@@ -38,7 +39,13 @@ public:
         stream >> type;
     }
 
-    virtual void Read() {};
+    virtual fuse_bufvec Read(size_t size,  off_t off)
+    {
+        fuse_bufvec buffer = FUSE_BUFVEC_INIT(size);
+        return buffer;
+    };
+
+    virtual void Open() {};
 };
 
 } // namespace FastTransport::FileSystem

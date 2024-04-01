@@ -5,7 +5,7 @@ project(Protocol)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(INCLUDE_DIRS include)
+set(INCLUDE_DIRS include include/FileSystem/)
 
 if (NOT TARGET FileSystem)
     add_subdirectory(../FileSystem FileSystem)
@@ -17,7 +17,7 @@ if (NOT TARGET SimpleNetworkProtocolLib)
     add_subdirectory(../SimpleNetworkProtocolLib SimpleNetworkProtocolLib)
 endif()
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
+file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp include/FileSystem/*.hpp include/FileSystem/*.cpp)
 
 include_directories(${INCLUDE_DIRS})
 

@@ -16,7 +16,7 @@ enum class MessageType {
     ResponseTree = 2,
     RequestFile = 3,
     ResponseFile = 4,
-    RequestFileBytes = 5,
+    RequestReadFile = 5,
     ResponseFileBytes = 6,
     RequestCloseFile = 7,
     ResponseCloseFile = 8,

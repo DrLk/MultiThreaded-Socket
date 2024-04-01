@@ -8,7 +8,12 @@
 
 namespace FastTransport::FileSystem {
 
-Leaf::Leaf() = default;
+Leaf::Leaf(const std::filesystem::path& name, std::filesystem::file_type type, Leaf* parent)
+    : _name(std::move(name))
+    , _type(type)
+    , _parent(parent)
+{
+}
 
 Leaf::Leaf(Leaf&& that) = default;
 
@@ -16,13 +21,29 @@ Leaf& Leaf::operator=(Leaf&& that) = default;
 
 Leaf::~Leaf() = default;
 
+Leaf& Leaf::AddChild(const std::filesystem::path& name, std::filesystem::file_type type)
+{
+    Leaf leaf(name, type, this);
+    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
+    return insertedLeaf->second;
+}
+
 Leaf& Leaf::AddFile(FilePtr&& file)
 {
-    Leaf leaf;
+    Leaf leaf(file->GetName(), file->type, this);
     leaf._file = std::move(file);
-    leaf.parent = this;
     auto [insertedLeaf, result] = children.insert({ leaf._file->GetName().native(), std::move(leaf) });
     return insertedLeaf->second;
+}
+
+const std::filesystem::path& Leaf::GetName() const
+{
+    return _name;
+}
+
+std::filesystem::file_type Leaf::GetType() const
+{
+    return _type;
 }
 
 void Leaf::SetFile(FilePtr&& file)
@@ -66,9 +87,9 @@ std::optional<std::reference_wrapper<const Leaf>> Leaf::Find(const std::string& 
 
 std::filesystem::path Leaf::GetFullPath() const
 {
-    std::filesystem::path path = GetFile().GetName();
-    for (auto* leaf = parent; leaf != nullptr; leaf = leaf->parent) {
-        path = leaf->GetFile().GetName() / path;
+    std::filesystem::path path = GetName();
+    for (auto* leaf = _parent; leaf != nullptr; leaf = leaf->_parent) {
+        path = leaf->GetName() / path;
     }
     return path;
 }

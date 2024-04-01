@@ -13,10 +13,9 @@
 namespace FastTransport::FileSystem {
 
 FileTree::FileTree(FilePtr&& root)
-    : _root(std::make_unique<Leaf>())
+    : _root(std::make_unique<Leaf>(root->GetName(), std::filesystem::file_type::directory, nullptr))
 {
     _root->inode = 0;
-    _root->parent = nullptr;
 
     _root->SetFile(std::move(root));
 }

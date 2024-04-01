@@ -11,6 +11,7 @@ class ReadNetworkJob;
 class DiskJob;
 class MainJob;
 class MainReadJob;
+class FuseNetworkJob;
 
 class ITaskScheduler {
 public:
@@ -29,6 +30,7 @@ public:
     virtual void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) = 0;
     virtual void ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job) = 0;
     virtual void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) = 0;
+    virtual void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

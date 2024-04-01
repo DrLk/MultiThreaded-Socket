@@ -16,7 +16,7 @@ struct Leaf {
     using FilePtr = std::unique_ptr<File>;
 
 public:
-    Leaf();
+    Leaf(const std::filesystem::path& name, std::filesystem::file_type type, Leaf* parent);
     Leaf(const Leaf& that) = delete;
     Leaf(Leaf&& that);
     Leaf& operator=(const Leaf& that) = delete;
@@ -24,11 +24,13 @@ public:
     ~Leaf();
 
     std::uint64_t inode {};
-    Leaf* parent {};
     std::map<std::string, Leaf> children; // TODO: use std::set
 
+    const std::filesystem::path& GetName() const;
+    std::filesystem::file_type GetType() const;
     void SetFile(FilePtr&& file);
     const File& GetFile() const;
+    Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
     Leaf& AddFile(FilePtr&& file);
 
     void AddRef() const;
@@ -45,6 +47,9 @@ public:
     std::filesystem::path GetFullPath() const;
 
 private:
+    std::filesystem::path _name;
+    std::filesystem::file_type _type;
+    Leaf* _parent;
     FilePtr _file;
     mutable std::uint64_t _nlookup = 0;
     bool _deleted = false;

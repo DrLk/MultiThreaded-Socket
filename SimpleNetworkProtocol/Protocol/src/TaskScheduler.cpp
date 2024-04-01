@@ -6,12 +6,15 @@
 #include <thread>
 
 #include "DiskJob.hpp"
+#include "FreeRecvPacketsJob.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
 #include "MainJob.hpp"
 #include "MainReadJob.hpp"
 #include "ReadNetworkJob.hpp"
+#include "SendMessageJob.hpp"
 #include "WriteNetworkJob.hpp"
+#include "FuseNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
@@ -69,6 +72,18 @@ void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         job->ExecuteDisk(*this, 123.0);
+    });
+}
+
+void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        Protocol::MessageWriter writer(std::move(_freeSendPackets));
+        Message freePackets = job->ExecuteMain(stop, *this, writer);
+        _freeSendPackets = writer.GetPackets();
+
+        ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(writer.GetWritedPackets()));
+        ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
     });
 }
 

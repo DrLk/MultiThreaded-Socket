@@ -29,6 +29,7 @@ public:
     void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) override;
     void ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job) override;
     void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) override;
+    void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) override;
 
 private:
     TaskQueue _diskQueue;

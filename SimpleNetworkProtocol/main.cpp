@@ -1,8 +1,8 @@
 #include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <span>
@@ -259,6 +259,23 @@ void TestConnection3()
     FileSystem filesystem("/mnt/test");
     filesystem.Start();
     NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
+}
+
+void TestReadV()
+{
+    int file = open("/tmp/test1", O_RDONLY);
+
+    int blocks = 2;
+    size_t offset = 0;
+
+    std::vector<iovec> iovecs(blocks);
+    iovecs[0].iov_base = calloc(sizeof(std::byte), 1400);
+    iovecs[0].iov_len = 1400;
+    iovecs[1].iov_base = calloc(sizeof(std::byte), 1400);
+    iovecs[1].iov_len = 1400;
+
+    int result = preadv(file, iovecs.data(), blocks, 11);
+    assert(result != -1);
 }
 
 int main(int argc, char** argv)

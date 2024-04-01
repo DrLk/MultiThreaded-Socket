@@ -15,7 +15,8 @@ public:
     template <OutputStream Stream>
     static void Serialize(const Leaf& leaf, OutputByteStream<Stream>& stream)
     {
-        leaf.GetFile().Serialize(stream);
+        stream << leaf.GetName();
+        stream << leaf.GetType();
         const int size = leaf.children.size();
         stream << size;
         for (const auto& [name, child] : leaf.children) {
@@ -24,19 +25,24 @@ public:
     }
 
     template <InputStream Stream>
-    static void Deserialize(Leaf& leaf, InputByteStream<Stream>& stream, Leaf* parent)
+    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent = nullptr)
     {
-        leaf.parent = parent;
+        std::filesystem::path name;
+        stream >> name;
+        std::filesystem::file_type type;
+        stream >> type;
         FilePtr file(new NativeFile());
-        file->Deserialize(stream);
+        Leaf leaf(name, type, parent);
         leaf.SetFile(std::move(file));
+
         int size = 0;
         stream >> size;
         for (int i = 0; i < size; i++) {
-            Leaf childLeaf;
-            Deserialize(childLeaf, stream, &leaf);
-            leaf.children.insert({ childLeaf.GetFile().GetName().native(), std::move(childLeaf) });
+            Leaf childLeaf = Deserialize(stream, &leaf);
+            leaf.children.insert({ childLeaf.GetName().native(), std::move(childLeaf) });
         }
+
+        return leaf;
     }
 };
 
