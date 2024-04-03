@@ -48,7 +48,7 @@ IPacket::List MessageReader::GetPackets()
 IPacket::List MessageReader::GetFreePackets()
 {
     IPacket::List freePackets;
-    freePackets.splice(std::move(_packets), _packets.begin(), _packet);
+    freePackets.splice(_packets, _packets.begin(), _packet);
     return freePackets;
 }
 

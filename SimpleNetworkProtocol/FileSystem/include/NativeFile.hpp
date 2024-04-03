@@ -1,39 +1,22 @@
 #pragma once
 
 #include "File.hpp"
-#include <fuse3/fuse_lowlevel.h>
+#include "IPacket.hpp"
 
 namespace FastTransport::FileSystem {
 
-static fuse_buf_flags operator|(fuse_buf_flags a, fuse_buf_flags b)
-{
-    return static_cast<fuse_buf_flags>(static_cast<int>(a) | static_cast<int>(b));
-}
-
 class NativeFile : public File {
+    using IPacket = FastTransport::Protocol::IPacket;
 public:
-    NativeFile()
-        : NativeFile("", 0, std::filesystem::file_type::none)
-    {
-    }
+    NativeFile();
+    NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type);
 
-    NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
-        : File(name, size, type)
-    {
-    }
-
-    fuse_bufvec Read(size_t size, off_t off) override
-    {
-        fuse_bufvec buffer = FUSE_BUFVEC_INIT(size);
-
-        buffer.buf[0].flags = fuse_buf_flags::FUSE_BUF_IS_FD | fuse_buf_flags::FUSE_BUF_FD_SEEK;
-        buffer.buf[0].fd = _fd;
-        buffer.buf[0].pos = off;
-        return buffer;
-    };
+    void Open() override;
+    IPacket::List Read(IPacket::List& packets, size_t size, off_t offset) override;
+    void Write(IPacket::List& packets, size_t size, off_t offset) override;
 
 private:
-    int _fd;
+    int _file;
 };
 
 } // namespace FastTransport::FileSystem

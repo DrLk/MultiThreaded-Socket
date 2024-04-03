@@ -85,7 +85,7 @@ public:
 
     void push_back(T&& element);
     void splice(MultiList<T>&& that); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
-    void splice(MultiList<T>&& that, Iterator begin, Iterator end); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+    void splice(MultiList<T>& that, Iterator begin, Iterator end); // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
     [[nodiscard]] bool empty() const noexcept;
     [[nodiscard]] T& front();
     [[nodiscard]] T& back();
@@ -345,7 +345,7 @@ void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalu
 }
 
 template <class T>
-void MultiList<T>::splice(MultiList<T>&& that, Iterator begin, Iterator end) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     std::list<std::list<T>> lists;
     if (begin._it1 == end._it1) {

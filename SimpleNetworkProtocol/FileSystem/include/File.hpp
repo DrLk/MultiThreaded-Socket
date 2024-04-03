@@ -2,13 +2,15 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <fuse3/fuse_lowlevel.h>
 
 #include "ByteStream.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::FileSystem {
 
 class File {
+    using IPacket = FastTransport::Protocol::IPacket;
+
 public:
     File();
     File(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type);
@@ -39,13 +41,9 @@ public:
         stream >> type;
     }
 
-    virtual fuse_bufvec Read(size_t size,  off_t off)
-    {
-        fuse_bufvec buffer = FUSE_BUFVEC_INIT(size);
-        return buffer;
-    };
-
-    virtual void Open() {};
+    virtual void Open()= 0;
+    virtual IPacket::List Read(IPacket::List& packets, size_t size, off_t off) = 0;
+    virtual void Write(IPacket::List& packets, size_t size, off_t off) = 0;
 };
 
 } // namespace FastTransport::FileSystem

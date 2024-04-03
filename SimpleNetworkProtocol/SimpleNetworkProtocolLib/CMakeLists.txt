@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if (NOT TARGET Packet)
+    add_subdirectory(../Packet Packet)
+endif()
 if (NOT TARGET Logger)
 add_subdirectory(../Logger Logger)
 endif()
@@ -28,7 +31,7 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib PUBLIC LockedList Logger Memory Tracy Protocol)
+target_link_libraries(SimpleNetworkProtocolLib PUBLIC Packet LockedList Logger Memory Tracy Protocol)
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )

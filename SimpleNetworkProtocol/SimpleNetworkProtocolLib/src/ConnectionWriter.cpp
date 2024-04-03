@@ -50,7 +50,7 @@ ConnectionWriter& ConnectionWriter::flush()
 
     if (_packets.begin() != _packet) {
         IPacket::List packets;
-        packets.splice(std::move(_packets), _packets.begin(), _packet);
+        packets.splice(_packets, _packets.begin(), _packet);
         _packetsToSend.LockedSplice(std::move(packets));
     }
 

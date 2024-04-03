@@ -7,10 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(INCLUDE_DIRS include)
 
+if (NOT TARGET Packet)
+    add_subdirectory(../Packet Packet)
+endif()
 if (NOT TARGET Logger)
     add_subdirectory(../Logger Logger)
 endif()
-
 if (NOT TARGET Thread)
 	add_subdirectory(../Thread Thread)
 endif()
@@ -24,7 +26,7 @@ include_directories(${INCLUDE_DIRS})
 
 add_library(FileSystem STATIC ${SRC_FILES})
 
-target_link_libraries(FileSystem PRIVATE Logger Thread Tracy fuse3 pthread)
+target_link_libraries(FileSystem PRIVATE Packet Logger Thread Tracy fuse3 pthread)
 
 target_include_directories(FileSystem
     PUBLIC

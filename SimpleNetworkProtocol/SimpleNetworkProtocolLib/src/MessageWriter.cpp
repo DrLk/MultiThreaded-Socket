@@ -75,7 +75,7 @@ IPacket::List MessageWriter::GetWritedPackets()
     assert(_packet != _packets.end());
     std::memcpy(_packets.front()->GetPayload().data(), &_writedPacketNumber, sizeof(_writedPacketNumber));
     _packet++;
-    writedPackets.splice(std::move(_packets), _packets.begin(), _packet);
+    writedPackets.splice(_packets, _packets.begin(), _packet);
     return writedPackets;
 }
 
