@@ -20,7 +20,6 @@ RequestReadFileJob::RequestReadFileJob(File& file, fuse_req_t request, size_t si
 FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Writer& writer)
 {
     TRACER() << "Execute"
-             << " file: " << _file.GetName()
              << " size: " << _size
              << " off: " << _off;
 

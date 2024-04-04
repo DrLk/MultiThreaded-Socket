@@ -17,7 +17,7 @@ if (NOT TARGET Thread)
 	add_subdirectory(../Thread Thread)
 endif()
 if (NOT TARGET Tracy)
-    add_subdirectory(../external/tracy Tracy)
+    add_subdirectory(../external/tracy Tracy EXCLUDE_FROM_ALL SYSTEM)
 endif()
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp include/*.hpp)

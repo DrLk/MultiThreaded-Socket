@@ -18,7 +18,8 @@ NativeFile::NativeFile()
 }
 
 NativeFile::NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
-    : File(name, size, type)
+    : File(size, type)
+    , _file(open(name.c_str(), O_RDWR | O_CREAT | O_CLOEXEC)) // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
 {
 }
 
@@ -27,15 +28,15 @@ void NativeFile::Open()
     assert(_file != -1);
 }
 
-NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, size_t size, off_t offset)
+NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t size, off_t offset)
 {
     IPacket::List result;
 #ifdef __linux__
     if (packets.empty()) {
         throw std::runtime_error("No packets to read into");
     }
-    size_t blockSize = packets.front()->GetPayload().size();
-    int blocks = (int)size / blockSize;
+    std::size_t blockSize = packets.front()->GetPayload().size();
+    std::size_t blocks = size / blockSize;
     if (size % blockSize != 0) {
         blocks++;
     }
@@ -48,7 +49,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, size_t size, 
         assert(blockSize == (*packet)->GetPayload().size());
     }
 
-    int error = preadv(_file, iovecs.data(), blocks, offset);
+    int error = preadv(_file, iovecs.data(), static_cast<int>(blocks), offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
     assert(error != -1);
     ++packet;
     result.splice(packets, packets.begin(), packet);

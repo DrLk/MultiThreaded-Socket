@@ -15,7 +15,7 @@
 #include "MessageType.hpp"
 #include "ReadNetworkJob.hpp"
 
-#define TRACER() LOGGER() << "[MessageTypeReadJob] "
+#define TRACER() LOGGER() << "[MessageTypeReadJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 std::unique_ptr<ReadNetworkJob> MessageTypeReadJob::Create(FileTree& fileTree, Message&& messages)

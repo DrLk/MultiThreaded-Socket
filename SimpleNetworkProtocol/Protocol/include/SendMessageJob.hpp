@@ -3,7 +3,6 @@
 #include "IPacket.hpp"
 #include "WriteNetworkJob.hpp"
 
-
 namespace FastTransport::TaskQueue {
 
 class ITaskScheduler;

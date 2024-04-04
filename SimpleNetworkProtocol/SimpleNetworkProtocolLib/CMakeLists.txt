@@ -20,7 +20,7 @@ if (NOT TARGET LockedList)
     add_subdirectory(../LockedList LockdList)
 endif()
 if (NOT TARGET Tracy)
-    add_subdirectory(../external/tracy Tracy)
+    add_subdirectory(../external/tracy Tracy EXCLUDE_FROM_ALL SYSTEM)
 endif()
 
 set(COMMON_INCLUDES include)

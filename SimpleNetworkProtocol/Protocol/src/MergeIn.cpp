@@ -38,7 +38,6 @@ void MergeIn::ExecuteMainRead(std::stop_token stop, ITaskScheduler& scheduler)
     FileSystem::Leaf root = FileSystem::LeafSerializer::Deserialize(input, nullptr);
     _fileTree.get().GetRoot().children = std::move(root.children);
 
-
     scheduler.Schedule(FreeRecvPacketsJob::Create(_reader.GetPackets()));
 }
 

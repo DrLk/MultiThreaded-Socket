@@ -347,7 +347,6 @@ void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalu
 template <class T>
 void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
-    std::list<std::list<T>> lists;
     if (begin._it1 == end._it1) {
         std::list<T> items;
         items.splice(items.end(), *begin._it1, begin._it2, end._it2);

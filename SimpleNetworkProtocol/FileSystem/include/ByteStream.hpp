@@ -50,22 +50,22 @@ public:
     }
 
     template <class T>
-    OutputByteStream& operator<<(const std::basic_string<T>& string) // NONLIN(fuchsia-overloaded-operator)
+    OutputByteStream& operator<<(const std::basic_string<T>& string) // NOLINT(fuchsia-overloaded-operator)
     {
-        std::uint32_t size = string.size();
-        _outStream.get().write(reinterpret_cast<std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        _outStream.get().write((std::byte*)string.c_str(), string.size());
+        const std::uint32_t size = string.size();
+        _outStream.get().write(reinterpret_cast<const std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        _outStream.get().write(reinterpret_cast<const std::byte*>(string.c_str()), string.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return *this;
     }
 
     template <trivial T>
-    OutputByteStream& operator<<(const T& trivial) // NONLIN(fuchsia-overloaded-operator)
+    OutputByteStream& operator<<(const T& trivial) // NOLINT(fuchsia-overloaded-operator)
     {
-        _outStream.get().write((std::byte*)(&trivial), sizeof(trivial));
+        _outStream.get().write(reinterpret_cast<const std::byte*>(&trivial), sizeof(trivial)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return *this;
     }
 
-    OutputByteStream& operator<<(const std::filesystem::path& path) // NONLIN(fuchsia-overloaded-operator)
+    OutputByteStream& operator<<(const std::filesystem::path& path) // NOLINT(fuchsia-overloaded-operator)
     {
         operator<<(path.u8string());
         return *this;
@@ -97,17 +97,17 @@ public:
     }
 
     template <class T>
-    InputByteStream<Stream>& operator>>(std::basic_string<T>& string) // NONLIN(fuchsia-overloaded-operator)
+    InputByteStream<Stream>& operator>>(std::basic_string<T>& string) // NOLINT(fuchsia-overloaded-operator)
     {
         std::uint32_t size = 0;
-        _inStream.get().read(reinterpret_cast<std::byte*>(&size), sizeof(size)); // nolint(cppcoreguidelines-pro-type-reinterpret-cast)
+        _inStream.get().read(reinterpret_cast<std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         string.resize(size);
-        _inStream.get().read(reinterpret_cast<std::byte*>(string.data()), size); // nolint(cppcoreguidelines-pro-type-reinterpret-cast)
+        _inStream.get().read(reinterpret_cast<std::byte*>(string.data()), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
         return *this;
     }
 
-    InputByteStream<Stream>& operator>>(std::filesystem::path& path) // NONLIN(fuchsia-overloaded-operator)
+    InputByteStream<Stream>& operator>>(std::filesystem::path& path) // NOLINT(fuchsia-overloaded-operator)
     {
         std::u8string string;
         operator>>(string);

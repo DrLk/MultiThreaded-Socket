@@ -13,7 +13,6 @@
 #include "IConnection.hpp"
 #include "IPacket.hpp"
 
-
 namespace FastTransport::Protocol {
 
 ConnectionWriter::ConnectionWriter(std::stop_token stop, const IConnection::Ptr& connection)

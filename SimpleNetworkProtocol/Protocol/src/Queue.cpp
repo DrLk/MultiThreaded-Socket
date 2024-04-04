@@ -34,7 +34,6 @@ void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
         for (auto& task : taskQueue) {
             task(stop);
         }
-
     }
 }
 } // namespace FastTransport::TaskQueue

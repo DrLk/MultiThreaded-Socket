@@ -17,11 +17,10 @@ class FileSystem final {
     using FilePtr = std::unique_ptr<File>;
 
 public:
-    FileSystem(std::string_view mountpoint);
+    explicit FileSystem(std::string_view mountpoint);
     void Start();
 
 private:
-
     struct dirbuf {
         char* p;
         size_t size;
@@ -38,7 +37,7 @@ private:
     static void FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
     static void FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo);
-    static void FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fi);
+    static void FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fileInfo);
     static void FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* forgets);
     static void FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo);

@@ -45,7 +45,6 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
 
         size -= writeSize;
         bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
     }
 
     return *this;

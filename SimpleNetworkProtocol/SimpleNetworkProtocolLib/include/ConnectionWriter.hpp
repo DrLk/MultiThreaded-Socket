@@ -66,7 +66,7 @@ public:
         std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {
             _packet++;
-            std::memcpy(static_cast<std::byte*>(&trivial) + readSize, GetPacket().GetPayload().data(), size);
+            std::memcpy(static_cast<std::byte*>(&trivial) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             _offset = size;
         }
         return *this;

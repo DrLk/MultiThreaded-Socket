@@ -6,13 +6,12 @@
 namespace FastTransport::FileSystem {
 
 File::File()
-    : File("", 0, std::filesystem::file_type::none)
+    : File(0, std::filesystem::file_type::none)
 {
 }
 
-File::File(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
-    : name(name)
-    , size(size)
+File::File(std::uint64_t size, std::filesystem::file_type type)
+    : size(size)
     , type(type)
 {
 }

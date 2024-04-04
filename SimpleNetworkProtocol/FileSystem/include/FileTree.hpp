@@ -16,8 +16,8 @@ class FileTree {
     using LeafPtr = std::unique_ptr<Leaf>;
 
 public:
-    FileTree(FilePtr&& root);
-    FileTree(FileTree&& that);
+    explicit FileTree(const std::filesystem::path& name, FilePtr&& root);
+    FileTree(FileTree&& that) noexcept;
     ~FileTree();
 
     Leaf& GetRoot();

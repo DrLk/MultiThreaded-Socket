@@ -23,7 +23,6 @@ public:
     void Schedule(std::unique_ptr<Job>&& job) override;
     void Wait(std::stop_token stop) override;
 
-
     void ScheduleMainJob(std::unique_ptr<MainJob>&& job) override;
     void ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job) override;
     void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) override;

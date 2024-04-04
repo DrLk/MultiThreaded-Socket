@@ -12,15 +12,15 @@
 
 namespace FastTransport::FileSystem {
 
-FileTree::FileTree(FilePtr&& root)
-    : _root(std::make_unique<Leaf>(root->GetName(), std::filesystem::file_type::directory, nullptr))
+FileTree::FileTree(const std::filesystem::path& name, FilePtr&& root)
+    : _root(std::make_unique<Leaf>(name, std::filesystem::file_type::directory, nullptr))
 {
     _root->inode = 0;
 
     _root->SetFile(std::move(root));
 }
 
-FileTree::FileTree(FileTree&& that) = default;
+FileTree::FileTree(FileTree&& that) noexcept = default;
 
 FileTree::~FileTree() = default;
 
@@ -42,6 +42,7 @@ void FileTree::Release(std::uint64_t inode)
 FileTree FileTree::GetTestFileTree()
 {
     FileTree tree(
+        "test",
         std::make_unique<FastTransport::FileSystem::NativeFile>(
             "test",
             0,
@@ -50,6 +51,7 @@ FileTree FileTree::GetTestFileTree()
     auto& root = tree.GetRoot();
 
     auto& folder1 = root.AddFile(
+        "folder1",
         FilePtr(new NativeFile {
             "folder1",
             0,
@@ -58,18 +60,21 @@ FileTree FileTree::GetTestFileTree()
     root.Find("folder1");
 
     folder1.AddFile(
+        "file1",
         FilePtr(new NativeFile {
             "file1",
             10L * 1024L * 1024L * 1024L,
             std::filesystem::file_type::regular }));
 
     auto& folder2 = root.AddFile(
+        "folder2",
         FilePtr(new NativeFile {
             "folder2",
             0,
             std::filesystem::file_type::directory }));
 
     folder2.AddFile(
+        "file2",
         FilePtr(new NativeFile {
             "file2",
             2 * 1024 * 1024,
@@ -91,6 +96,7 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root)
         const std::filesystem::path& path = itt->path();
         if (std::filesystem::is_regular_file(path)) {
             root.AddFile(
+                path,
                 FilePtr(new NativeFile {
                     path,
                     std::filesystem::file_size(path),
@@ -99,6 +105,7 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root)
 
         } else if (std::filesystem::is_directory(path)) {
             auto& directory = root.AddFile(
+                path,
                 FilePtr(new NativeFile {
                     path,
                     std::filesystem::file_size(path),

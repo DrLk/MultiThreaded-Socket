@@ -23,7 +23,7 @@ public:
         std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {
             _packet++;
-            std::memcpy((reinterpret_cast<std::byte*>(&trivial)) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            std::memcpy((reinterpret_cast<std::byte*>(&trivial)) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
             _offset = size;
         }
         return *this;
@@ -39,6 +39,6 @@ private:
 
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { 4 };
+    std::size_t _offset { 4 };
 };
 } // namespace FastTransport::Protocol

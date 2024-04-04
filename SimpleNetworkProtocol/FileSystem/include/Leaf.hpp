@@ -18,9 +18,9 @@ struct Leaf {
 public:
     Leaf(const std::filesystem::path& name, std::filesystem::file_type type, Leaf* parent);
     Leaf(const Leaf& that) = delete;
-    Leaf(Leaf&& that);
+    Leaf(Leaf&& that) noexcept;
     Leaf& operator=(const Leaf& that) = delete;
-    Leaf& operator=(Leaf&& that);
+    Leaf& operator=(Leaf&& that) noexcept;
     ~Leaf();
 
     std::uint64_t inode {};
@@ -31,7 +31,7 @@ public:
     void SetFile(FilePtr&& file);
     const File& GetFile() const;
     Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
-    Leaf& AddFile(FilePtr&& file);
+    Leaf& AddFile(const std::filesystem::path& name, FilePtr&& file);
 
     void AddRef() const;
     void ReleaseRef() const;

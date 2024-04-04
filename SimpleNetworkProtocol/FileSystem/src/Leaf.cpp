@@ -15,9 +15,9 @@ Leaf::Leaf(const std::filesystem::path& name, std::filesystem::file_type type, L
 {
 }
 
-Leaf::Leaf(Leaf&& that) = default;
+Leaf::Leaf(Leaf&& that) noexcept = default;
 
-Leaf& Leaf::operator=(Leaf&& that) = default;
+Leaf& Leaf::operator=(Leaf&& that) noexcept = default;
 
 Leaf::~Leaf() = default;
 
@@ -28,11 +28,11 @@ Leaf& Leaf::AddChild(const std::filesystem::path& name, std::filesystem::file_ty
     return insertedLeaf->second;
 }
 
-Leaf& Leaf::AddFile(FilePtr&& file)
+Leaf& Leaf::AddFile(const std::filesystem::path& name, FilePtr&& file)
 {
-    Leaf leaf(file->GetName(), file->type, this);
+    Leaf leaf(name, file->type, this);
     leaf._file = std::move(file);
-    auto [insertedLeaf, result] = children.insert({ leaf._file->GetName().native(), std::move(leaf) });
+    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
     return insertedLeaf->second;
 }
 

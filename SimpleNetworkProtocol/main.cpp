@@ -134,6 +134,7 @@ void TestConnection2()
         TaskScheduler destinationTaskScheduler(*dstConnection);
 
         FileTree fileTree(
+            "test",
             std::make_unique<FastTransport::FileSystem::NativeFile>(
                 "test",
                 0,
@@ -165,17 +166,17 @@ void TestConnection2()
         FastTransport::TaskQueue::MergeOut mergeOut(fileTree);
         FastTransport::TaskQueue::MergeIn mergeIn(fileTree, std::move(messageReader));
 
-        int a = 0;
-        input >> a;
-        LOGGER() << "Read a: " << a;
+        int aaa = 0;
+        input >> aaa;
+        LOGGER() << "Read aaa: " << aaa;
 
-        int a2 = 0;
-        input >> a2;
-        LOGGER() << "Read a2: " << a2;
+        int bbb = 0;
+        input >> bbb;
+        LOGGER() << "Read bbb: " << bbb;
 
-        uint64_t b = 321;
-        output << b;
-        LOGGER() << "Write b: " << b;
+        uint64_t ccc = 321;
+        output << ccc;
+        LOGGER() << "Write ccc: " << ccc;
         output.Flush();
 
         while (!stop.stop_requested()) {
@@ -223,19 +224,19 @@ void TestConnection2()
         FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
         FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
 
-        int a = 123;
-        output << a;
-        LOGGER() << "Write a: " << a;
+        const int aaa = 123;
+        output << aaa;
+        LOGGER() << "Write aaa: " << aaa;
         output.Flush();
 
-        int a2 = 124;
-        output << a2;
-        LOGGER() << "Write a2: " << a2;
+        const int bbb = 124;
+        output << bbb;
+        LOGGER() << "Write bbb: " << bbb;
         output.Flush();
 
-        uint64_t b = 0;
-        input >> b;
-        LOGGER() << "Read b: " << b;
+        uint64_t ccc = 0;
+        input >> ccc;
+        LOGGER() << "Read ccc: " << ccc;
         std::this_thread::sleep_for(500s);
 
         while (!stop.stop_requested()) {
@@ -254,27 +255,29 @@ void TestConnection2()
 
 void TestConnection3()
 {
-    using namespace FastTransport::FileSystem;
+    using FileSystem = FastTransport::FileSystem::FileSystem;
+    using NativeFile = FastTransport::FileSystem::NativeFile;
 
     FileSystem filesystem("/mnt/test");
     filesystem.Start();
-    NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
+    const NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
 }
 
 void TestReadV()
 {
-    int file = open("/tmp/test1", O_RDONLY);
+    auto file = open("/tmp/test1", O_RDONLY | O_CLOEXEC);
 
-    int blocks = 2;
-    size_t offset = 0;
-
+    const int blocks = 2;
     std::vector<iovec> iovecs(blocks);
-    iovecs[0].iov_base = calloc(sizeof(std::byte), 1400);
-    iovecs[0].iov_len = 1400;
-    iovecs[1].iov_base = calloc(sizeof(std::byte), 1400);
-    iovecs[1].iov_len = 1400;
+    std::array<unsigned char, 1400> buffer1 {};
+    std::array<unsigned char, 1400> buffer2 {};
+    iovecs[0].iov_base = buffer1.data();
+    ;
+    iovecs[0].iov_len = buffer1.size();
+    iovecs[1].iov_base = buffer2.data();
+    iovecs[1].iov_len = buffer2.size();
 
-    int result = preadv(file, iovecs.data(), blocks, 11);
+    const std::int64_t result = preadv(file, iovecs.data(), blocks, 11);
     assert(result != -1);
 }
 

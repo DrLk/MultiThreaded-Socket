@@ -139,11 +139,11 @@ using ssize_t = long;
 #endif // _MSC_VER
 
 #ifndef S_ISREG
-#define S_ISREG(m) (((m)&S_IFREG) == S_IFREG)
+#define S_ISREG(m) (((m) & S_IFREG) == S_IFREG)
 #endif // S_ISREG
 
 #ifndef S_ISDIR
-#define S_ISDIR(m) (((m)&S_IFDIR) == S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFDIR) == S_IFDIR)
 #endif // S_ISDIR
 
 #ifndef NOMINMAX
@@ -3430,9 +3430,9 @@ namespace detail {
         return (l == 0)
             ? h
             : str2tag_core(
-                s + 1, l - 1,
-                // Unsets the 6 high bits of h, therefore no overflow happens
-                (((std::numeric_limits<unsigned int>::max)() >> 6) & h * 33) ^ static_cast<unsigned char>(*s));
+                  s + 1, l - 1,
+                  // Unsets the 6 high bits of h, therefore no overflow happens
+                  (((std::numeric_limits<unsigned int>::max)() >> 6) & h * 33) ^ static_cast<unsigned char>(*s));
     }
 
     inline unsigned int str2tag(const std::string& s)
@@ -5373,9 +5373,9 @@ namespace detail {
                             static_cast<size_t>(m.length(1)));
                         auto val = m.length(2) > 0
                             ? s.substr(static_cast<size_t>(m.position(2)),
-                                static_cast<size_t>(m.length(2)))
+                                  static_cast<size_t>(m.length(2)))
                             : s.substr(static_cast<size_t>(m.position(3)),
-                                static_cast<size_t>(m.length(3)));
+                                  static_cast<size_t>(m.length(3)));
                         auth[key] = val;
                     }
                     return true;
@@ -5951,7 +5951,7 @@ namespace detail {
 // HTTP server implementation
 inline Server::Server()
     : new_task_queue(
-        [] { return new ThreadPool(CPPHTTPLIB_THREAD_POOL_COUNT); })
+          [] { return new ThreadPool(CPPHTTPLIB_THREAD_POOL_COUNT); })
 {
 #ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
@@ -7890,25 +7890,25 @@ inline bool ClientImpl::process_request(Stream& strm, Request& req,
 
         auto out = req.content_receiver
             ? static_cast<ContentReceiverWithProgress>(
-                [&](const char* buf, size_t n, uint64_t off, uint64_t len) {
-                    if (redirect) {
-                        return true;
-                    }
-                    auto ret = req.content_receiver(buf, n, off, len);
-                    if (!ret) {
-                        error = Error::Canceled;
-                    }
-                    return ret;
-                })
+                  [&](const char* buf, size_t n, uint64_t off, uint64_t len) {
+                      if (redirect) {
+                          return true;
+                      }
+                      auto ret = req.content_receiver(buf, n, off, len);
+                      if (!ret) {
+                          error = Error::Canceled;
+                      }
+                      return ret;
+                  })
             : static_cast<ContentReceiverWithProgress>(
-                [&](const char* buf, size_t n, uint64_t /*off*/,
-                    uint64_t /*len*/) {
-                    if (res.body.size() + n > res.body.max_size()) {
-                        return false;
-                    }
-                    res.body.append(buf, n);
-                    return true;
-                });
+                  [&](const char* buf, size_t n, uint64_t /*off*/,
+                      uint64_t /*len*/) {
+                      if (res.body.size() + n > res.body.max_size()) {
+                          return false;
+                      }
+                      res.body.append(buf, n);
+                      return true;
+                  });
 
         auto progress = [&](uint64_t current, uint64_t total) {
             if (!req.progress || redirect) {
@@ -9571,7 +9571,7 @@ inline Client::Client(const std::string& host, int port,
     const std::string& client_cert_path,
     const std::string& client_key_path)
     : cli_(detail::make_unique<ClientImpl>(host, port, client_cert_path,
-        client_key_path))
+          client_key_path))
 {
 }
 

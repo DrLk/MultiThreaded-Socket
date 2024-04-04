@@ -7,6 +7,7 @@
 
 #include "DiskJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
+#include "FuseNetworkJob.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
 #include "MainJob.hpp"
@@ -14,7 +15,6 @@
 #include "ReadNetworkJob.hpp"
 #include "SendMessageJob.hpp"
 #include "WriteNetworkJob.hpp"
-#include "FuseNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 

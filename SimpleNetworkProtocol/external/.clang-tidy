@@ -1,0 +1,5 @@
+Checks:               'cppcoreguidelines-avoid-goto'
+WarningsAsErrors:     '*'
+CheckOptions:
+    - key:   performance-unnecessary-value-param.AllowedTypes
+      value: std::stop_token

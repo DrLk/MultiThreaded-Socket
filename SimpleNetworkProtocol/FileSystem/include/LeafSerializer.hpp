@@ -35,7 +35,7 @@ public:
         Leaf leaf(name, type, parent);
         leaf.SetFile(std::move(file));
 
-         int size;
+        int size;
         stream >> size;
         for (int i = 0; i < size; i++) {
             Leaf childLeaf = Deserialize(stream, &leaf);

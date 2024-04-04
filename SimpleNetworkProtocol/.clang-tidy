@@ -13,7 +13,8 @@ Checks:               '*,
                       -readability-convert-member-functions-to-static,
                       -bugprone-easily-swappable-parameters,
                       -google-readability-todo,
-                      -misc-include-cleaner'
+                      -misc-include-cleaner,
+                      -performance-enum-size'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes
