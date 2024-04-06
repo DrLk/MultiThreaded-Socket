@@ -348,28 +348,58 @@ template <class T>
 void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     if (begin._it1 == end._it1) {
-        std::list<T> items;
-        items.splice(items.end(), *begin._it1, begin._it2, end._it2);
-        _lists.push_back(std::move(items));
+        if (begin._it2 == begin._it1->begin() && end._it2 == begin._it1->end()) {
+            _lists.splice(_lists.end(), that._lists, begin._it1);
+            assert(!_lists.begin()->empty());
+            return;
+        }
+
+        if (begin._it2 != end._it2) {
+            std::list<T> items;
+            items.splice(items.end(), *begin._it1, begin._it2, end._it2);
+            assert(!items.empty());
+            _lists.push_back(std::move(items));
+            assert(!that._lists.begin()->empty());
+            assert(!_lists.begin()->empty());
+        }
         return;
     }
 
     {
-        std::list<T> items;
-        items.splice(items.end(), *begin._it1, begin._it2, begin._it1->end());
-        _lists.push_back(std::move(items));
-        begin._it1++;
+        if (begin._it2 == begin._it1->begin()) {
+            auto it1 = begin._it1;
+            begin._it1++;
+            assert(!it1->empty());
+            _lists.splice(_lists.end(), that._lists, it1);
+            assert(!that._lists.begin()->empty());
+            assert(!_lists.begin()->empty());
+        } else {
+
+            std::list<T> items;
+            items.splice(items.end(), *begin._it1, begin._it2, begin._it1->end());
+            _lists.push_back(std::move(items));
+            assert(!that._lists.begin()->empty());
+            assert(!_lists.begin()->empty());
+            begin._it1++;
+        }
     }
 
     if (begin._it1 == end._it1) {
 
         if (begin._it1 == that.end()._it1) {
+            assert(!_lists.begin()->empty());
+            return;
+        }
+
+        if (begin._it1->begin() == end._it2) {
             return;
         }
 
         std::list<T> items;
         items.splice(items.end(), *begin._it1, begin._it1->begin(), end._it2);
+        assert(!items.empty());
         _lists.push_back(std::move(items));
+        assert(!_lists.begin()->empty());
         return;
     }
 
@@ -379,11 +409,14 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end) // N
         _lists.splice(_lists.end(), that._lists, begin._it1, preEnd);
     }
 
-    {
+    if (end._it2 != end._it1->begin()) {
         std::list<T> items;
         items.splice(items.end(), *end._it1, end._it1->begin(), end._it2);
+        assert(!items.empty());
         _lists.push_back(std::move(items));
     }
+
+    assert(!_lists.begin()->empty());
 }
 
 template <class T>

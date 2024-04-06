@@ -34,7 +34,8 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
         writer << ENOENT;
     } else {
         struct stat stbuf { };
-        int error = stat(file.value().get().GetFullPath().c_str(), &stbuf);
+        std::string path = std::string("/tmp/") / file.value().get().GetFullPath();
+        int error = stat(path.c_str(), &stbuf);
 
         writer << error;
 

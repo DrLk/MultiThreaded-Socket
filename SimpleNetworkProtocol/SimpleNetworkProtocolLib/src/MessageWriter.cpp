@@ -42,7 +42,9 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
     const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
     while (size > 0) {
-        if (_offset == GetPacket().GetPayload().size()) {
+        auto& packet = GetPacket();
+        auto payload = packet.GetPayload();
+        if (_offset == payload.size()) {
             GetNextPacket();
         }
 

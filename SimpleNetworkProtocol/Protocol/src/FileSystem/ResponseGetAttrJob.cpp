@@ -34,7 +34,7 @@ FuseNetworkJob::Message ResponseGetAttrJob::ExecuteMain(std::stop_token /*stop*/
         writer << (S_IFDIR | 0755);
         writer << 2;
         writer << 0;
-        return reader.GetFreePackets();
+        return {};
     }
 
     struct stat stbuf { };
@@ -49,7 +49,7 @@ FuseNetworkJob::Message ResponseGetAttrJob::ExecuteMain(std::stop_token /*stop*/
         writer << stbuf.st_size;
     }
 
-    return reader.GetFreePackets();
+    return {};
 }
 
 } // namespace FastTransport::TaskQueue
