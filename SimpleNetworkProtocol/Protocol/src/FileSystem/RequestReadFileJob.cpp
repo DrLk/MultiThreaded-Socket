@@ -1,6 +1,5 @@
 #include "RequestReadFileJob.hpp"
 
-#include "File.hpp"
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
@@ -17,7 +16,7 @@ RequestReadFileJob::RequestReadFileJob(File& file, fuse_req_t request, size_t si
 {
 }
 
-FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Writer& writer)
+FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*/, Writer& writer)
 {
     TRACER() << "Execute"
              << " size: " << _size
@@ -28,7 +27,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token stop, IT
     writer << _size;
     writer << _off;
 
-    return Message();
+    return {};
 }
 
 } // namespace FastTransport::TaskQueue

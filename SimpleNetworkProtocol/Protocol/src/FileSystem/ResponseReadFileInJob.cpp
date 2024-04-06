@@ -11,31 +11,25 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseReadFileInJob::ResponseReadFileInJob(Reader&& reader)
-    : FuseNetworkJob()
-    , _reader(std::move(reader))
-{
-}
-
 void ResponseReadFileInJob::GetBuffer(const Message& message)
 {
-    fuse_bufvec buf;
+    fuse_bufvec buf{};
     buf.count = message.size();
 }
 
-FuseNetworkJob::Message ResponseReadFileInJob::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Writer& writer)
+FuseNetworkJob::Message ResponseReadFileInJob::ExecuteMain(std::stop_token  /*stop*/, Writer&  /*writer*/)
 {
     TRACER() << "Execute";
-    fuse_req_t req;
-    ssize_t size;
+    fuse_req_t req = nullptr;
+    ssize_t size = 0;
     Message data;
     _reader >> req;
     _reader >> size;
     _reader >> data;
 
-    struct fuse_bufvec* bufv;
+    struct fuse_bufvec* bufv = nullptr;
     std::size_t len = sizeof(struct fuse_bufvec) + sizeof(struct fuse_buf) * (data.size() - 1);
-    bufv = (struct fuse_bufvec*)calloc(1, len);
+    bufv = static_cast<struct fuse_bufvec*>(calloc(1, len));
     if (bufv) {
         int i = 0;
         bufv->count = data.size();

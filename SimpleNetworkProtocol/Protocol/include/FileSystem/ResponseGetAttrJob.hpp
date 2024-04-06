@@ -1,21 +1,15 @@
 #pragma once
 
-#include <fuse3/fuse_lowlevel.h>
-#include <stop_token>
-
 #include "FuseNetworkJob.hpp"
 #include "MessageReader.hpp"
 
 namespace FastTransport::TaskQueue {
+using Writer = Protocol::MessageWriter;
 
-class ResponseReadFileInJob : public FuseNetworkJob {
+class ResponseGetAttrJob : public FuseNetworkJob {
     using Reader = Protocol::MessageReader;
 
 public:
     Message ExecuteMain(std::stop_token stop, Writer& writer) override;
-
-private:
-    Reader _reader;
-    void GetBuffer(const Message& message);
 };
 } // namespace FastTransport::TaskQueue

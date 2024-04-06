@@ -14,6 +14,10 @@
 #include "MessageReader.hpp"
 #include "MessageType.hpp"
 #include "ReadNetworkJob.hpp"
+#include "ResponseGetAttrJob.hpp"
+#include "ResponseGetAttrJobIn.hpp"
+#include "ResponseLookupJob.hpp"
+#include "ResponseLookupJobIn.hpp"
 
 #define TRACER() LOGGER() << "[MessageTypeReadJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -42,7 +46,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
         return;
     }
 
-    std::uint32_t messageSize;
+    std::uint32_t messageSize = 0;
     assert(_messages.front()->GetPayload().size() >= sizeof(messageSize));
     std::memcpy(&messageSize, _messages.front()->GetPayload().data(), sizeof(messageSize));
 
@@ -53,7 +57,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
 
     auto message = _messages.TryGenerate(messageSize);
     Protocol::MessageReader reader(std::move(message));
-    MessageType type;
+    MessageType type {};
     reader >> type;
     switch (type) {
     case MessageType::RequestTree:
@@ -62,10 +66,30 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     case MessageType::ResponseTree:
         scheduler.Schedule(MergeIn::Create(_fileTree, std::move(reader)));
         break;
-    case MessageType::RequestFile:
+    case MessageType::RequestGetAttr: {
+        auto job = std::make_unique<ResponseGetAttrJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
         break;
-    case MessageType::ResponseFile:
+    }
+    case MessageType::ResponseGetAttr: {
+        auto job = std::make_unique<ResponseGetAttrJobIn>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
         break;
+    }
+    case MessageType::RequestLookup: {
+        auto job = std::make_unique<ResponseLookupJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseLookup: {
+        auto job = std::make_unique<ResponseLookupJobIn>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
     default:
         throw std::runtime_error("MessageTypeReadJob: unknown message type");
     }

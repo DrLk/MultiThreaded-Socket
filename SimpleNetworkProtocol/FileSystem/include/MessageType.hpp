@@ -3,12 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "ByteStream.hpp"
-#include "FileTree.hpp"
 
 enum class MessageType {
     None = 0,
@@ -20,16 +18,15 @@ enum class MessageType {
     ResponseFileBytes = 6,
     RequestCloseFile = 7,
     ResponseCloseFile = 8,
+    RequestGetAttr = 9,
+    ResponseGetAttr = 10,
+    RequestLookup = 11,
+    ResponseLookup = 12,
 };
 
 using FileID = std::uint64_t;
 
 using MessageID = std::uint32_t;
-
-struct Request {
-    MessageType type;
-    MessageID id;
-} __attribute__((aligned(32)));
 
 struct RequestTree {
     std::string path;
@@ -68,14 +65,14 @@ struct ResponseCloseFile {
 };
 
 template <FastTransport::FileSystem::OutputStream Stream>
-FastTransport::FileSystem::OutputByteStream<Stream>& operator<<(FastTransport::FileSystem::OutputByteStream<Stream>& stream, const RequestTree& message)
+FastTransport::FileSystem::OutputByteStream<Stream>& operator<<(FastTransport::FileSystem::OutputByteStream<Stream>& stream, const RequestTree& message) // NOLINT(fuchsia-overloaded-operator)
 {
     stream << message.path;
     return stream;
 }
 
 template <FastTransport::FileSystem::InputStream Stream>
-FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::FileSystem::InputByteStream<Stream>& stream, RequestTree& message)
+FastTransport::FileSystem::InputByteStream<Stream>& operator>>(FastTransport::FileSystem::InputByteStream<Stream>& stream, RequestTree& message) // NOLINT(fuchsia-overloaded-operator)
 {
     stream >> message.path;
     return stream;

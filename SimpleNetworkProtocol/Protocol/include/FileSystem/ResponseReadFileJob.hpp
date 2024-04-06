@@ -1,11 +1,9 @@
 #pragma once
 
-#include <stop_token>
 #include <fuse3/fuse_lowlevel.h>
+#include <stop_token>
 
-#include "DiskJob.hpp"
 #include "FuseNetworkJob.hpp"
-#include "MainReadJob.hpp"
 #include "MessageReader.hpp"
 
 namespace FastTransport::TaskQueue {
@@ -14,10 +12,9 @@ class ResponseReadFileJob : public FuseNetworkJob {
     using Reader = Protocol::MessageReader;
 
 public:
-    ResponseReadFileJob(Reader&& reader);
-    FuseNetworkJob::Message ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Writer& writer) override;
+    FuseNetworkJob::Message ExecuteMain(std::stop_token stop, Writer& writer) override;
 
 private:
-    Reader _reader;
+    Reader reader;
 };
 } // namespace FastTransport::TaskQueue

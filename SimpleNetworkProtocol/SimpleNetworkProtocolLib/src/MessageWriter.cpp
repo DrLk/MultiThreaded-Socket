@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <span>
 #include <utility>
 
@@ -27,6 +28,12 @@ MessageWriter& MessageWriter::operator=(MessageWriter&&) noexcept = default;
 MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
 {
     _packets.splice(std::move(packets));
+    return *this;
+}
+
+MessageWriter& MessageWriter::operator<<(const std::filesystem::path& path) // NOLINT(fuchsia-overloaded-operator)
+{
+    operator<<(path.u8string());
     return *this;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FileTree.hpp"
 #include "IConnection.hpp"
 #include "IPacket.hpp"
 #include "ITaskScheduler.hpp"
@@ -11,9 +12,10 @@ namespace FastTransport::TaskQueue {
 class TaskScheduler final : public ITaskScheduler {
     using IConnection = FastTransport::Protocol::IConnection;
     using Message = FastTransport::Protocol::IPacket::List;
+    using FileTree = FileSystem::FileTree;
 
 public:
-    TaskScheduler(IConnection& connection);
+    TaskScheduler(IConnection& connection, FileTree& fileTree);
     TaskScheduler(const TaskScheduler&) = delete;
     TaskScheduler(TaskScheduler&&) = delete;
     TaskScheduler& operator=(const TaskScheduler&) = delete;
@@ -29,6 +31,7 @@ public:
     void ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job) override;
     void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) override;
     void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) override;
+    void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) override;
 
 private:
     TaskQueue _diskQueue;
@@ -36,6 +39,7 @@ private:
     TaskQueue _readNetworkQueue;
     TaskQueue _writeNetworkQueue;
     std::reference_wrapper<IConnection> _connection;
+    std::reference_wrapper<FileTree> _fileTree;
     Message _freeSendPackets;
 };
 

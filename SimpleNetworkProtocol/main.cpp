@@ -13,7 +13,7 @@
 #include "ConnectionReader.hpp"
 #include "ConnectionWriter.hpp"
 #include "FastTransportProtocol.hpp"
-#include "FileSystem.hpp"
+#include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
 #include "MergeIn.hpp"
@@ -131,18 +131,20 @@ void TestConnection2()
         dstConnection->AddFreeRecvPackets(std::move(recvPackets));
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        TaskScheduler destinationTaskScheduler(*dstConnection);
 
-        FileTree fileTree(
-            "test",
-            std::make_unique<FastTransport::FileSystem::NativeFile>(
-                "test",
-                0,
-                std::filesystem::file_type::directory));
+        FileTree fileTree = FileTree::GetTestFileTree();
+        TaskScheduler destinationTaskScheduler(*dstConnection, fileTree);
+
 
         destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
         destinationTaskScheduler.Schedule(MergeRequest::Create());
+
+        using FastTransport::TaskQueue::RemoteFileSystem;
+        RemoteFileSystem filesystem("/mnt/test");
+        RemoteFileSystem::scheduler = &destinationTaskScheduler;
+        filesystem.Start();
+
 
         destinationTaskScheduler.Wait(stop);
 
@@ -209,9 +211,9 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        TaskScheduler sourceTaskScheduler(*srcConnection);
-
         FileTree fileTree = FileTree::GetTestFileTree();
+        TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
+
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
         sourceTaskScheduler.Wait(stop);
@@ -255,10 +257,10 @@ void TestConnection2()
 
 void TestConnection3()
 {
-    using FileSystem = FastTransport::FileSystem::FileSystem;
     using NativeFile = FastTransport::FileSystem::NativeFile;
+    using FastTransport::TaskQueue::RemoteFileSystem;
 
-    FileSystem filesystem("/mnt/test");
+    RemoteFileSystem filesystem("/mnt/test");
     filesystem.Start();
     const NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
 }

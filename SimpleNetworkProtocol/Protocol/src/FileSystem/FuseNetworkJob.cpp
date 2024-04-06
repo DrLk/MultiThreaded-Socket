@@ -14,4 +14,19 @@ void FuseNetworkJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& jo
     scheduler.ScheduleFuseNetworkJob(std::move(fuseNetworkJob));
 }
 
+void FuseNetworkJob::InitReader(Reader&& reader)
+{
+    _reader = std::move(reader);
+}
+
+FuseNetworkJob::Reader& FuseNetworkJob::GetReader()
+{
+    return _reader;
+}
+
+FuseNetworkJob::Message FuseNetworkJob::GetFreeReadPackets()
+{
+    return _reader.GetPackets();
+}
+
 } // namespace FastTransport::TaskQueue

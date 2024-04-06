@@ -1,7 +1,6 @@
 #include "ResponseReadFileJob.hpp"
 
 #include <stop_token>
-#include <vector>
 
 #include "Logger.hpp"
 
@@ -9,27 +8,22 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseReadFileJob::ResponseReadFileJob(Reader&& reader)
-    : FuseNetworkJob()
-    , _reader(std::move(reader))
-{
-}
-
-FuseNetworkJob::Message ResponseReadFileJob::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Writer& writer)
+FuseNetworkJob::Message ResponseReadFileJob::ExecuteMain(std::stop_token  /*stop*/, Writer&  /*writer*/)
 {
     TRACER() << "Execute";
 
-    fuse_req_t request;
-    int file;
-    size_t size;
-    off_t offset;
-    _reader >> request;
-    _reader >> file;
-    _reader >> size;
-    _reader >> offset;
+    fuse_req_t request = nullptr;
+    int file = 0;
+    size_t size = 0;
+    off_t offset = 0;
+    auto& reader = GetReader();
+    reader >> request;
+    reader >> file;
+    reader >> size;
+    reader >> offset;
 
 
-    return _reader.GetPackets();
+    return reader.GetPackets();
 }
 
 } // namespace FastTransport::TaskQueue

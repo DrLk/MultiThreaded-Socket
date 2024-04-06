@@ -28,7 +28,7 @@ MergeIn::MergeIn(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& 
     TRACER() << "Create";
 }
 
-void MergeIn::ExecuteMainRead(std::stop_token stop, ITaskScheduler& scheduler)
+void MergeIn::ExecuteMainRead(std::stop_token  /*stop*/, ITaskScheduler& scheduler)
 {
     TRACER() << "Execute";
 

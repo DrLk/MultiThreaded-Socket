@@ -40,6 +40,14 @@ MessageReader& MessageReader::operator>>(IPacket::List& /*packets*/) // NOLINT(f
     return *this;
 }
 
+MessageReader& MessageReader::operator>>(std::filesystem::path& path) // NOLINT(fuchsia-overloaded-operator)
+{
+    std::u8string string;
+    operator>>(string);
+    path = string;
+    return *this;
+}
+
 IPacket::List MessageReader::GetPackets()
 {
     return std::move(_packets);

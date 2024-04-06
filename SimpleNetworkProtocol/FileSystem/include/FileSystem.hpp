@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <sys/types.h>
 
 #include <cstdio>
@@ -13,12 +14,16 @@
 #include "FileTree.hpp"
 
 namespace FastTransport::FileSystem {
-class FileSystem final {
+class FileSystem {
     using FilePtr = std::unique_ptr<File>;
 
 public:
     explicit FileSystem(std::string_view mountpoint);
     void Start();
+
+protected:
+    std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _getattr;
+    std::function<void(fuse_req_t req, fuse_ino_t parentId, const char* name)> _lookup;
 
 private:
     struct dirbuf {

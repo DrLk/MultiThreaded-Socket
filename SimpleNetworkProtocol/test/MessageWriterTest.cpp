@@ -116,4 +116,21 @@ TEST(MessageWriter, WriteBigArray)
 
     writer.write(testData.data(), testData.size());
 }
+
+TEST(MessageWriter, WriteBigSpan)
+{
+    IPacket::List freePackets;
+    for (int i = 0; i < 100; i++) {
+        auto packet = std::make_unique<Packet>(1500);
+        std::array<std::byte, 1000> payload {};
+        packet->SetPayload(payload);
+        freePackets.push_back(std::move(packet));
+    }
+
+    MessageWriter writer(std::move(freePackets));
+
+    std::vector<std::byte> testData(2000, std::byte { 31 });
+
+    writer << std::span(testData);
+}
 } // namespace FastTransport::Protocol

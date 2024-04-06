@@ -72,6 +72,25 @@ FileSystem::FileSystem(std::string_view mountpoint)
 
 void FileSystem::Start()
 {
+    _fuseOperations = {
+        .init = FuseInit,
+        .lookup = *_lookup.target<void (*)(fuse_req_t, fuse_ino_t, const char*)>(),
+        .forget = FuseForget,
+        .getattr = *_getattr.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
+        .open = FuseOpen,
+        .read = FuseRead,
+        .release = FuseRelease,
+        .opendir = FuseOpendir,
+        .readdir = FuseReaddir,
+        .releasedir = FuseReleasedir,
+        .write_buf = FuseWriteBuf,
+        .forget_multi = FuseForgetmulti,
+        .copy_file_range = FuseCopyFileRange,
+        /*.setxattr = FuseSetxattr,
+        .getxattr = FuseGetxattr,
+        .removexattr = FuseRemovexattr,*/
+    };
+
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
     fuse_opt_add_arg(&args, _mountpoint.c_str());
     fuse_opt_add_arg(&args, "-oauto_unmount");
@@ -231,10 +250,6 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
              << " off: " << off;
 
     (void)fileInfo;
-    FileTree* tree = nullptr;
-    if (inode == FUSE_ROOT_ID) {
-        tree = static_cast<FileTree*>(fuse_req_userdata(req));
-    }
 
     auto& directory = GetLeaf(inode, req);
     fuse_ino_t currentINode = FUSE_ROOT_ID;
