@@ -4,7 +4,6 @@
 #include <stop_token>
 #include <sys/stat.h>
 
-#include "Leaf.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
