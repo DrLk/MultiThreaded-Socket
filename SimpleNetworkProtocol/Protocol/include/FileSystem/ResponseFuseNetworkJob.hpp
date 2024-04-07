@@ -7,12 +7,9 @@
 #include "FileTree.hpp"
 #include "IPacket.hpp"
 #include "Job.hpp"
+#include "Leaf.hpp"
 #include "MessageReader.hpp"
 #include "MessageWriter.hpp"
-
-namespace FastTransport::FileSystem {
-class Leaf;
-} // namespace FastTransport::FileSystem
 
 namespace FastTransport::TaskQueue {
 

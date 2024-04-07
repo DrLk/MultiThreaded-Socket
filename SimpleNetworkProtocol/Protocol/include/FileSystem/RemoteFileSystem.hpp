@@ -15,6 +15,7 @@ public:
 private:
     static void FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name);
+	static void FuseOpendir(fuse_req_t request, fuse_ino_t inode, struct fuse_file_info *fileInfo);
 };
 
 } // namespace FastTransport::TaskQueue

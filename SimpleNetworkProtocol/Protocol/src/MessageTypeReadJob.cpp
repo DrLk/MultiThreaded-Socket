@@ -18,6 +18,8 @@
 #include "ResponseGetAttrJobIn.hpp"
 #include "ResponseLookupJob.hpp"
 #include "ResponseLookupJobIn.hpp"
+#include "ResponseOpenDirInJob.hpp"
+#include "ResponseOpenDirJob.hpp"
 
 #define TRACER() LOGGER() << "[MessageTypeReadJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -86,6 +88,18 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseLookup: {
         auto job = std::make_unique<ResponseLookupJobIn>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestOpenDir: {
+        auto job = std::make_unique<ResponseOpenDirJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseOpenDir: {
+        auto job = std::make_unique<ResponseOpenDirInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

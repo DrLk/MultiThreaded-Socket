@@ -80,7 +80,7 @@ void FileSystem::Start()
         .open = FuseOpen,
         .read = FuseRead,
         .release = FuseRelease,
-        .opendir = FuseOpendir,
+        .opendir = *_opendir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .readdir = FuseReaddir,
         .releasedir = FuseReleasedir,
         .write_buf = FuseWriteBuf,
@@ -289,7 +289,7 @@ void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* file
         fuse_reply_err(req, EACCES);
     }*/
 
-    const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
+    const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
     if (file == -1) {
         fuse_reply_err(req, errno);
         return;
@@ -362,18 +362,13 @@ void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
     auto path = leaf.GetFullPath();
     leaf.AddRef();
 
-    const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW);
+    const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
     if (file == -1) {
         fuse_reply_err(req, errno);
         return;
     }
 
     fileInfo->fh = file;
-
-    if (inode == FUSE_ROOT_ID) {
-        fuse_reply_open(req, fileInfo);
-        return;
-    }
 
     fuse_reply_open(req, fileInfo);
 }

@@ -116,7 +116,9 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 void TestConnection2()
 {
-    using namespace FastTransport::TaskQueue;
+    using FastTransport::TaskQueue::TaskScheduler;
+    using FastTransport::TaskQueue::MessageTypeReadJob;
+    using FastTransport::TaskQueue::MergeRequest;
 
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
@@ -267,7 +269,7 @@ void TestConnection3()
 
 void TestReadV()
 {
-    auto file = open("/tmp/test1", O_RDONLY | O_CLOEXEC);
+    auto file = open("/tmp/test1", O_RDONLY | O_CLOEXEC); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
 
     const int blocks = 2;
     std::vector<iovec> iovecs(blocks);
