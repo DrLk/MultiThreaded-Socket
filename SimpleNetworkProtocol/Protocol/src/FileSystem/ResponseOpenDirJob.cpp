@@ -38,6 +38,8 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
         return {};
     }
 
+    leaf.AddRef();
+
     writer << 0; // No error
     writer << fileInfo;
     writer << file;

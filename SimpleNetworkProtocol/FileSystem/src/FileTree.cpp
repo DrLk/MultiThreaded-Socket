@@ -42,9 +42,9 @@ void FileTree::Release(std::uint64_t inode)
 FileTree FileTree::GetTestFileTree()
 {
     FileTree tree(
-        "test",
+        "/tmp/test",
         std::make_unique<FastTransport::FileSystem::NativeFile>(
-            "test",
+            "/tmp/test",
             0,
             std::filesystem::file_type::directory));
 
