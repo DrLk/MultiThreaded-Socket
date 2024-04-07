@@ -18,7 +18,7 @@ FreeRecvPacketsJob::FreeRecvPacketsJob(Message&& message)
 {
 }
 
-void FreeRecvPacketsJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, Protocol::IConnection& connection)
+void FreeRecvPacketsJob::ExecuteReadNetwork(std::stop_token  /*stop*/, ITaskScheduler&  /*scheduler*/, Protocol::IConnection& connection)
 {
     connection.AddFreeRecvPackets(std::move(_message));
 }

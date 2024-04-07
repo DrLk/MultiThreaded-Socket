@@ -3,6 +3,7 @@
 #include <cstring>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "Concepts.hpp"
 #include "IPacket.hpp"
@@ -25,7 +26,7 @@ public:
     MessageReader& operator>>(std::filesystem::path& path); // NOLINT(fuchsia-overloaded-operator)
                                                             //
     template <class T>
-    MessageReader& operator>>(std::span<T> span); // NOLINT(fuchsia-overloaded-operator)
+    MessageReader& operator>>(std::vector<T>& data); // NOLINT(fuchsia-overloaded-operator)
     
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetFreePackets();
@@ -58,8 +59,9 @@ MessageReader& MessageReader::operator>>(T& trivial) // NOLINT(fuchsia-overloade
 template <class T>
 MessageReader& MessageReader::operator>>(std::basic_string<T>& string) // NOLINT(fuchsia-overloaded-operator)
 {
-    std::uint32_t size = 0;
-    read(reinterpret_cast<std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    static_assert(sizeof(std::uint64_t) == sizeof(typename std::basic_string<T>::size_type));
+    std::uint64_t size = 0;
+    operator>>(size);
     string.resize(size);
     read(reinterpret_cast<std::byte*>(string.data()), size * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
@@ -67,9 +69,13 @@ MessageReader& MessageReader::operator>>(std::basic_string<T>& string) // NOLINT
 }
 
 template <class T>
-MessageReader& MessageReader::operator>>(std::span<T> span) // NOLINT(fuchsia-overloaded-operator)
+MessageReader& MessageReader::operator>>(std::vector<T>& data) // NOLINT(fuchsia-overloaded-operator)
 {
-    read(reinterpret_cast<std::byte*>(span.data()), span.size() * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    static_assert(sizeof(std::int64_t) == sizeof(typename std::basic_string<T>::size_type));
+    std::uint64_t size = 0;
+    operator>>(size);
+    data.resize(size);
+    read(reinterpret_cast<std::byte*>(data.data()), size * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     return *this;
 }
 

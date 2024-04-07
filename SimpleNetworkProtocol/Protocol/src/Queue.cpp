@@ -27,13 +27,14 @@ void TaskQueue::ProcessQueue(std::stop_token stop, TaskQueue& queue)
     while (queue._taskQueue.Wait(stop)) {
         List taskQueue;
 
-        LOGGER() << "TASK QUEUE SIZE: " << taskQueue.size();
         queue._taskQueue.LockedSwap(taskQueue);
-        LOGGER() << "TASK QUEUE SIZE 2: " << taskQueue.size();
+        LOGGER() << "Task queue size: " << taskQueue.size();
 
         for (auto& task : taskQueue) {
             task(stop);
         }
+
+        queue._taskQueue.NotifyAll();
     }
 }
 } // namespace FastTransport::TaskQueue

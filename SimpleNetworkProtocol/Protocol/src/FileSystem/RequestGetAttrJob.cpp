@@ -20,7 +20,8 @@ RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, fuse_
 
 Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
-    TRACER() << "Execute";
+    TRACER() << "Execute"
+             << " request: " << _request;
 
     writer << MessageType::RequestGetAttr;
     writer << _request;

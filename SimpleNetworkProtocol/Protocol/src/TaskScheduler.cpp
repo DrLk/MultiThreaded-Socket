@@ -10,12 +10,16 @@
 #include "FuseNetworkJob.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
+#include "Logger.hpp"
 #include "MainJob.hpp"
 #include "MainReadJob.hpp"
 #include "ReadNetworkJob.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 #include "SendMessageJob.hpp"
 #include "WriteNetworkJob.hpp"
+
+
+#define TRACER() LOGGER() << "[TaskScheduler] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
@@ -85,8 +89,15 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
         Message freePackets = job->ExecuteMain(stop, writer);
         freePackets.splice(job->GetFreeReadPackets());
 
-        ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(writer.GetWritedPackets()));
-        ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
+        auto writedPackets = writer.GetWritedPackets();
+        TRACER() << "writedPackets.size() 2: " << writedPackets.size();
+        if (!writedPackets.empty()) {
+            ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(std::move(writedPackets)));
+        }
+
+        if (!freePackets.empty()) {
+            ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
+        }
         _freeSendPackets = writer.GetPackets();
     });
 }
@@ -99,8 +110,15 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
         Message freePackets = job->ExecuteResponse(stop, writer, _fileTree);
         freePackets.splice(job->GetFreeReadPackets());
 
-        ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(writer.GetWritedPackets()));
-        ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
+        auto writedPackets = writer.GetWritedPackets();
+        TRACER() << "writedPackets.size(): " << writedPackets.size();
+        if (!writedPackets.empty()) {
+            ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(std::move(writedPackets)));
+        }
+
+        if (!freePackets.empty()) {
+            ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
+        }
         _freeSendPackets = writer.GetPackets();
     });
 }

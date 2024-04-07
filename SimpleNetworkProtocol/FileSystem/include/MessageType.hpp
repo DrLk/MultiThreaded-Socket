@@ -24,6 +24,8 @@ enum class MessageType {
     ResponseLookup = 12,
     RequestOpenDir = 13,
     ResponseOpenDir = 14,
+    RequestForgetMulti = 15,
+    ResponseForgetMulti = 16,
 };
 
 using FileID = std::uint64_t;

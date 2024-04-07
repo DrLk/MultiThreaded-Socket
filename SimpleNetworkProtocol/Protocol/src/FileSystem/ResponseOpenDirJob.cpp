@@ -7,7 +7,7 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
-#define TRACER() LOGGER() << "[ResponseOpendDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseOpenDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 

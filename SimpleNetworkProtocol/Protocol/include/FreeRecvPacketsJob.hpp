@@ -12,7 +12,7 @@ class FreeRecvPacketsJob : public ReadNetworkJob {
 public:
     static std::unique_ptr<ReadNetworkJob> Create(Message&& message);
 
-    FreeRecvPacketsJob(Message&& message);
+    explicit FreeRecvPacketsJob(Message&& message);
 
     void ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, IConnection& connection) override;
 

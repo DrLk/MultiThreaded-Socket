@@ -14,7 +14,6 @@ namespace FastTransport::TaskQueue {
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
     TRACER() << "Execute";
-
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t parrentId = 0;
@@ -22,6 +21,9 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     reader >> request;
     reader >> parrentId;
     reader >> name;
+
+    TRACER() << "Execute"
+             << " request: " << request;
 
     Leaf& parrent = GetLeaf(parrentId, fileTree);
     auto file = parrent.Find(name);
@@ -37,7 +39,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     const Leaf& fileRef = file.value().get();
 
     struct stat stbuf { };
-    std::string path = std::string("/tmp/") / fileRef.GetFullPath();
+    std::string path = fileRef.GetFullPath();
     int error = stat(path.c_str(), &stbuf);
 
     writer << error;

@@ -75,7 +75,7 @@ void FileSystem::Start()
     _fuseOperations = {
         .init = FuseInit,
         .lookup = *_lookup.target<void (*)(fuse_req_t, fuse_ino_t, const char*)>(),
-        .forget = FuseForget,
+        .forget = *_forget.target<void (*)(fuse_req_t, fuse_ino_t, uint64_t)>(),
         .getattr = *_getattr.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .open = FuseOpen,
         .read = FuseRead,
@@ -84,7 +84,7 @@ void FileSystem::Start()
         .readdir = FuseReaddir,
         .releasedir = FuseReleasedir,
         .write_buf = FuseWriteBuf,
-        .forget_multi = FuseForgetmulti,
+        .forget_multi = *_forgetMulti.target<void (*)(fuse_req_t, size_t, fuse_forget_data*)>(),
         .copy_file_range = FuseCopyFileRange,
         /*.setxattr = FuseSetxattr,
         .getxattr = FuseGetxattr,

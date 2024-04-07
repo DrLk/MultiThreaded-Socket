@@ -19,7 +19,8 @@ RequestLookupJob::RequestLookupJob(fuse_req_t request, fuse_ino_t parent, std::s
 
 FuseNetworkJob::Message RequestLookupJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
-    TRACER() << "Execute";
+    TRACER() << "Execute"
+             << " request: " << _request;
 
     writer << MessageType::RequestLookup;
     writer << _request;

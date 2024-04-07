@@ -12,13 +12,15 @@ namespace FastTransport::TaskQueue {
 
 FuseNetworkJob::Message ResponseGetAttrJobIn::ExecuteMain(std::stop_token /*stop*/, Writer&  /*writer*/)
 {
-    TRACER() << "Execute";
 
     auto& reader = GetReader();
     fuse_req_t _request = nullptr;
     int error = 0;
     reader >> _request;
     reader >> error;
+
+    TRACER() << "Execute"
+             << " request: " << _request;
 
     if (error != 0) {
         fuse_reply_err(_request, error);

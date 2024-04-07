@@ -8,7 +8,7 @@
 
 namespace FastTransport::Protocol {
 class IConnection;
-}
+} // namespace FastTransport::Protocol
 
 namespace FastTransport::TaskQueue {
 

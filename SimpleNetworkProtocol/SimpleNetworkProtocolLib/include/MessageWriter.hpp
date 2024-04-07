@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <string>
@@ -55,15 +56,17 @@ MessageWriter& MessageWriter::operator<<(const T& trivial) // NOLINT(fuchsia-ove
 template <class T>
 MessageWriter& MessageWriter::operator<<(const std::basic_string<T>& string) // NOLINT(fuchsia-overloaded-operator)
 {
-    const std::uint32_t size = string.size();
-    write(reinterpret_cast<const std::byte*>(&size), sizeof(size)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    write(reinterpret_cast<const std::byte*>(string.c_str()), string.size() * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    static_assert(sizeof(std::int64_t) == sizeof(typename std::basic_string<T>::size_type));
+    operator<<(string.size());
+    write(string.c_str(), string.size() * sizeof(T));
     return *this;
 }
 
 template <trivial T>
 MessageWriter& MessageWriter::operator<<(std::span<T> span) // NOLINT(fuchsia-overloaded-operator)
 {
+    static_assert(sizeof(std::uint64_t) == sizeof(typename std::span<T>::size_type));
+    operator<<(span.size());
     return write(span.data(), span.size() * sizeof(T));
 }
 

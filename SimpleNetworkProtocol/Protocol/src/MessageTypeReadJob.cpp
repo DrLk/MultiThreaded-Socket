@@ -14,6 +14,8 @@
 #include "MessageReader.hpp"
 #include "MessageType.hpp"
 #include "ReadNetworkJob.hpp"
+#include "ResponseForgetMultiInJob.hpp"
+#include "ResponseForgetMultiJob.hpp"
 #include "ResponseGetAttrJob.hpp"
 #include "ResponseGetAttrJobIn.hpp"
 #include "ResponseLookupJob.hpp"
@@ -40,19 +42,19 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
 {
     TRACER() << "Execute";
 
-    auto messages = connection.Recv(stop, IPacket::List());
-    _messages.splice(std::move(messages));
-
     if (_messages.empty()) {
-        scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
-        return;
+        auto messages = connection.Recv(stop, IPacket::List());
+        _messages.splice(std::move(messages));
     }
 
     std::uint32_t messageSize = 0;
     assert(_messages.front()->GetPayload().size() >= sizeof(messageSize));
     std::memcpy(&messageSize, _messages.front()->GetPayload().data(), sizeof(messageSize));
 
-    if (messageSize < _messages.size()) {
+    TRACER() << "messageSize: " << messageSize;
+    if (messageSize > _messages.size()) {
+        auto messages = connection.Recv(stop, IPacket::List());
+        _messages.splice(std::move(messages));
         scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
         return;
     }
@@ -61,6 +63,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     Protocol::MessageReader reader(std::move(message));
     MessageType type {};
     reader >> type;
+    TRACER() << "MessageType: " << static_cast<int>(type);
     switch (type) {
     case MessageType::RequestTree:
         scheduler.Schedule(MergeOut::Create(_fileTree));
@@ -100,6 +103,18 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseOpenDir: {
         auto job = std::make_unique<ResponseOpenDirInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestForgetMulti: {
+        auto job = std::make_unique<ResponseForgetMultiJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseForgetMulti: {
+        auto job = std::make_unique<ResponseForgetMultiInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;
