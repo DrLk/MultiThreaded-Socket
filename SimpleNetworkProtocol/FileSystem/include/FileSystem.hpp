@@ -27,6 +27,7 @@ protected:
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _opendir;
     std::function<void(fuse_req_t, fuse_ino_t, uint64_t)> _forget;
     std::function<void(fuse_req_t, size_t, fuse_forget_data*)> _forgetMulti;
+    std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _release;
 
 private:
     struct dirbuf {

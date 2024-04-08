@@ -79,7 +79,7 @@ void FileSystem::Start()
         .getattr = *_getattr.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .open = FuseOpen,
         .read = FuseRead,
-        .release = FuseRelease,
+        .release = *_release.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .opendir = *_opendir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .readdir = FuseReaddir,
         .releasedir = FuseReleasedir,

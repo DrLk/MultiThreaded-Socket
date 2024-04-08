@@ -1,0 +1,23 @@
+#pragma once
+
+enum class MessageType {
+    None = 0,
+    RequestTree = 1,
+    ResponseTree = 2,
+    RequestFile = 3,
+    ResponseFile = 4,
+    RequestReadFile = 5,
+    ResponseFileBytes = 6,
+    RequestCloseFile = 7,
+    ResponseCloseFile = 8,
+    RequestGetAttr = 9,
+    ResponseGetAttr = 10,
+    RequestLookup = 11,
+    ResponseLookup = 12,
+    RequestOpenDir = 13,
+    ResponseOpenDir = 14,
+    RequestForgetMulti = 15,
+    ResponseForgetMulti = 16,
+    RequestRelease = 17,
+    ResponseRelease = 18,
+};
