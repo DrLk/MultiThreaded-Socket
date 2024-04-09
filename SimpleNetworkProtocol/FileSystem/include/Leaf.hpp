@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -12,7 +11,7 @@ namespace FastTransport::FileSystem {
 
 class File;
 
-struct Leaf {
+class Leaf {
     using FilePtr = std::unique_ptr<File>;
 
 public:
@@ -23,30 +22,26 @@ public:
     Leaf& operator=(Leaf&& that) noexcept;
     ~Leaf();
 
-    std::uint64_t inode {};
-    std::map<std::string, Leaf> children; // TODO: use std::set
-
     const std::filesystem::path& GetName() const;
     std::filesystem::file_type GetType() const;
     void SetFile(FilePtr&& file);
     const File& GetFile() const;
     Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
+    Leaf& AddChild(Leaf&& leaf);
     Leaf& AddFile(const std::filesystem::path& name, FilePtr&& file);
 
     void AddRef() const;
     void ReleaseRef() const;
     void ReleaseRef(uint64_t nlookup) const;
 
-    std::optional<std::reference_wrapper<const Leaf>> Find(const std::string& name) const;
+    const std::map<std::string, Leaf>& GetChildren() const;
 
-    std::size_t Read(size_t offset, std::span<std::byte> buffer)
-    {
-        return 0;
-    }
+    std::optional<std::reference_wrapper<const Leaf>> Find(const std::string& name) const;
 
     std::filesystem::path GetFullPath() const;
 
 private:
+    std::map<std::string, Leaf> children; // TODO: use std::set
     std::filesystem::path _name;
     std::filesystem::file_type _type;
     Leaf* _parent;

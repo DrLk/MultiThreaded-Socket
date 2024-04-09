@@ -16,8 +16,10 @@ enum class MessageType {
     ResponseLookup = 12,
     RequestOpenDir = 13,
     ResponseOpenDir = 14,
-    RequestForgetMulti = 15,
-    ResponseForgetMulti = 16,
+    RequestOpen = 15,
+    ResponseOpen = 16,
     RequestRelease = 17,
     ResponseRelease = 18,
+    RequestForgetMulti = 19,
+    ResponseForgetMulti = 20,
 };

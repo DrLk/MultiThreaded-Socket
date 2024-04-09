@@ -1,10 +1,8 @@
 #include "FileTree.hpp"
 
 #include <cassert>
-#include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 
 #include "Leaf.hpp"
@@ -15,28 +13,18 @@ namespace FastTransport::FileSystem {
 FileTree::FileTree(const std::filesystem::path& name, FilePtr&& root)
     : _root(std::make_unique<Leaf>(name, std::filesystem::file_type::directory, nullptr))
 {
-    _root->inode = 0;
-
     _root->SetFile(std::move(root));
 }
 
 FileTree::FileTree(FileTree&& that) noexcept = default;
+
+FileTree& FileTree::operator=(FileTree&& that) noexcept = default;
 
 FileTree::~FileTree() = default;
 
 Leaf& FileTree::GetRoot()
 {
     return *_root;
-}
-
-void FileTree::AddOpened(const std::shared_ptr<Leaf>& leaf)
-{
-    _openedFiles.insert({ leaf->inode, leaf });
-}
-
-void FileTree::Release(std::uint64_t inode)
-{
-    _openedFiles.erase(inode);
 }
 
 FileTree FileTree::GetTestFileTree()
@@ -77,7 +65,7 @@ FileTree FileTree::GetTestFileTree()
         "file2",
         FilePtr(new NativeFile {
             "file2",
-            2 * 1024 * 1024,
+            2LL * 1024 * 1024,
             std::filesystem::file_type::regular }));
 
     return tree;
@@ -88,7 +76,7 @@ void FileTree::Scan(const std::filesystem::path& directoryPath)
     Scan(std::move(directoryPath), *_root);
 }
 
-void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root)
+void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // NOLINT(misc-no-recursion)
 {
     std::filesystem::directory_iterator itt(directoryPath);
 

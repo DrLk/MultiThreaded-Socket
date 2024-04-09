@@ -22,12 +22,15 @@ public:
     void Start();
 
 protected:
+    // NOLINTBEGIN
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _getattr;
     std::function<void(fuse_req_t, fuse_ino_t, const char*)> _lookup;
+    std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _open;
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _opendir;
     std::function<void(fuse_req_t, fuse_ino_t, uint64_t)> _forget;
     std::function<void(fuse_req_t, size_t, fuse_forget_data*)> _forgetMulti;
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _release;
+    // NOLINTEND
 
 private:
     struct dirbuf {

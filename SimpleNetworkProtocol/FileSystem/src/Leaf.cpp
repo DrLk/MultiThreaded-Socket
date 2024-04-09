@@ -28,6 +28,12 @@ Leaf& Leaf::AddChild(const std::filesystem::path& name, std::filesystem::file_ty
     return insertedLeaf->second;
 }
 
+Leaf& Leaf::AddChild(Leaf&& leaf)
+{
+    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
+    return insertedLeaf->second;
+}
+
 Leaf& Leaf::AddFile(const std::filesystem::path& name, FilePtr&& file)
 {
     Leaf leaf(name, file->type, this);
@@ -73,6 +79,11 @@ void Leaf::ReleaseRef(uint64_t nlookup) const
     assert(_nlookup >= nlookup);
 
     _nlookup -= nlookup;
+}
+
+const std::map<std::string, Leaf>& Leaf::GetChildren() const
+{
+    return children;
 }
 
 std::optional<std::reference_wrapper<const Leaf>> Leaf::Find(const std::string& name) const

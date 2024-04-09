@@ -9,6 +9,7 @@
 #include "RequestGetAttrJob.hpp"
 #include "RequestLookupJob.hpp"
 #include "RequestOpenDirJob.hpp"
+#include "RequestOpenJob.hpp"
 #include "RequestReleaseJob.hpp"
 
 #define TRACER() LOGGER() << "[RemoteFileSystem] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -20,6 +21,7 @@ RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
     _getattr = &RemoteFileSystem::FuseGetattr;
     _lookup = &RemoteFileSystem::FuseLookup;
     _opendir = &RemoteFileSystem::FuseOpendir;
+    _open = &RemoteFileSystem::FuseOpen;
     _forget = &RemoteFileSystem::FuseForget;
     _forgetMulti = &RemoteFileSystem::FuseForgetmulti;
     _release = &RemoteFileSystem::FuseRelease;
@@ -52,6 +54,16 @@ void RemoteFileSystem::FuseOpendir(fuse_req_t request, fuse_ino_t inode, fuse_fi
              << " fileInfo: " << fileInfo;
 
     scheduler->Schedule(std::make_unique<RequestOpenDirJob>(request, inode, fileInfo));
+}
+
+void RemoteFileSystem::FuseOpen(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
+{
+    TRACER() << "[opendir]"
+             << " request: " << request
+             << " inode: " << inode
+             << " fileInfo: " << fileInfo;
+
+    scheduler->Schedule(std::make_unique<RequestOpenJob>(request, inode, fileInfo));
 }
 
 void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uint64_t nlookup)

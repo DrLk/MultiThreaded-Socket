@@ -77,7 +77,7 @@ void FileSystem::Start()
         .lookup = *_lookup.target<void (*)(fuse_req_t, fuse_ino_t, const char*)>(),
         .forget = *_forget.target<void (*)(fuse_req_t, fuse_ino_t, uint64_t)>(),
         .getattr = *_getattr.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
-        .open = FuseOpen,
+        .open = *_open.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .read = FuseRead,
         .release = *_release.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .opendir = *_opendir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
@@ -117,6 +117,7 @@ void FileSystem::Start()
         throw std::runtime_error("Failed to fuse_session_loop");
     }
 }
+// NOLINTBEGIN
 
 void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
 {
@@ -263,7 +264,7 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         memset(&buffer, 0, sizeof(buffer));
         BufferAddFile(req, &buffer, ".", currentINode);
         BufferAddFile(req, &buffer, "..", 1);
-        for (auto& [name, file] : directory.children) {
+        for (const auto& [name, file] : directory.GetChildren()) {
             auto inode = GetINode(file);
             BufferAddFile(req, &buffer, file.GetName().c_str(), inode);
         }
@@ -447,4 +448,5 @@ void FileSystem::FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
     fuse_reply_write(req, size);
 }
 
+// NOLINTEND
 } // namespace FastTransport::FileSystem

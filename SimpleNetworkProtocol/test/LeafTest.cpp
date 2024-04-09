@@ -37,12 +37,12 @@ static void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-r
 {
     EXPECT_EQ(left.GetName(), right.GetName());
     EXPECT_EQ(left.GetType(), right.GetType());
-    EXPECT_EQ(left.children.size(), right.children.size());
+    EXPECT_EQ(left.GetChildren().size(), right.GetChildren().size());
 
 
-    for (const auto& [name, child] : left.children) {
-        const auto& rightChild = right.children.find(name);
-        if (rightChild == right.children.end()) {
+    for (const auto& [name, child] : left.GetChildren()) {
+        const auto& rightChild = right.GetChildren().find(name);
+        if (rightChild == right.GetChildren().end()) {
             FAIL() << "Child not found: " << name;
             break;
         }

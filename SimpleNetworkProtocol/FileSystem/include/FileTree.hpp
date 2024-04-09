@@ -17,14 +17,13 @@ class FileTree {
 
 public:
     explicit FileTree(const std::filesystem::path& name, FilePtr&& root);
+    FileTree(const FileTree& that) = delete;
     FileTree(FileTree&& that) noexcept;
+    FileTree& operator=(const FileTree& that) = delete;
+    FileTree& operator=(FileTree&& that) noexcept;
     ~FileTree();
 
     Leaf& GetRoot();
-
-    void AddOpened(const std::shared_ptr<Leaf>& leaf);
-
-    void Release(std::uint64_t inode);
 
     static FileTree GetTestFileTree();
 
