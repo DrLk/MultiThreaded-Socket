@@ -1,4 +1,4 @@
-#include "ResponseReleaseJob.hpp"
+#include "ResponseReleaseDirJob.hpp"
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -7,11 +7,11 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReleaseJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseReleaseDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
+ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
     TRACER() << "Execute";
 
@@ -23,7 +23,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
     reader >> inode;
     reader >> file;
 
-    writer << MessageType::ResponseRelease;
+    writer << MessageType::ResponseReleaseDir;
     writer << request;
 
     int error = 0;
@@ -32,7 +32,6 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
     leaf.ReleaseRef();
 
     if (inode == FUSE_ROOT_ID) {
-        assert(false);
         writer << error;
         return {};
     }

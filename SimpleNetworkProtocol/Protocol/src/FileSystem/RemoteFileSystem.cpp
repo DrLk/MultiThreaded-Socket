@@ -10,6 +10,7 @@
 #include "RequestLookupJob.hpp"
 #include "RequestOpenDirJob.hpp"
 #include "RequestOpenJob.hpp"
+#include "RequestReleaseDirJob.hpp"
 #include "RequestReleaseJob.hpp"
 
 #define TRACER() LOGGER() << "[RemoteFileSystem] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -25,6 +26,7 @@ RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
     _forget = &RemoteFileSystem::FuseForget;
     _forgetMulti = &RemoteFileSystem::FuseForgetmulti;
     _release = &RemoteFileSystem::FuseRelease;
+    _releaseDir = &RemoteFileSystem::FuseReleaseDir;
 }
 
 void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -76,7 +78,7 @@ void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uin
     /*auto* fileInfo = new fuse_file_info();
     scheduler->Schedule(std::make_unique<RequestGetAttrJob>(request, inode, fileInfo));
     return;*/
-    fuse_forget_data forget = {inode, nlookup};
+    fuse_forget_data forget = { inode, nlookup };
     scheduler->Schedule(std::make_unique<RequestForgetMultiJob>(request, std::span(&forget, 1)));
 }
 
@@ -98,6 +100,16 @@ void RemoteFileSystem::FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_fi
              << " fileInfo: " << fileInfo;
 
     scheduler->Schedule(std::make_unique<RequestReleaseJob>(request, inode, fileInfo));
+}
+
+void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
+{
+    TRACER() << "[releasedir]"
+             << " request: " << request
+             << " inode: " << inode
+             << " fileInfo: " << fileInfo;
+
+    scheduler->Schedule(std::make_unique<RequestReleaseDirJob>(request, inode, fileInfo));
 }
 
 ITaskScheduler* RemoteFileSystem::scheduler = nullptr;

@@ -22,6 +22,12 @@
 #include "ResponseLookupJobIn.hpp"
 #include "ResponseOpenDirInJob.hpp"
 #include "ResponseOpenDirJob.hpp"
+#include "ResponseOpenInJob.hpp"
+#include "ResponseOpenJob.hpp"
+#include "ResponseReleaseDirInJob.hpp"
+#include "ResponseReleaseDirJob.hpp"
+#include "ResponseReleaseInJob.hpp"
+#include "ResponseReleaseJob.hpp"
 
 #define TRACER() LOGGER() << "[MessageTypeReadJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -95,6 +101,18 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
         scheduler.Schedule(std::move(job));
         break;
     }
+    case MessageType::RequestOpen: {
+        auto job = std::make_unique<ResponseOpenJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseOpen: {
+        auto job = std::make_unique<ResponseOpenInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
     case MessageType::RequestOpenDir: {
         auto job = std::make_unique<ResponseOpenDirJob>();
         job->InitReader(std::move(reader));
@@ -115,6 +133,30 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseForgetMulti: {
         auto job = std::make_unique<ResponseForgetMultiInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestRelease: {
+        auto job = std::make_unique<ResponseReleaseJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseRelease: {
+        auto job = std::make_unique<ResponseReleaseInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestReleaseDir: {
+        auto job = std::make_unique<ResponseReleaseDirJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseReleaseDir: {
+        auto job = std::make_unique<ResponseReleaseDirInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

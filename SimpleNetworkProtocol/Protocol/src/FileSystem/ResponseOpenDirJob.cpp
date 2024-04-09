@@ -28,6 +28,7 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
              << " request: " << request;
 
     Leaf const& leaf = GetLeaf(inode, fileTree);
+    leaf.AddRef();
 
     writer << MessageType::ResponseOpenDir;
     writer << request;
@@ -37,8 +38,6 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
         writer << errno;
         return {};
     }
-
-    leaf.AddRef();
 
     writer << 0; // No error
     writer << fileInfo;

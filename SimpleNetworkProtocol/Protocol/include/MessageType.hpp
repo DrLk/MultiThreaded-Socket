@@ -22,4 +22,6 @@ enum class MessageType {
     ResponseRelease = 18,
     RequestForgetMulti = 19,
     ResponseForgetMulti = 20,
+    RequestReleaseDir = 21,
+    ResponseReleaseDir = 22,
 };

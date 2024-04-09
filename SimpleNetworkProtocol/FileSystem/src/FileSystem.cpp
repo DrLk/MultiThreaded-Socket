@@ -82,7 +82,7 @@ void FileSystem::Start()
         .release = *_release.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .opendir = *_opendir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .readdir = FuseReaddir,
-        .releasedir = FuseReleasedir,
+        .releasedir = *_releaseDir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .write_buf = FuseWriteBuf,
         .forget_multi = *_forgetMulti.target<void (*)(fuse_req_t, size_t, fuse_forget_data*)>(),
         .copy_file_range = FuseCopyFileRange,

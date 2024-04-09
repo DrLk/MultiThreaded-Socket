@@ -32,8 +32,8 @@ FuseNetworkJob::Message ResponseLookupJobIn::ExecuteMain(std::stop_token /*stop*
     reader >> entry.attr.st_size;
 
     entry.ino = entry.attr.st_ino;
-    entry.attr_timeout = 1.0;
-    entry.entry_timeout = 1.0;
+    entry.attr_timeout = 1000.0;
+    entry.entry_timeout = 1000.0;
 
     fuse_reply_entry(request, &entry);
 

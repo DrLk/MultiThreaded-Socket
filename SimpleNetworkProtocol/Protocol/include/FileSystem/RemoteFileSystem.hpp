@@ -20,6 +20,7 @@ private:
     static void FuseForget(fuse_req_t request, fuse_ino_t inode, std::uint64_t nlookup);
     static void FuseForgetmulti(fuse_req_t request, size_t count, fuse_forget_data* forgets);
     static void FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo);
+    static void FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo);
 };
 
 } // namespace FastTransport::TaskQueue

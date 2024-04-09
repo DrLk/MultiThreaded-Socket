@@ -1,4 +1,4 @@
-#include "ResponseReleaseInJob.hpp"
+#include "ResponseReleaseDirInJob.hpp"
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -6,11 +6,11 @@
 
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReleaseInJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseReleaseDirInJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-FuseNetworkJob::Message ResponseReleaseInJob::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
+FuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
