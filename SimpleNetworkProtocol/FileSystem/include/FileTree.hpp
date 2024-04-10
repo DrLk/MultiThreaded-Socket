@@ -16,7 +16,7 @@ class FileTree {
     using LeafPtr = std::unique_ptr<Leaf>;
 
 public:
-    explicit FileTree(const std::filesystem::path& name, FilePtr&& root);
+    explicit FileTree(const std::filesystem::path& name);
     FileTree(const FileTree& that) = delete;
     FileTree(FileTree&& that) noexcept;
     FileTree& operator=(const FileTree& that) = delete;

@@ -1,7 +1,9 @@
-#include "ResponseLookupJobIn.hpp"
+#include "ResponseLookupInJob.hpp"
 
+#include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include "Logger.hpp"
@@ -10,14 +12,18 @@
 
 namespace FastTransport::TaskQueue {
 
-FuseNetworkJob::Message ResponseLookupJobIn::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
+ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
 {
     TRACER() << "Execute";
 
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
+    fuse_ino_t parrentId = 0;
+    std::string name;
     int error = 0;
     reader >> request;
+    reader >> parrentId;
+    reader >> name;
     reader >> error;
 
     if (error != 0) {
@@ -34,6 +40,9 @@ FuseNetworkJob::Message ResponseLookupJobIn::ExecuteMain(std::stop_token /*stop*
     entry.ino = entry.attr.st_ino;
     entry.attr_timeout = 1000.0;
     entry.entry_timeout = 1000.0;
+
+    std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
+    GetLeaf(parrentId, fileTree).AddChild(name, type);
 
     fuse_reply_entry(request, &entry);
 

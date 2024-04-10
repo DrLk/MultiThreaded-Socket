@@ -16,10 +16,10 @@
 #include "ReadNetworkJob.hpp"
 #include "ResponseForgetMultiInJob.hpp"
 #include "ResponseForgetMultiJob.hpp"
+#include "ResponseGetAttrInJob.hpp"
 #include "ResponseGetAttrJob.hpp"
-#include "ResponseGetAttrJobIn.hpp"
+#include "ResponseLookupInJob.hpp"
 #include "ResponseLookupJob.hpp"
-#include "ResponseLookupJobIn.hpp"
 #include "ResponseOpenDirInJob.hpp"
 #include "ResponseOpenDirJob.hpp"
 #include "ResponseOpenInJob.hpp"
@@ -84,7 +84,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
         break;
     }
     case MessageType::ResponseGetAttr: {
-        auto job = std::make_unique<ResponseGetAttrJobIn>();
+        auto job = std::make_unique<ResponseGetAttrInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;
@@ -96,7 +96,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
         break;
     }
     case MessageType::ResponseLookup: {
-        auto job = std::make_unique<ResponseLookupJobIn>();
+        auto job = std::make_unique<ResponseLookupInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

@@ -7,7 +7,7 @@
 
 namespace FastTransport::TaskQueue {
 
-class ResponseOpenInJob : public ResponseInFuseNetworkJob {
+class ResponseLookupInJob : public ResponseInFuseNetworkJob {
     using Reader = Protocol::MessageReader;
     using FileTree = FileSystem::FileTree;
 

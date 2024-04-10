@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FileSystem/ResponseInFuseNetworkJob.hpp"
 #include <memory>
 #include <stop_token>
 
@@ -33,6 +34,7 @@ public:
     virtual void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) = 0;
     virtual void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) = 0;
     virtual void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) = 0;
+    virtual void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

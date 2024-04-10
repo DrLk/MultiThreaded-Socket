@@ -30,6 +30,8 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
 
     writer << MessageType::ResponseLookup;
     writer << request;
+    writer << parrentId;
+    writer << name;
 
     if (!file) {
         writer << ENOENT;

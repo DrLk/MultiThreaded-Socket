@@ -1,4 +1,4 @@
-#include "ResponseGetAttrJobIn.hpp"
+#include "ResponseGetAttrInJob.hpp"
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -10,7 +10,7 @@
 
 namespace FastTransport::TaskQueue {
 
-FuseNetworkJob::Message ResponseGetAttrJobIn::ExecuteMain(std::stop_token /*stop*/, Writer&  /*writer*/)
+ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
 
     auto& reader = GetReader();

@@ -2,16 +2,16 @@
 
 #include <fuse3/fuse_lowlevel.h>
 
-#include "FuseNetworkJob.hpp"
 #include "MessageReader.hpp"
+#include "ResponseInFuseNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
-class ResponseReleaseDirInJob : public FuseNetworkJob {
+class ResponseReleaseDirInJob : public ResponseInFuseNetworkJob {
     using Reader = Protocol::MessageReader;
-    using Writer = Protocol::MessageWriter;
+    using FileTree = FileSystem::FileTree;
 
 public:
-    Message ExecuteMain(std::stop_token stop, Writer& writer) override;
+    Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) override;
 };
 } // namespace FastTransport::TaskQueue

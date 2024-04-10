@@ -123,4 +123,17 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
     });
 }
 
+void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        assert(!_freeSendPackets.empty());
+        Message freePackets = job->ExecuteResponse(stop, _fileTree);
+        freePackets.splice(job->GetFreeReadPackets());
+
+        if (!freePackets.empty()) {
+            ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
+        }
+    });
+}
+
 } // namespace FastTransport::TaskQueue

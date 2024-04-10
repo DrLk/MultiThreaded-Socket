@@ -10,10 +10,9 @@
 
 namespace FastTransport::FileSystem {
 
-FileTree::FileTree(const std::filesystem::path& name, FilePtr&& root)
+FileTree::FileTree(const std::filesystem::path& name)
     : _root(std::make_unique<Leaf>(name, std::filesystem::file_type::directory, nullptr))
 {
-    _root->SetFile(std::move(root));
 }
 
 FileTree::FileTree(FileTree&& that) noexcept = default;
@@ -29,12 +28,7 @@ Leaf& FileTree::GetRoot()
 
 FileTree FileTree::GetTestFileTree()
 {
-    FileTree tree(
-        "/tmp/test",
-        std::make_unique<FastTransport::FileSystem::NativeFile>(
-            "/tmp/test",
-            0,
-            std::filesystem::file_type::directory));
+    FileTree tree("/tmp/test");
 
     auto& root = tree.GetRoot();
 

@@ -5,12 +5,13 @@
 #include <sys/types.h>
 
 #include "Logger.hpp"
+#include "ResponseInFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseInJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-FuseNetworkJob::Message ResponseReleaseInJob::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
+ResponseInFuseNetworkJob::Message ResponseReleaseInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;

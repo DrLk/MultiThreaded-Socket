@@ -134,7 +134,7 @@ void TestConnection2()
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
 
-        FileTree fileTree = FileTree::GetTestFileTree();
+        FileTree fileTree = FileTree("/tmp/test2");
         TaskScheduler destinationTaskScheduler(*dstConnection, fileTree);
 
 

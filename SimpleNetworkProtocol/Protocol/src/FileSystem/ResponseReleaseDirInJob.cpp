@@ -10,7 +10,7 @@
 
 namespace FastTransport::TaskQueue {
 
-FuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
+ResponseInFuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
