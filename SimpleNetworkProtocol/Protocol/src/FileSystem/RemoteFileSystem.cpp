@@ -10,6 +10,7 @@
 #include "RequestLookupJob.hpp"
 #include "RequestOpenDirJob.hpp"
 #include "RequestOpenJob.hpp"
+#include "RequestReadFileJob.hpp"
 #include "RequestReleaseDirJob.hpp"
 #include "RequestReleaseJob.hpp"
 
@@ -27,6 +28,7 @@ RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
     _forgetMulti = &RemoteFileSystem::FuseForgetmulti;
     _release = &RemoteFileSystem::FuseRelease;
     _releaseDir = &RemoteFileSystem::FuseReleaseDir;
+    _read = &RemoteFileSystem::FuseRead;
 }
 
 void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -110,6 +112,18 @@ void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse
              << " fileInfo: " << fileInfo;
 
     scheduler->Schedule(std::make_unique<RequestReleaseDirJob>(request, inode, fileInfo));
+}
+
+void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo)
+{
+    TRACER() << "[read]"
+             << " request: " << request
+             << " inode: " << inode
+             << " size: " << size
+             << " off: " << off
+             << " fileInfo: " << fileInfo;
+
+    scheduler->Schedule(std::make_unique<RequestReadFileJob>(request, inode, size, off, fileInfo));
 }
 
 ITaskScheduler* RemoteFileSystem::scheduler = nullptr;

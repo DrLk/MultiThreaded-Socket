@@ -31,6 +31,7 @@ protected:
     std::function<void(fuse_req_t, size_t, fuse_forget_data*)> _forgetMulti;
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _release;
     std::function<void(fuse_req_t, fuse_ino_t, fuse_file_info*)> _releaseDir;
+    std::function<void(fuse_req_t, fuse_ino_t, size_t, off_t, fuse_file_info*)> _read;
     // NOLINTEND
 
 private:

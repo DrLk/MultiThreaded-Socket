@@ -3,16 +3,16 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
-#include "FuseNetworkJob.hpp"
 #include "MessageReader.hpp"
+#include "ResponseInFuseNetworkJob.hpp"
 
 namespace FastTransport::TaskQueue {
 
-class ResponseReadFileInJob : public FuseNetworkJob {
+class ResponseReadFileInJob : public ResponseInFuseNetworkJob {
     using Reader = Protocol::MessageReader;
 
 public:
-    Message ExecuteMain(std::stop_token stop, Writer& writer) override;
+    Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) override;
 
 private:
     Reader _reader;

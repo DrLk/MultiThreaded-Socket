@@ -17,25 +17,30 @@ void ResponseReadFileInJob::GetBuffer(const Message& message)
     buf.count = message.size();
 }
 
-FuseNetworkJob::Message ResponseReadFileInJob::ExecuteMain(std::stop_token  /*stop*/, Writer&  /*writer*/)
+ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token  /*stop*/, FileTree&  /*fileTree*/)
 {
     TRACER() << "Execute";
     fuse_req_t req = nullptr;
-    ssize_t size = 0;
+    int error = 0;
     Message data;
     _reader >> req;
-    _reader >> size;
+    _reader >> error;
     _reader >> data;
 
+    if (error != 0) {
+        fuse_reply_err(req, error);
+        return {};
+    }
+
     struct fuse_bufvec* bufv = nullptr;
-    std::size_t len = sizeof(struct fuse_bufvec) + sizeof(struct fuse_buf) * (data.size() - 1);
-    bufv = static_cast<struct fuse_bufvec*>(calloc(1, len));
+    std::size_t len = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
+    bufv = static_cast<fuse_bufvec*>(calloc(1, len));
     if (bufv) {
         int i = 0;
         bufv->count = data.size();
-        for (auto& v : data) {
-            bufv->buf[i].mem = v->GetPayload().data();
-            bufv->buf[i++].size = v->GetPayload().size();
+        for (auto& packet : data) {
+            bufv->buf[i].mem = packet->GetPayload().data();
+            bufv->buf[i++].size = packet->GetPayload().size();
         }
     }
 

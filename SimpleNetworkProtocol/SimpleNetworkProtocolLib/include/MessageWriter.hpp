@@ -36,6 +36,7 @@ public:
     MessageWriter& flush();
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetWritedPackets();
+    [[nodiscard]] std::size_t GetFreePackets();
 
 private:
     IPacket& GetPacket();

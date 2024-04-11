@@ -6,23 +6,19 @@
 
 #include "FuseNetworkJob.hpp"
 
-namespace FastTransport::FileSystem {
-    class File;
-} // namespace FastTransport::FileSystem
-
 namespace FastTransport::TaskQueue {
-    using File = FileSystem::File;
     using Writer = Protocol::MessageWriter;
 
     class RequestReadFileJob : public FuseNetworkJob {
         public:
-            RequestReadFileJob(File& file, fuse_req_t request, size_t size, off_t off);
+            RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo);
             Message ExecuteMain(std::stop_token stop, Writer& writer) override;
 
         private:
-            std::reference_wrapper<File> _file;
             fuse_req_t _request;
+            fuse_ino_t _inode;
             size_t _size;
             off_t _off;
+            int _file;
     };
 } // namespace FastTransport::TaskQueue
