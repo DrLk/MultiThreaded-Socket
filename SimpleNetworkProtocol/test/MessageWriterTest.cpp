@@ -96,8 +96,57 @@ TEST(MessageWriter, WriteIPacketList)
 
     EXPECT_TRUE(std::equal(testData.begin(), testData.end(), sendPackets.back()->GetPayload().begin(), sendPackets.back()->GetPayload().end()));
 
+    EXPECT_EQ(sendPackets.size(), 1);
     writer << std::move(sendPackets);
-    auto packets = writer.GetPackets();
+
+    auto writedPackets = writer.GetWritedPackets();
+    EXPECT_EQ(writedPackets.size(), 2);
+    EXPECT_THAT(writedPackets.back()->GetPayload(), ::testing::ElementsAreArray(testData.begin(), testData.end()));
+}
+
+TEST(MessageWriter, WriteTrivialAndIPacketList)
+{
+    IPacket::List packets;
+    for (int i = 0; i < 100; i++) {
+        auto packet = std::make_unique<Packet>(1500);
+        std::array<std::byte, 1000> payload {};
+        packet->SetPayload(payload);
+        packets.push_back(std::move(packet));
+    }
+
+    MessageWriter writer(std::move(packets));
+
+    int value = 9575;
+    writer << value;
+
+    auto dataPackates = writer.GetDataPackets(10);
+    std::array<std::byte, 1000> testData {};
+    for (auto& byte : testData) {
+        byte = std::byte { 64 };
+    }
+    for (auto& packet : dataPackates) {
+        packet->SetPayload(testData);
+    }
+
+    EXPECT_EQ(dataPackates.size(), 10);
+    for (auto& packet : dataPackates) {
+        EXPECT_THAT(packet->GetPayload(), ::testing::ElementsAreArray(testData.begin(), testData.end()));
+    }
+
+    writer << std::move(dataPackates);
+    writer << value;
+
+    auto writedPackets = writer.GetWritedPackets();
+    EXPECT_EQ(writedPackets.size(), 12);
+
+    IPacket::List expectedData;
+    auto begin = writedPackets.begin();
+    begin++;
+    expectedData.splice(writedPackets, begin, --writedPackets.end());
+    EXPECT_EQ(expectedData.size(), 10);
+    for (auto& packet : expectedData) {
+        EXPECT_THAT(packet->GetPayload(), ::testing::ElementsAreArray(testData.begin(), testData.end()));
+    }
 }
 
 TEST(MessageWriter, WriteBigArray)

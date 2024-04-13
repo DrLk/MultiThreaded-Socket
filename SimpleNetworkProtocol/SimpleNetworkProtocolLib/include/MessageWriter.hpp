@@ -36,11 +36,11 @@ public:
     MessageWriter& flush();
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetWritedPackets();
-    [[nodiscard]] std::size_t GetFreePackets();
+    [[nodiscard]] IPacket::List GetDataPackets(std::size_t size);
 
 private:
     IPacket& GetPacket();
-    void GetNextPacket();
+    IPacket& GetNextPacket();
 
     IPacket::List _packets;
     IPacket::List::Iterator _packet;

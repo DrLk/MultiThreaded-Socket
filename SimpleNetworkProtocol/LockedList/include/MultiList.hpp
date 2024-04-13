@@ -31,6 +31,8 @@ public:
 
         Iterator& operator++(); // NOLINT(fuchsia-overloaded-operator)
         const Iterator operator++(int); // NOLINT(fuchsia-overloaded-operator)
+        Iterator& operator--(); // NOLINT(fuchsia-overloaded-operator)
+        const Iterator operator--(int); // NOLINT(fuchsia-overloaded-operator)
         bool operator==(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         bool operator!=(const Iterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         T& operator*() const; // NOLINT(fuchsia-overloaded-operator)
@@ -60,6 +62,8 @@ public:
 
         ConstIterator& operator++(); // NOLINT(fuchsia-overloaded-operator)
         const ConstIterator operator++(int); // NOLINT(fuchsia-overloaded-operator)
+        ConstIterator& operator--(); // NOLINT(fuchsia-overloaded-operator)
+        const ConstIterator operator--(int); // NOLINT(fuchsia-overloaded-operator)
         bool operator==(const ConstIterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         bool operator!=(const ConstIterator& other) const; // NOLINT(fuchsia-overloaded-operator)
         const T& operator*() const; // NOLINT(fuchsia-overloaded-operator)
@@ -162,6 +166,36 @@ const typename MultiList<T>::Iterator MultiList<T>::Iterator::operator++(int) //
 }
 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
+typename MultiList<T>::Iterator& MultiList<T>::Iterator::operator--() // NOLINT(fuchsia-overloaded-operator)
+{
+    if (_it1 == _container->_lists.end()) {
+        _it1--;
+        _it2 = _it1->end();
+        _it2--;
+        return *this;
+    }
+
+    if (_it2 == _it1->begin()) {
+        _it1--;
+        _it2 = _it1->end();
+        _it2--;
+        return *this;
+    }
+
+    _it2--;
+
+    return *this;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const typename MultiList<T>::Iterator MultiList<T>::Iterator::operator--(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
+{
+    auto copy = *this;
+    operator--();
+    return copy;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
 bool MultiList<T>::Iterator::operator==(const Iterator& other) const // NOLINT(fuchsia-overloaded-operator)
 {
     if (_it1 == other._it1) {
@@ -239,8 +273,38 @@ typename MultiList<T>::ConstIterator& MultiList<T>::ConstIterator::operator++() 
 template <class T> // NOLINT(fuchsia-overloaded-operator)
 const typename MultiList<T>::ConstIterator MultiList<T>::ConstIterator::operator++(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
 {
-    auto copy = operator++();
+    auto copy = *this;
     operator++();
+    return copy;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+typename MultiList<T>::ConstIterator& MultiList<T>::ConstIterator::operator--() // NOLINT(fuchsia-overloaded-operator)
+{
+    if (_it1 == _container->_lists.end()) {
+        _it1--;
+        _it2 = _it1->end();
+        _it2--;
+        return *this;
+    }
+
+    if (_it2 == _it1->begin()) {
+        _it1--;
+        _it2 = _it1->end();
+        _it2--;
+        return *this;
+    }
+
+    _it2--;
+
+    return *this;
+}
+
+template <class T> // NOLINT(fuchsia-overloaded-operator)
+const typename MultiList<T>::ConstIterator MultiList<T>::ConstIterator::operator--(int) // NOLINT(fuchsia-overloaded-operator, readability-const-return-type)
+{
+    auto copy = *this;
+    operator--();
     return copy;
 }
 
@@ -398,13 +462,17 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
     }
 
     {
-        auto preEnd = end._it1;
-        preEnd--;
-        _lists.splice(_lists.end(), that._lists, begin._it1, preEnd);
-    }
+        if (end._it1 == that._lists.end()) {
+            _lists.splice(_lists.end(), that._lists, begin._it1, end._it1);
+            return;
+        }
 
-    if (end._it2 != end._it1->begin()) {
-        SpliceInternalList(*end._it1, end._it1->begin(), end._it2);
+        auto preEnd = end._it1;
+        _lists.splice(_lists.end(), that._lists, begin._it1, preEnd);
+
+        if (end._it2 != end._it1->begin()) {
+            SpliceInternalList(*end._it1, end._it1->begin(), end._it2);
+        }
     }
 }
 

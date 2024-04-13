@@ -154,3 +154,52 @@ TEST(LockedListTest, LockedGetBack)
     EXPECT_EQ(result, 1);
     EXPECT_TRUE(resultList.empty());
 }
+
+TEST(MultiListTest, Splice)
+{
+    MultiList<int> list;
+    for (int i = 0; i < 100; i++) {
+        list.push_back(std::move(i));
+    }
+
+    MultiList<int> freePackets;
+    auto _packet = list.begin();
+    _packet++;
+    if (_packet != list.begin()) {
+        auto begin = _packet;
+        begin++;
+        freePackets.splice(list, begin, list.end());
+    }
+
+    MultiList<int> packets;
+    for (int i = 0; i < 64; i++) {
+        packets.push_back(std::move(i));
+    }
+
+    _packet = packets.end();
+    _packet--;
+    list.splice(std::move(packets));
+    list.splice(std::move(freePackets));
+
+    _packet++;
+    assert(_packet != list.end());
+}
+
+TEST(MultiListTest, Splice2)
+{
+    int size = 64;
+    MultiList<int> list;
+    for (int i = 0; i < 100; i++) {
+        list.push_back(std::move(i));
+    }
+
+    MultiList<int> freePackets;
+    auto begin = list.begin();
+    freePackets.splice(list, begin, list.end());
+    EXPECT_EQ(list.size(), 0);
+    EXPECT_EQ(freePackets.size(), 100);
+
+    MultiList<int> result = freePackets.TryGenerate(size);
+
+    list.splice(std::move(freePackets));
+}

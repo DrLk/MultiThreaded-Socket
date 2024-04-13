@@ -27,7 +27,24 @@ MessageWriter& MessageWriter::operator=(MessageWriter&&) noexcept = default;
 
 MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
 {
+    operator<<(packets.size());
+
+    IPacket::List freePackets;
+    assert(_packet != _packets.end());
+
+    _packet++;
+
+    freePackets.splice(_packets, _packet, _packets.end());
+
+    _writedPacketNumber += packets.size();
     _packets.splice(std::move(packets));
+    _packet = _packets.end();
+    _packet--;
+    _packets.splice(std::move(freePackets));
+    _packet++;
+
+    _offset = 0;
+
     return *this;
 }
 
@@ -45,11 +62,11 @@ MessageWriter& MessageWriter::write(const void* data, std::size_t size)
         auto& packet = GetPacket();
         auto payload = packet.GetPayload();
         if (_offset == payload.size()) {
-            GetNextPacket();
+            packet = GetNextPacket();
         }
 
-        auto writeSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(GetPacket().GetPayload().data() + _offset, bytes, writeSize);
+        auto writeSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
+        std::memcpy(packet.GetPayload().data() + _offset, bytes, writeSize);
         _offset += writeSize;
 
         size -= writeSize;
@@ -72,12 +89,13 @@ IPacket::List MessageWriter::GetPackets()
 IPacket::List MessageWriter::GetWritedPackets()
 {
     IPacket::List writedPackets;
-    if (_offset == 0 && _packet != _packets.begin()) {
+
+    if (_packet == _packets.begin() && _offset == sizeof(int)) {
         return writedPackets;
     }
 
-    if (_offset == sizeof(int) && _packet == _packets.begin()) {
-        return writedPackets;
+    if (_offset == 0 && _packet != _packets.begin()) {
+        _packet--;
     }
 
     assert(_packet != _packets.end());
@@ -86,19 +104,35 @@ IPacket::List MessageWriter::GetWritedPackets()
     writedPackets.splice(_packets, _packets.begin(), _packet);
     return writedPackets;
 }
+IPacket::List MessageWriter::GetDataPackets(std::size_t size)
+{
+    IPacket::List freePackets;
+    auto begin = _packet;
+    assert(begin != _packets.end());
+    begin++;
+    freePackets.splice(_packets, begin, _packets.end());
+
+    IPacket::List result = freePackets.TryGenerate(size);
+
+    _packets.splice(std::move(freePackets));
+
+    return result;
+}
 
 IPacket& MessageWriter::GetPacket()
 {
     return **_packet;
 }
 
-void MessageWriter::GetNextPacket()
+IPacket& MessageWriter::GetNextPacket()
 {
     _writedPacketNumber++;
     _packet++;
     assert(_packet != _packets.end());
 
     _offset = 0;
+
+    return **_packet;
 }
 
 } // namespace FastTransport::Protocol

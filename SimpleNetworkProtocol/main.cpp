@@ -133,10 +133,8 @@ void TestConnection2()
         dstConnection->AddFreeRecvPackets(std::move(recvPackets));
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
-
         FileTree fileTree = FileTree("/tmp/test2");
         TaskScheduler destinationTaskScheduler(*dstConnection, fileTree);
-
 
         destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
@@ -146,7 +144,6 @@ void TestConnection2()
         RemoteFileSystem filesystem("/mnt/test");
         RemoteFileSystem::scheduler = &destinationTaskScheduler;
         filesystem.Start();
-
 
         destinationTaskScheduler.Wait(stop);
 
