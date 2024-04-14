@@ -78,7 +78,7 @@ void FileSystem::Start()
         .forget = *_forget.target<void (*)(fuse_req_t, fuse_ino_t, uint64_t)>(),
         .getattr = *_getattr.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .open = *_open.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
-        .read = FuseRead,
+        .read = *_read.target<void (*)(fuse_req_t, fuse_ino_t, size_t, off_t, fuse_file_info*)>(),
         .release = *_release.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .opendir = *_opendir.target<void (*)(fuse_req_t, fuse_ino_t, fuse_file_info*)>(),
         .readdir = FuseReaddir,

@@ -28,6 +28,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
              << " off: " << _off
              << " file: " << _file;
 
+
     writer << MessageType::RequestRead;
     writer << _request;
     writer << _inode;

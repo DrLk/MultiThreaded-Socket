@@ -15,6 +15,7 @@ MessageReader::MessageReader(IPacket::List&& packets)
     : _packets(std::move(packets))
     , _packet(_packets.begin())
 {
+    assert(_packet != _packets.end());
 }
 
 MessageReader& MessageReader::read(std::byte* data, std::size_t size)
@@ -35,8 +36,20 @@ MessageReader& MessageReader::read(std::byte* data, std::size_t size)
     return *this;
 }
 
-MessageReader& MessageReader::operator>>(IPacket::List& /*packets*/) // NOLINT(fuchsia-overloaded-operator)
+MessageReader& MessageReader::operator>>(IPacket::List& packets) // NOLINT(fuchsia-overloaded-operator)
 {
+    std::size_t size = 0;
+    operator>>(size);
+    auto start = _packet;
+    start++;
+    auto end = start;;
+    for (std::size_t i = 0; i < size; i++) {
+        end++;
+    }
+    packets.splice(_packets, start, end);
+
+    _offset = GetPacket().GetPayload().size();
+
     return *this;
 }
 

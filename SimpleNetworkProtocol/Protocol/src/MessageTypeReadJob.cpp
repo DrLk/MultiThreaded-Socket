@@ -24,6 +24,8 @@
 #include "ResponseOpenDirJob.hpp"
 #include "ResponseOpenInJob.hpp"
 #include "ResponseOpenJob.hpp"
+#include "ResponseReadFileInJob.hpp"
+#include "ResponseReadFileJob.hpp"
 #include "ResponseReleaseDirInJob.hpp"
 #include "ResponseReleaseDirJob.hpp"
 #include "ResponseReleaseInJob.hpp"
@@ -157,6 +159,18 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseReleaseDir: {
         auto job = std::make_unique<ResponseReleaseDirInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestRead: {
+        auto job = std::make_unique<ResponseReadFileJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseRead: {
+        auto job = std::make_unique<ResponseReadFileInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

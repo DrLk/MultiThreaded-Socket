@@ -13,7 +13,6 @@ namespace FastTransport::TaskQueue {
 
 ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& /*fileTree*/)
 {
-    TRACER() << "Execute";
 
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
@@ -27,21 +26,24 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     reader >> offset;
     reader >> file;
 
+    TRACER() << "Execute"
+             << " request=" << request;
+
     writer << MessageType::ResponseRead;
     writer << request;
     writer << inode;
     writer << size;
     writer << offset;
 
-    Message dataPackets;
-
-    std::array<iovec, 64> iovecs {};
+    Message dataPackets = writer.GetDataPackets(200);
+    std::array<iovec, 200> iovecs {};
 
     auto packet = dataPackets.begin();
     for (auto& iovec : iovecs) {
         iovec.iov_base = (*packet)->GetPayload().data();
         iovec.iov_len = (*packet)->GetPayload().size();
         assert(1300 == (*packet)->GetPayload().size());
+        ++packet;
     }
 
     int error = 0;

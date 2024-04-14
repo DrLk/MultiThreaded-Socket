@@ -62,7 +62,7 @@ void RemoteFileSystem::FuseOpendir(fuse_req_t request, fuse_ino_t inode, fuse_fi
 
 void RemoteFileSystem::FuseOpen(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
-    TRACER() << "[opendir]"
+    TRACER() << "[open]"
              << " request: " << request
              << " inode: " << inode
              << " fileInfo: " << fileInfo;

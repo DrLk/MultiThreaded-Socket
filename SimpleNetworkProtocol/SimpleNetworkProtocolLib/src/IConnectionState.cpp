@@ -273,7 +273,7 @@ ConnectionState DataState::OnTimeOut(IConnectionInternal& connection)
 
 std::chrono::milliseconds DataState::GetTimeout() const
 {
-    return 30s;
+    return 300s;
 }
 
 } // namespace FastTransport::Protocol
