@@ -6,8 +6,13 @@
 #include <cstddef>
 #include <stop_token>
 
+#include "ByteStream.hpp"
+#include "ConnectionWriter.hpp"
+#include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
+#include "Logger.hpp"
 #include "Packet.hpp"
+#include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
 class MockConnection : public IConnection {
@@ -59,6 +64,87 @@ TEST(ConnectionReader, Payload)
         reader.read(payload.data(), payload.size());
         EXPECT_THAT(payload, ::testing::ElementsAreArray(testData));
     }
+}
+
+TEST(ConnectionReaderIntegrated, ReadTrivial)
+{
+    static constexpr auto TestTimeout = 10s;
+
+    std::packaged_task<void(std::stop_token stop)> sendTask([](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
+        const ConnectionAddr dstAddr("127.0.0.1", 11200);
+
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        srcConnection->AddFreeRecvPackets(std::move(recvPackets));
+        srcConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        ConnectionWriter writer(stop, srcConnection);
+        ConnectionReader reader(stop, srcConnection);
+        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
+        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+
+        const int aaa = 123;
+        output << aaa;
+        LOGGER() << "Write aaa: " << aaa;
+        output.Flush();
+
+        const int bbb = 124;
+        output << bbb;
+        LOGGER() << "Write bbb: " << bbb;
+        output.Flush();
+
+        uint64_t ccc = 0;
+        input >> ccc;
+        EXPECT_EQ(ccc, 321);
+        LOGGER() << "Read ccc: " << ccc;
+    });
+
+    auto ready = sendTask.get_future();
+    std::jthread sendThread(std::move(sendTask));
+
+    std::jthread recvThread([&ready](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
+
+        const IConnection::Ptr dstConnection = dst.Accept(stop);
+        if (dstConnection == nullptr) {
+            throw std::runtime_error("Accept return nullptr");
+        }
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        dstConnection->AddFreeRecvPackets(std::move(recvPackets));
+        dstConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        ConnectionWriter writer(stop, dstConnection);
+        ConnectionReader reader(stop, dstConnection);
+        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
+        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
+
+        int aaa = 0;
+        input >> aaa;
+        EXPECT_EQ(aaa, 123);
+        LOGGER() << "Read aaa: " << aaa;
+
+        int bbb = 0;
+        input >> bbb;
+        EXPECT_EQ(bbb, 124);
+        LOGGER() << "Read bbb: " << bbb;
+
+        uint64_t ccc = 321;
+        output << ccc;
+        LOGGER() << "Write ccc: " << ccc;
+        output.Flush();
+
+        auto status = ready.wait_for(TestTimeout);
+
+        EXPECT_TRUE(status == std::future_status::ready);
+    });
+
+    recvThread.join();
+    sendThread.join();
 }
 
 } // namespace FastTransport::Protocol

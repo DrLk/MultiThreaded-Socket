@@ -8,21 +8,15 @@
 #include <span>
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "ConnectionAddr.hpp"
-#include "ConnectionReader.hpp"
-#include "ConnectionWriter.hpp"
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
-#include "MergeIn.hpp"
-#include "MergeOut.hpp"
 #include "MergeRequest.hpp"
-#include "MessageReader.hpp"
 #include "MessageTypeReadJob.hpp"
-#include "MessageWriter.hpp"
-#include "NetworkStream.hpp"
 #include "TaskScheduler.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
@@ -146,55 +140,6 @@ void TestConnection2()
         filesystem.Start();
 
         destinationTaskScheduler.Wait(stop);
-
-        const auto& statistics = dstConnection->GetStatistics();
-        auto start = std::chrono::steady_clock::now();
-
-        ConnectionWriter writer(stop, dstConnection);
-        ConnectionReader reader(stop, dstConnection);
-        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
-        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
-        FastTransport::Protocol::NetworkStream<ConnectionReader, ConnectionWriter> networkStream(reader, writer);
-
-        IPacket::List freeSendPackets = dstConnection->Send2(stop, IPacket::List());
-        IPacket::List messagePackets = freeSendPackets.TryGenerate(10);
-        MessageWriter message(std::move(messagePackets));
-        FastTransport::FileSystem::OutputByteStream<MessageWriter> output2(message);
-        IPacket::List recvPackets2 = dstConnection->Recv(stop, IPacket::List());
-        IPacket::List recvMessagePackets = recvPackets2.TryGenerate(10);
-        MessageReader messageReader(std::move(recvMessagePackets));
-        FastTransport::FileSystem::InputByteStream<MessageReader> input2(messageReader);
-        FastTransport::TaskQueue::MergeOut mergeOut(fileTree);
-        FastTransport::TaskQueue::MergeIn mergeIn(fileTree, std::move(messageReader));
-
-        int aaa = 0;
-        input >> aaa;
-        LOGGER() << "Read aaa: " << aaa;
-
-        int bbb = 0;
-        input >> bbb;
-        LOGGER() << "Read bbb: " << bbb;
-
-        uint64_t ccc = 321;
-        output << ccc;
-        LOGGER() << "Write ccc: " << ccc;
-        output.Flush();
-
-        while (!stop.stop_requested()) {
-            static size_t countPerSecond;
-            recvPackets = dstConnection->Recv(stop, std::move(recvPackets));
-            if (!recvPackets.empty()) {
-                countPerSecond += recvPackets.size();
-            }
-
-            auto duration = std::chrono::steady_clock::now() - start;
-            if (duration > 1s) {
-                std::cout << "Recv speed: " << countPerSecond << "pkt/sec" << '\n';
-                std::cout << "dst: " << statistics << '\n';
-                countPerSecond = 0;
-                start = std::chrono::steady_clock::now();
-            }
-        }
     });
 
     std::this_thread::sleep_for(1s);
@@ -216,38 +161,6 @@ void TestConnection2()
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
         sourceTaskScheduler.Wait(stop);
-
-        const auto& statistics = srcConnection->GetStatistics();
-        auto start = std::chrono::steady_clock::now();
-
-        ConnectionWriter writer(stop, srcConnection);
-        ConnectionReader reader(stop, srcConnection);
-        FastTransport::FileSystem::OutputByteStream<ConnectionWriter> output(writer);
-        FastTransport::FileSystem::InputByteStream<ConnectionReader> input(reader);
-
-        const int aaa = 123;
-        output << aaa;
-        LOGGER() << "Write aaa: " << aaa;
-        output.Flush();
-
-        const int bbb = 124;
-        output << bbb;
-        LOGGER() << "Write bbb: " << bbb;
-        output.Flush();
-
-        uint64_t ccc = 0;
-        input >> ccc;
-        LOGGER() << "Read ccc: " << ccc;
-        std::this_thread::sleep_for(500s);
-
-        while (!stop.stop_requested()) {
-            sendPackets = srcConnection->Send2(stop, std::move(sendPackets));
-            auto duration = std::chrono::steady_clock::now() - start;
-            if (duration > 1s) {
-                std::cout << "src: " << statistics << '\n';
-                start = std::chrono::steady_clock::now();
-            }
-        }
     });
 
     recvThread.join();

@@ -35,8 +35,8 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
     if (packets.empty()) {
         throw std::runtime_error("No packets to read into");
     }
-    std::size_t blockSize = packets.front()->GetPayload().size();
-    std::size_t blocks = size / blockSize;
+    const std::size_t blockSize = packets.front()->GetPayload().size();
+    int blocks = static_cast<int>(size / blockSize);
     if (size % blockSize != 0) {
         blocks++;
     }
@@ -49,7 +49,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
         assert(blockSize == (*packet)->GetPayload().size());
     }
 
-    int error = preadv(_file, iovecs.data(), static_cast<int>(blocks), offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
+    int error = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
     assert(error != -1);
     ++packet;
     result.splice(packets, packets.begin(), packet);
@@ -63,8 +63,8 @@ void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
     if (packets.empty()) {
         throw std::runtime_error("No packets to read into");
     }
-    size_t blockSize = packets.front()->GetPayload().size();
-    int blocks = (int)size / blockSize;
+    const std::size_t blockSize = packets.front()->GetPayload().size();
+    int blocks = static_cast<int>(size / blockSize);
     if (size % blockSize != 0) {
         blocks++;
     }
@@ -77,7 +77,7 @@ void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
         assert(blockSize == (*packet)->GetPayload().size());
     }
 
-    int error = pwritev(_file, iovecs.data(), blocks, offset);
+    const ssize_t error = pwritev(_file, iovecs.data(), blocks, offset);
     assert(error != -1);
     ++packet;
 #endif // __linux__

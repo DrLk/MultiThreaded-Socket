@@ -13,7 +13,7 @@ class SendMessageJob : public WriteNetworkJob {
 public:
     static std::unique_ptr<WriteNetworkJob> Create(Message&& message);
 
-    SendMessageJob(Message&& message);
+    explicit SendMessageJob(Message&& message);
 
     void ExecuteWriteNetwork(std::stop_token stop, ITaskScheduler& scheduler, Protocol::IConnection& connection) override;
 
