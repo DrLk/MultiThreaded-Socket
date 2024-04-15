@@ -150,7 +150,7 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
                     return iovec;
                 });
 
-                const std::size_t packetChunkSize = packetChunk.size();
+                const size_t packetChunkSize = packetChunk.size();
                 const struct msghdr message = {
                     .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
                     .msg_namelen = sizeof(sockaddr),
