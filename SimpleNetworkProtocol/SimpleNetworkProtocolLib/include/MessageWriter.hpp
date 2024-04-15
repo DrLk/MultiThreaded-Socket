@@ -51,7 +51,7 @@ private:
 template <trivial T>
 MessageWriter& MessageWriter::operator<<(const T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {
-    return write(&trivial, sizeof(trivial));
+    return write(&trivial, sizeof(T)); // NOLINT(bugprone-sizeof-expression, bugprone-multi-level-implicit-pointer-conversion)
 }
 
 template <class T>

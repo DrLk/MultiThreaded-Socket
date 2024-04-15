@@ -13,7 +13,6 @@ public:
     ConnectionReader(std::stop_token stop, IConnection::Ptr connection);
 
     ConnectionReader& read(void* data, std::size_t size);
-    ConnectionReader& operator>>(IPacket::List&& packets); // NOLINT(fuchsia-overloaded-operator)
 
 private:
     IPacket& GetPacket();

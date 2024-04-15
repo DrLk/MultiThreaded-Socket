@@ -68,6 +68,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
                 packet.SetSendTime(clock::now());
             }
             auto result = socket.SendMsg(packets, index);
+            assert(result == packets.size() * Socket::UDPMaxSegments);
             sendQueue.splice(std::move(packets));
         }
         /* for (auto& packet : sendQueue) { */

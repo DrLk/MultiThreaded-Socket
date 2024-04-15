@@ -6,9 +6,11 @@
 #include "ByteStream.hpp"
 #include "LeafSerializer.hpp"
 
-namespace FastTransport::FileSystem {
+namespace {
 
-static Leaf GetTestLeaf()
+using FastTransport::FileSystem::Leaf;
+
+Leaf GetTestLeaf()
 {
     Leaf root("test", std::filesystem::file_type::directory, nullptr);
 
@@ -33,7 +35,7 @@ static Leaf GetTestLeaf()
     return root;
 }
 
-static void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-recursion)
+void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-recursion)
 {
     EXPECT_EQ(left.GetName(), right.GetName());
     EXPECT_EQ(left.GetType(), right.GetType());
@@ -50,6 +52,10 @@ static void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-r
         CompareLeaf(child, rightChild->second);
     }
 }
+
+} // namespace
+
+namespace FastTransport::FileSystem {
 
 TEST(LeafTest, LeafSerializationTest)
 {

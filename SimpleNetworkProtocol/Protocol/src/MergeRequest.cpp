@@ -24,7 +24,7 @@ MergeRequest::MergeRequest()
     TRACER() << "Create";
 }
 
-MergeRequest::Message MergeRequest::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Message&& message)
+MergeRequest::Message MergeRequest::ExecuteMain(std::stop_token  /*stop*/, ITaskScheduler& scheduler, Message&& message)
 {
     TRACER() << "Execute";
 

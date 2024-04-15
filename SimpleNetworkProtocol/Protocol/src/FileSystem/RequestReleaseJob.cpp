@@ -1,8 +1,8 @@
 #include "RequestReleaseJob.hpp"
 
-#include "FuseReadFileJob.hpp"
 #include <fuse3/fuse_lowlevel.h>
 
+#include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
@@ -18,7 +18,7 @@ RequestReleaseJob::RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, fuse_
     TRACER() << "Create";
 }
 
-Message RequestReleaseJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
+FuseNetworkJob::Message RequestReleaseJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
     TRACER() << "Execute"
              << " request: " << _request;

@@ -159,7 +159,8 @@ TEST(MultiListTest, Splice)
 {
     MultiList<int> list;
     for (int i = 0; i < 100; i++) {
-        list.push_back(std::move(i));
+        int value = i;
+        list.push_back(std::move(value));
     }
 
     MultiList<int> freePackets;
@@ -173,7 +174,8 @@ TEST(MultiListTest, Splice)
 
     MultiList<int> packets;
     for (int i = 0; i < 64; i++) {
-        packets.push_back(std::move(i));
+        int value = i;
+        packets.push_back(std::move(value));
     }
 
     _packet = packets.end();
@@ -187,10 +189,11 @@ TEST(MultiListTest, Splice)
 
 TEST(MultiListTest, Splice2)
 {
-    int size = 64;
+    const int size = 64;
     MultiList<int> list;
     for (int i = 0; i < 100; i++) {
-        list.push_back(std::move(i));
+        int value = i;
+        list.push_back(std::move(value));
     }
 
     MultiList<int> freePackets;
@@ -199,7 +202,7 @@ TEST(MultiListTest, Splice2)
     EXPECT_EQ(list.size(), 0);
     EXPECT_EQ(freePackets.size(), 100);
 
-    MultiList<int> result = freePackets.TryGenerate(size);
+    const MultiList<int> result = freePackets.TryGenerate(size);
 
     list.splice(std::move(freePackets));
 }

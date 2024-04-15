@@ -43,11 +43,11 @@ private:
 template <trivial T>
 MessageReader& MessageReader::operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {
-    auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
-    std::memcpy(&trivial, GetPacket().GetPayload().data() + _offset, readSize);
+    const auto readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
+    std::memcpy(&trivial, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion)
     _offset += readSize;
 
-    std::ptrdiff_t size = sizeof(trivial) - readSize;
+    const std::ptrdiff_t size = sizeof(T) - readSize; // NOLINT(bugprone-sizeof-expression)
     if (size) {
         _packet++;
         std::memcpy((reinterpret_cast<std::byte*>(&trivial)) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)

@@ -15,7 +15,7 @@ class MergeOut : public MainJob {
 public:
     static std::unique_ptr<MainJob> Create(FastTransport::FileSystem::FileTree& fileTree);
 
-    MergeOut(FastTransport::FileSystem::FileTree& fileTree);
+    explicit MergeOut(FastTransport::FileSystem::FileTree& fileTree);
 
     Message ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Message&& message) override;
 

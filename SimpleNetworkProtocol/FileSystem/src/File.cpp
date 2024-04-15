@@ -18,4 +18,14 @@ File::File(std::uint64_t size, std::filesystem::file_type type)
 
 File::~File() = default;
 
+std::uint64_t File::GetSize() const
+{
+    return size;
+}
+
+std::filesystem::file_type File::GetType() const
+{
+    return type;
+}
+
 } // namespace FastTransport::FileSystem

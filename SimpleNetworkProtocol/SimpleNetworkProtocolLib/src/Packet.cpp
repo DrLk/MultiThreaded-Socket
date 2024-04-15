@@ -79,7 +79,7 @@ void Packet::SetAckNumber(SeqNumberType ack)
 
 void Packet::SetMagic()
 {
-    return Header(_element.data(), _element.size()).SetMagic();
+    Header(_element.data(), _element.size()).SetMagic();
 }
 
 bool Packet::IsValid() const

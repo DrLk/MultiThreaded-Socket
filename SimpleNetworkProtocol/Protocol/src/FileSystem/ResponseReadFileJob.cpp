@@ -47,7 +47,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     }
 
     int error = 0;
-    ssize_t readed = preadv(file, iovecs.data(), iovecs.size(), offset);
+    const ssize_t readed = preadv(file, iovecs.data(), iovecs.size(), offset);
 
     if (readed == -1) {
         TRACER() << "preadv failed";

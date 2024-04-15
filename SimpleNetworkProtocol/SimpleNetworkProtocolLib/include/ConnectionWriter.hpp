@@ -63,7 +63,7 @@ public:
         std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
         _offset += readSize; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 
-        std::ptrdiff_t size = sizeof(trivial) - readSize;
+        const std::ptrdiff_t size = sizeof(trivial) - readSize;
         if (size) {
             _packet++;
             std::memcpy(static_cast<std::byte*>(&trivial) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)

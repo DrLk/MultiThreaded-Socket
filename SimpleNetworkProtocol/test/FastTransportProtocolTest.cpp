@@ -40,13 +40,10 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
             connectionCount++;
         }
 
-        std::this_thread::sleep_for(1s);
     });
 
     auto recvReady = recvTask.get_future();
     std::jthread recvThread(std::move(recvTask));
-
-    std::this_thread::sleep_for(500ms);
 
     std::packaged_task<void(std::stop_token stop)> sendTask1([](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr("127.0.0.1", 11100));
@@ -69,7 +66,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
             }
         }
 
-        std::this_thread::sleep_for(1s);
     });
 
     auto sendReady1 = sendTask1.get_future();
@@ -95,7 +91,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
             }
         }
 
-        std::this_thread::sleep_for(1s);
     });
 
     auto sendReady2 = sendTask2.get_future();
@@ -145,8 +140,6 @@ TEST(FastTransportProtocolTest, ConnectSourceFirst)
             std::this_thread::sleep_for(100ms);
         }
     });
-
-    std::this_thread::sleep_for(500ms);
 
     std::jthread recvThread([&sendThread](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 21200));

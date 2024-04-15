@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #define INVALID_SOCKET (-1)
-#define SOCKET_ERROR (-1) // NOLINT(modernize-macro-to-enum)
+#define SOCKET_ERROR (-1) // NOLINT(modernize-macro-to-enum, cppcoreguidelines-macro-to-enum)
 #endif
 
 #ifdef __APPLE__
@@ -59,7 +59,7 @@ public:
 
     [[nodiscard]] int SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const;
 #ifdef __linux__
-    [[nodiscard]] uint32_t SendMsg(OutgoingPacket::List& packets, size_t index) const;
+    [[nodiscard]] uint32_t SendMsg(const OutgoingPacket::List& packets, size_t index) const;
 #endif
 
     [[nodiscard]] int RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr) const;

@@ -12,7 +12,7 @@ namespace FastTransport::TaskQueue {
 RequestLookupJob::RequestLookupJob(fuse_req_t request, fuse_ino_t parent, std::string&& name)
     : _request(request)
     , _parent(parent)
-    , _name(name)
+    , _name(std::move(name))
 {
     TRACER() << "Create";
 }

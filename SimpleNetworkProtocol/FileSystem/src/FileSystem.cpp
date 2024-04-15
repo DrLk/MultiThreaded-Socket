@@ -22,9 +22,7 @@
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
-#define TRACER() \
-    if (1 > 0)   \
-    LOGGER() // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[FileSystem] "  // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -122,7 +120,7 @@ void FileSystem::Start()
 void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
 {
     stbuf->st_ino = ino;
-    switch (file.type) {
+    switch (file.GetType()) {
     case std::filesystem::file_type::directory:
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
@@ -131,7 +129,7 @@ void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
     case std::filesystem::file_type::regular:
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
-        stbuf->st_size = file.size;
+        stbuf->st_size = file.GetSize();
         break;
 
     default:

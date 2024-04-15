@@ -25,7 +25,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     TRACER() << "Execute"
              << " request: " << request;
 
-    Leaf& parrent = GetLeaf(parrentId, fileTree);
+    const Leaf& parrent = GetLeaf(parrentId, fileTree);
     auto file = parrent.Find(name);
 
     writer << MessageType::ResponseLookup;
@@ -41,8 +41,8 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     const Leaf& fileRef = file.value().get();
 
     struct stat stbuf { };
-    std::string path = fileRef.GetFullPath();
-    int error = stat(path.c_str(), &stbuf);
+    const std::string path = fileRef.GetFullPath();
+    const int error = stat(path.c_str(), &stbuf);
 
     writer << error;
 

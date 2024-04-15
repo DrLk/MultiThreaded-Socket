@@ -25,7 +25,7 @@ public:
     }
 
     template <InputStream Stream>
-    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent)
+    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent) // NOLINT(misc-no-recursion)
     {
         std::filesystem::path name;
         stream >> name;

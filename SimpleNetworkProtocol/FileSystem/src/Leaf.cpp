@@ -36,7 +36,7 @@ Leaf& Leaf::AddChild(Leaf&& leaf)
 
 Leaf& Leaf::AddFile(const std::filesystem::path& name, FilePtr&& file)
 {
-    Leaf leaf(name, file->type, this);
+    Leaf leaf(name, file->GetType(), this);
     leaf._file = std::move(file);
     auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
     return insertedLeaf->second;

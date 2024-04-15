@@ -41,7 +41,7 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop
     entry.attr_timeout = 1000.0;
     entry.entry_timeout = 1000.0;
 
-    std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
+    const std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
     GetLeaf(parrentId, fileTree).AddChild(name, type);
 
     fuse_reply_entry(request, &entry);

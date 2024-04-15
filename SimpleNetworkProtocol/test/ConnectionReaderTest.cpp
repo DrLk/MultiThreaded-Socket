@@ -133,7 +133,7 @@ TEST(ConnectionReaderIntegrated, ReadTrivial)
         EXPECT_EQ(bbb, 124);
         LOGGER() << "Read bbb: " << bbb;
 
-        uint64_t ccc = 321;
+        const uint64_t ccc = 321;
         output << ccc;
         LOGGER() << "Write ccc: " << ccc;
         output.Flush();

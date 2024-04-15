@@ -20,9 +20,6 @@ public:
     File& operator=(File&& that) noexcept = delete;
     virtual ~File();
 
-    std::uint64_t size;
-    std::filesystem::file_type type;
-
     template <OutputStream Stream>
     void Serialize(OutputByteStream<Stream>& stream) const
     {
@@ -40,6 +37,13 @@ public:
     virtual void Open() = 0;
     virtual IPacket::List Read(IPacket::List& packets, size_t size, off_t off) = 0;
     virtual void Write(IPacket::List& packets, size_t size, off_t off) = 0;
+
+    [[nodiscard]] std::uint64_t GetSize() const;
+    [[nodiscard]] std::filesystem::file_type GetType() const;
+
+private:
+    std::uint64_t size;
+    std::filesystem::file_type type;
 };
 
 } // namespace FastTransport::FileSystem

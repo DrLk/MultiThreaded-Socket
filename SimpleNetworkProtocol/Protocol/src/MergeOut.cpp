@@ -28,7 +28,7 @@ MergeOut::MergeOut(FastTransport::FileSystem::FileTree& fileTree)
     TRACER() << "Create";
 }
 
-MergeOut::Message MergeOut::ExecuteMain(std::stop_token stop, ITaskScheduler& scheduler, Message&& message)
+MergeOut::Message MergeOut::ExecuteMain(std::stop_token  /*stop*/, ITaskScheduler& scheduler, Message&& message)
 {
     TRACER() << "Execute";
 

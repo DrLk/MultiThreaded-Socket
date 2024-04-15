@@ -96,20 +96,20 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
 
 #ifdef __linux__
 
-uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
+uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) const
 {
-    auto tranform = [index](OutgoingPacket& packet) {
+    auto tranform = [index](const OutgoingPacket& packet) {
         auto destination = packet.GetPacket()->GetDstAddr();
         destination.SetPort(destination.GetPort() + index);
-        return std::pair<ConnectionAddr, std::reference_wrapper<IPacket::Ptr>> { destination, packet.GetPacket() };
+        return std::pair<ConnectionAddr, std::reference_wrapper<const IPacket::Ptr>> { destination, packet.GetPacket() };
     };
 
-    auto insertPacket = [](std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<IPacket::Ptr>>, ConnectionAddr::HashFunction>& map1, const std::pair<ConnectionAddr, std::reference_wrapper<IPacket::Ptr>>& value) {
+    auto insertPacket = [](std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction>& map1, const std::pair<ConnectionAddr, std::reference_wrapper<const IPacket::Ptr>>& value) {
         auto&& [address, packet] = value;
         map1[address].push_back(packet);
         return map1;
     };
-    auto packetsByAddress = std::transform_reduce(packets.begin(), packets.end(), std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<IPacket::Ptr>>, ConnectionAddr::HashFunction>(), insertPacket, tranform);
+    auto packetsByAddress = std::transform_reduce(packets.begin(), packets.end(), std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction>(), insertPacket, tranform);
 
     std::vector<mmsghdr> headers;
     headers.reserve(packetsByAddress.size());
@@ -150,7 +150,7 @@ uint32_t Socket::SendMsg(OutgoingPacket::List& packets, size_t index) const
                     return iovec;
                 });
 
-                const std::uint32_t packetChunkSize = packetChunk.size();
+                const std::size_t packetChunkSize = packetChunk.size();
                 const struct msghdr message = {
                     .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
                     .msg_namelen = sizeof(sockaddr),

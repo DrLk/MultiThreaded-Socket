@@ -35,6 +35,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
     if (packets.empty()) {
         throw std::runtime_error("No packets to read into");
     }
+
     const std::size_t blockSize = packets.front()->GetPayload().size();
     int blocks = static_cast<int>(size / blockSize);
     if (size % blockSize != 0) {

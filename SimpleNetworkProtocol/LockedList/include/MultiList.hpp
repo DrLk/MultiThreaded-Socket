@@ -40,7 +40,7 @@ public:
         T* operator->(); // NOLINT(fuchsia-overloaded-operator)
 
     private:
-        const MultiList<T>* _container;
+        const MultiList<T>* _container = nullptr;
 
         typename std::list<std::list<T>>::iterator _it1;
         typename std::list<T>::iterator _it2;
@@ -58,7 +58,7 @@ public:
 
         ConstIterator() = default;
         explicit ConstIterator(const MultiList<T>* container);
-        ConstIterator(const MultiList<T>* container, const typename std::list<std::list<T>>::iterator& it1);
+        ConstIterator(const MultiList<T>* container, const typename std::list<std::list<T>>::const_iterator& it1);
 
         ConstIterator& operator++(); // NOLINT(fuchsia-overloaded-operator)
         const ConstIterator operator++(int); // NOLINT(fuchsia-overloaded-operator)
@@ -71,10 +71,10 @@ public:
         const T* operator->(); // NOLINT(fuchsia-overloaded-operator)
 
     private:
-        const MultiList<T>* _container;
+        const MultiList<T>* _container = nullptr;
 
-        typename std::list<std::list<T>>::iterator _it1;
-        typename std::list<T>::iterator _it2;
+        typename std::list<std::list<T>>::const_iterator _it1;
+        typename std::list<T>::const_iterator _it2;
     };
 
     MultiList() = default;
@@ -246,7 +246,7 @@ MultiList<T>::ConstIterator::ConstIterator(const MultiList* container)
 }
 
 template <class T>
-MultiList<T>::ConstIterator::ConstIterator(const MultiList* container, const typename std::list<std::list<T>>::iterator& it1)
+MultiList<T>::ConstIterator::ConstIterator(const MultiList* container, const typename std::list<std::list<T>>::const_iterator& it1)
     : _container(container)
     , _it1(it1)
     , _it2()

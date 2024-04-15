@@ -1,8 +1,8 @@
 #include "RequestGetAttrJob.hpp"
 
-#include "FuseReadFileJob.hpp"
 #include <fuse3/fuse_lowlevel.h>
 
+#include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
@@ -18,7 +18,7 @@ RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, fuse_
     TRACER() << "Create";
 }
 
-Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
+FuseNetworkJob::Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
     TRACER() << "Execute"
              << " request: " << _request;
@@ -27,6 +27,7 @@ Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
     writer << _request;
     writer << _inode;
     writer << _fileInfo;
+
 
     return {};
 }

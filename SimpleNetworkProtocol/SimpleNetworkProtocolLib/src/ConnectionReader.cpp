@@ -51,11 +51,6 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
     return *this;
 }
 
-ConnectionReader& ConnectionReader::operator>>(IPacket::List&& /*packets*/) // NOLINT(fuchsia-overloaded-operator)
-{
-    return *this;
-}
-
 IPacket& ConnectionReader::GetPacket()
 {
     return **_packet;

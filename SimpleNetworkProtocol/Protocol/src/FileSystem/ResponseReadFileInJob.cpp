@@ -48,8 +48,8 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     Message data;
     reader >> data;
 
-    std::size_t len = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
-    std::unique_ptr<fuse_bufvec> buffVector(static_cast<fuse_bufvec*>(reinterpret_cast<fuse_bufvec*>(new char[len]))); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
+    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int index = 0;
     size_t count = 0;
 
@@ -60,7 +60,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
         auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         buffer.mem = packet->GetPayload().data();
         buffer.size = std::min(packet->GetPayload().size(), size);
-        buffer.flags = static_cast<fuse_buf_flags>(0);
+        buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         buffer.pos = 0;
         buffer.fd = 0;
 

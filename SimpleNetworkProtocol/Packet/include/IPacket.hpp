@@ -24,7 +24,7 @@ public:
     IPacket() = default;
     IPacket(const IPacket& that) = default;
     IPacket(IPacket&& that) noexcept = default;
-    IPacket& operator=(const IPacket& that) = default;
+    IPacket& operator=(const IPacket& /*that*/) = default;
     IPacket& operator=(IPacket&& that) noexcept = default;
     virtual ~IPacket() = default;
 

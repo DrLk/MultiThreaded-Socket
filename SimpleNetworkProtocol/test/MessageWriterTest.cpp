@@ -116,7 +116,7 @@ TEST(MessageWriter, WriteTrivialAndIPacketList)
 
     MessageWriter writer(std::move(packets));
 
-    int value = 9575;
+    const int value = 9575;
     writer << value;
 
     auto dataPackates = writer.GetDataPackets(10);
