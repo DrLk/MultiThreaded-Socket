@@ -18,16 +18,17 @@ MessageReader::MessageReader(IPacket::List&& packets)
     assert(_packet != _packets.end());
 }
 
-MessageReader& MessageReader::read(std::byte* data, std::size_t size)
+MessageReader& MessageReader::read(void* data, std::size_t size)
 {
-    if (_offset == GetPacket().GetPayload().size()) {
-        GetNextPacket();
-    }
-
-    auto* bytes = data;
+    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     while (size > 0) {
-        auto readSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(bytes, GetPacket().GetPayload().data() + _offset, readSize);
+        auto& packet = GetPacket();
+        if (_offset == packet.GetPayload().size()) {
+            packet = GetNextPacket();
+        }
+
+        auto readSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
+        std::memcpy(bytes, packet.GetPayload().data() + _offset, readSize);
         _offset += static_cast<std::ptrdiff_t>(readSize);
 
         size -= readSize;
@@ -78,11 +79,13 @@ IPacket& MessageReader::GetPacket()
     return **_packet;
 }
 
-void MessageReader::GetNextPacket()
+IPacket& MessageReader::GetNextPacket()
 {
     _packet++;
     assert(_packet != _packets.end());
     _offset = 0;
+
+    return **_packet;
 }
 
 } // namespace FastTransport::Protocol

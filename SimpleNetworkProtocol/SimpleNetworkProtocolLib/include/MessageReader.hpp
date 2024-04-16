@@ -16,12 +16,10 @@ public:
     MessageReader() = default;
     explicit MessageReader(IPacket::List&& packets);
 
-    MessageReader& read(std::byte* data, std::size_t size);
+    MessageReader& read(void* data, std::size_t size);
 
     template <trivial T>
     MessageReader& operator>>(T& trivial); // NOLINT(fuchsia-overloaded-operator)
-    template <trivial T>
-    MessageReader& operator>>(T** trivial); // NOLINT(fuchsia-overloaded-operator)
     MessageReader& operator>>(IPacket::List& packets); // NOLINT(fuchsia-overloaded-operator)
 
     template <class T>
@@ -36,7 +34,7 @@ public:
 
 private:
     IPacket& GetPacket();
-    void GetNextPacket();
+    IPacket& GetNextPacket();
 
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
@@ -46,49 +44,7 @@ private:
 template <trivial T>
 MessageReader& MessageReader::operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {
-    std::ptrdiff_t size = sizeof(T); // NOLINT(bugprone-sizeof-expression)
-
-    auto* data = reinterpret_cast<std::byte*>(&trivial); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    std::ptrdiff_t dataOffset = 0;
-    while (size >= 0) {
-        const std::ptrdiff_t readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
-        std::memcpy(data + dataOffset, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        _offset += readSize;
-        dataOffset += readSize;
-        size -= readSize;
-
-        if (size == 0) {
-            return *this;
-        }
-
-        GetNextPacket();
-    }
-
-    return *this;
-}
-
-template <trivial T>
-MessageReader& MessageReader::operator>>(T** trivial) // NOLINT(fuchsia-overloaded-operator)
-{
-    std::ptrdiff_t size = sizeof(T); // NOLINT(bugprone-sizeof-expression)
-
-    auto* data = reinterpret_cast<std::byte*>(&trivial); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    std::ptrdiff_t dataOffset = 0;
-    while (size >= 0) {
-        const std::ptrdiff_t readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
-        std::memcpy(data + dataOffset, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        _offset += readSize;
-        dataOffset += readSize;
-        size -= readSize;
-
-        if (size == 0) {
-            return *this;
-        }
-
-        GetNextPacket();
-    }
-
-    return *this;
+    return read(reinterpret_cast<std::byte*>(&trivial), sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, bugprone-sizeof-expression, bugprone-multi-level-implicit-pointer-conversion)
 }
 
 template <class T>
@@ -98,7 +54,7 @@ MessageReader& MessageReader::operator>>(std::basic_string<T>& string) // NOLINT
     std::uint64_t size = 0;
     operator>>(size);
     string.resize(size);
-    read(reinterpret_cast<std::byte*>(string.data()), size * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    read(string.data(), size * sizeof(T));
 
     return *this;
 }
@@ -110,7 +66,7 @@ MessageReader& MessageReader::operator>>(std::vector<T>& data) // NOLINT(fuchsia
     std::uint64_t size = 0;
     operator>>(size);
     data.resize(size);
-    read(reinterpret_cast<std::byte*>(data.data()), size * sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    read(data.data(), size * sizeof(T));
     return *this;
 }
 
