@@ -10,7 +10,7 @@ namespace FastTransport::TaskQueue {
 class RemoteFileSystem : public FileSystem::FileSystem {
 public:
     explicit RemoteFileSystem(std::string_view mountPoint);
-    static ITaskScheduler* scheduler;
+    static ITaskScheduler* scheduler; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 private:
     static void FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo);

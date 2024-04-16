@@ -126,6 +126,6 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
     scheduler->Schedule(std::make_unique<RequestReadFileJob>(request, inode, size, off, fileInfo));
 }
 
-ITaskScheduler* RemoteFileSystem::scheduler = nullptr;
+ITaskScheduler* RemoteFileSystem::scheduler = nullptr; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace FastTransport::TaskQueue

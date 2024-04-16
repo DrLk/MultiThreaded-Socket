@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <string>
@@ -19,6 +20,8 @@ public:
 
     template <trivial T>
     MessageReader& operator>>(T& trivial); // NOLINT(fuchsia-overloaded-operator)
+    template <trivial T>
+    MessageReader& operator>>(T** trivial); // NOLINT(fuchsia-overloaded-operator)
     MessageReader& operator>>(IPacket::List& packets); // NOLINT(fuchsia-overloaded-operator)
 
     template <class T>
@@ -43,16 +46,48 @@ private:
 template <trivial T>
 MessageReader& MessageReader::operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {
-    const auto readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
-    std::memcpy(&trivial, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion)
-    _offset += readSize;
+    std::ptrdiff_t size = sizeof(T); // NOLINT(bugprone-sizeof-expression)
 
-    const std::ptrdiff_t size = sizeof(T) - readSize; // NOLINT(bugprone-sizeof-expression)
-    if (size) {
-        _packet++;
-        std::memcpy((reinterpret_cast<std::byte*>(&trivial)) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        _offset = size;
+    auto* data = reinterpret_cast<std::byte*>(&trivial); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::ptrdiff_t dataOffset = 0;
+    while (size >= 0) {
+        const std::ptrdiff_t readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
+        std::memcpy(data + dataOffset, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        _offset += readSize;
+        dataOffset += readSize;
+        size -= readSize;
+
+        if (size == 0) {
+            return *this;
+        }
+
+        GetNextPacket();
     }
+
+    return *this;
+}
+
+template <trivial T>
+MessageReader& MessageReader::operator>>(T** trivial) // NOLINT(fuchsia-overloaded-operator)
+{
+    std::ptrdiff_t size = sizeof(T); // NOLINT(bugprone-sizeof-expression)
+
+    auto* data = reinterpret_cast<std::byte*>(&trivial); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::ptrdiff_t dataOffset = 0;
+    while (size >= 0) {
+        const std::ptrdiff_t readSize = std::min(sizeof(T), GetPacket().GetPayload().size() - _offset); // NOLINT(bugprone-sizeof-expression)
+        std::memcpy(data + dataOffset, GetPacket().GetPayload().data() + _offset, readSize); // NOLINT(bugprone-multi-level-implicit-pointer-conversion, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        _offset += readSize;
+        dataOffset += readSize;
+        size -= readSize;
+
+        if (size == 0) {
+            return *this;
+        }
+
+        GetNextPacket();
+    }
+
     return *this;
 }
 
