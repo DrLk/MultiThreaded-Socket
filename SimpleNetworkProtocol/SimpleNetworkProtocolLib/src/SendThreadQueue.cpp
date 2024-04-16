@@ -1,5 +1,6 @@
 #include "SendThreadQueue.hpp"
 
+#include <Tracy.hpp>
 #include <chrono>
 #include <cstddef>
 #include <stop_token>
@@ -13,7 +14,6 @@
 #include "OutgoingPacket.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
-#include "Tracy.hpp"
 #include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;

@@ -1,5 +1,6 @@
 #include "FastTransportProtocol.hpp"
 
+#include <Tracy.hpp>
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -21,7 +22,6 @@
 #include "Logger.hpp"
 #include "OutgoingPacket.hpp"
 #include "ThreadName.hpp"
-#include "Tracy.hpp"
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {

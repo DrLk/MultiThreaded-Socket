@@ -1,5 +1,6 @@
 #include "UDPQueue.hpp"
 
+#include <Tracy.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <functional>
@@ -15,7 +16,6 @@
 #include "SendThreadQueue.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
-#include "Tracy.hpp"
 
 using namespace std::chrono_literals;
 
