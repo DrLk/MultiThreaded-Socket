@@ -32,6 +32,9 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(std::sto
     reader >> stbuf.st_mode;
     reader >> stbuf.st_nlink;
     reader >> stbuf.st_size;
+    reader >> stbuf.st_uid;
+    reader >> stbuf.st_gid;
+    reader >> stbuf.st_mtim;
 
     fuse_reply_attr(_request, &stbuf, 1.0);
 

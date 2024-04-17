@@ -53,6 +53,9 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
         writer << stbuf.st_mode;
         writer << stbuf.st_nlink;
         writer << stbuf.st_size;
+        writer << stbuf.st_uid;
+        writer << stbuf.st_gid;
+        writer << stbuf.st_mtim;
     }
 
     return {};

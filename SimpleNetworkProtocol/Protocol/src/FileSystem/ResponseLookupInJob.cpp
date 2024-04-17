@@ -36,6 +36,9 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop
     reader >> entry.attr.st_mode;
     reader >> entry.attr.st_nlink;
     reader >> entry.attr.st_size;
+    reader >> entry.attr.st_uid;
+    reader >> entry.attr.st_gid;
+    reader >> entry.attr.st_mtim;
 
     entry.ino = entry.attr.st_ino;
     entry.attr_timeout = 1000.0;
