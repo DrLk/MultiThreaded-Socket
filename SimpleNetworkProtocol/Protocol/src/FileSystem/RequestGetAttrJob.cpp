@@ -26,7 +26,7 @@ FuseNetworkJob::Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/,
     writer << MessageType::RequestGetAttr;
     writer << _request;
     writer << _inode;
-    int file = _fileInfo != nullptr ? static_cast<int>(_fileInfo->fh) : 0;
+    const int file = _fileInfo != nullptr ? static_cast<int>(_fileInfo->fh) : 0;
     writer << file;
 
     return {};
