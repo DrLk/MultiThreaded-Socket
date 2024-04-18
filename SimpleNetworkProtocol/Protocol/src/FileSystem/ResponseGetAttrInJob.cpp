@@ -14,16 +14,16 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(std::sto
 {
 
     auto& reader = GetReader();
-    fuse_req_t _request = nullptr;
+    fuse_req_t request = nullptr;
     int error = 0;
-    reader >> _request;
+    reader >> request;
     reader >> error;
 
     TRACER() << "Execute"
-             << " request: " << _request;
+             << " request: " << request;
 
     if (error != 0) {
-        fuse_reply_err(_request, error);
+        fuse_reply_err(request, error);
         return {};
     }
 
@@ -36,7 +36,7 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(std::sto
     reader >> stbuf.st_gid;
     reader >> stbuf.st_mtim;
 
-    fuse_reply_attr(_request, &stbuf, 1.0);
+    fuse_reply_attr(request, &stbuf, 1.0);
 
     return reader.GetPackets();
 }

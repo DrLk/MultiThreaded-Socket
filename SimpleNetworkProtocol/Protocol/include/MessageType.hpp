@@ -20,4 +20,6 @@ enum class MessageType {
     ResponseReleaseDir = 22,
     RequestRead = 23,
     ResponseRead = 24,
+    RequestReadDir = 25,
+    ResponseReadDir = 26,
 };
