@@ -1,6 +1,7 @@
 #include "SendThreadQueue.hpp"
 
 #include <Tracy.hpp>
+#include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <stop_token>

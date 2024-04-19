@@ -22,4 +22,6 @@ enum class MessageType {
     ResponseRead = 24,
     RequestReadDir = 25,
     ResponseReadDir = 26,
+    RequestReadDirPlus = 27,
+    ResponseReadDirPlus = 28,
 };

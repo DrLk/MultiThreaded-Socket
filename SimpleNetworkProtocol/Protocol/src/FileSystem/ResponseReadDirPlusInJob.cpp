@@ -1,4 +1,4 @@
-#include "ResponseReadDirInJob.hpp"
+#include "ResponseReadDirPlusInJob.hpp"
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -6,11 +6,11 @@
 
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReadDirInJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseReadDirPlusJobIn] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
+ResponseInFuseNetworkJob::Message ResponseReadDirPlusInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
 
     auto& reader = GetReader();

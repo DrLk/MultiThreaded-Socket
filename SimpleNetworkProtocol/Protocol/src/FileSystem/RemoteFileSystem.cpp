@@ -10,6 +10,8 @@
 #include "RequestLookupJob.hpp"
 #include "RequestOpenDirJob.hpp"
 #include "RequestOpenJob.hpp"
+#include "RequestReadDirJob.hpp"
+#include "RequestReadDirPlusJob.hpp"
 #include "RequestReadFileJob.hpp"
 #include "RequestReleaseDirJob.hpp"
 #include "RequestReleaseJob.hpp"
@@ -29,6 +31,8 @@ RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
     _release = &RemoteFileSystem::FuseRelease;
     _releaseDir = &RemoteFileSystem::FuseReleaseDir;
     _read = &RemoteFileSystem::FuseRead;
+    _readDir = &RemoteFileSystem::FuseReadDir;
+    _readDirPlus = &RemoteFileSystem::FuseReadDirPlus;
 }
 
 void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -124,6 +128,30 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
              << " fileInfo: " << fileInfo;
 
     scheduler->Schedule(std::make_unique<RequestReadFileJob>(request, inode, size, off, fileInfo));
+}
+
+void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo)
+{
+    TRACER() << "[readdir]"
+             << " request: " << request
+             << " inode: " << inode
+             << " size: " << size
+             << " off: " << off
+             << " fileInfo: " << fileInfo;
+
+    scheduler->Schedule(std::make_unique<RequestReadDirJob>(request, inode, size, off, fileInfo));
+}
+
+void RemoteFileSystem::FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo)
+{
+    TRACER() << "[readdir]"
+             << " request: " << request
+             << " inode: " << inode
+             << " size: " << size
+             << " off: " << off
+             << " fileInfo: " << fileInfo;
+
+    scheduler->Schedule(std::make_unique<RequestReadDirPlusJob>(request, inode, size, off, fileInfo));
 }
 
 ITaskScheduler* RemoteFileSystem::scheduler = nullptr; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

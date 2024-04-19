@@ -186,7 +186,6 @@ void TestReadV()
     std::array<unsigned char, 1400> buffer1 {};
     std::array<unsigned char, 1400> buffer2 {};
     iovecs[0].iov_base = buffer1.data();
-    ;
     iovecs[0].iov_len = buffer1.size();
     iovecs[1].iov_base = buffer2.data();
     iovecs[1].iov_len = buffer2.size();

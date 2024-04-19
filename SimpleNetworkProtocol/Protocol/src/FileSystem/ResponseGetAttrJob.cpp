@@ -8,7 +8,7 @@
 #include "MessageType.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseGetAttrJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 

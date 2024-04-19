@@ -6,7 +6,7 @@
 
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReadFileJobIn] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseGetAttrInJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 

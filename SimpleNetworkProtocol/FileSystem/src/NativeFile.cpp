@@ -5,6 +5,7 @@
 #include <sys/uio.h>
 #endif
 
+#include <cassert>
 #include <stdexcept>
 #include <vector>
 

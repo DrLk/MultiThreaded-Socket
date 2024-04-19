@@ -24,6 +24,10 @@
 #include "ResponseOpenDirJob.hpp"
 #include "ResponseOpenInJob.hpp"
 #include "ResponseOpenJob.hpp"
+#include "ResponseReadDirInJob.hpp"
+#include "ResponseReadDirJob.hpp"
+#include "ResponseReadDirPlusInJob.hpp"
+#include "ResponseReadDirPlusJob.hpp"
 #include "ResponseReadFileInJob.hpp"
 #include "ResponseReadFileJob.hpp"
 #include "ResponseReleaseDirInJob.hpp"
@@ -171,6 +175,30 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseRead: {
         auto job = std::make_unique<ResponseReadFileInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestReadDir: {
+        auto job = std::make_unique<ResponseReadDirJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseReadDir: {
+        auto job = std::make_unique<ResponseReadDirInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::RequestReadDirPlus: {
+        auto job = std::make_unique<ResponseReadDirPlusJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::ResponseReadDirPlus: {
+        auto job = std::make_unique<ResponseReadDirPlusInJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

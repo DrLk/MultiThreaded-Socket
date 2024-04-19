@@ -1,4 +1,5 @@
 #include "LockedList.hpp"
+#include <cassert>
 #include <gtest/gtest.h>
 
 #include <stop_token>

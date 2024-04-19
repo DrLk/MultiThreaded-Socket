@@ -24,6 +24,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 /SimipleNetworkProtocol/build
+/build
 
 # Visual Studio code cache/options directory
 /SimipleNetworkProtocol/.vscode
