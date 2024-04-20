@@ -13,7 +13,7 @@ namespace FastTransport::TaskQueue {
 RequestReleaseDirJob::RequestReleaseDirJob(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
     : _request(request)
     , _inode(inode)
-    , _file(static_cast<int>(fileInfo->fh))
+    , _handle(&GetFileHandle(fileInfo))
 {
     TRACER() << "Create";
 }
@@ -26,7 +26,8 @@ FuseNetworkJob::Message RequestReleaseDirJob::ExecuteMain(std::stop_token /*stop
     writer << MessageType::RequestReleaseDir;
     writer << _request;
     writer << _inode;
-    writer << _file;
+    writer << _handle->remoteFile.file;
+    writer << _handle;
 
     return {};
 }

@@ -29,7 +29,8 @@ ResponseInFuseNetworkJob::Message ResponseOpenInJob::ExecuteResponse(std::stop_t
 
     fuse_file_info* fileInfo = nullptr;
     reader >> fileInfo;
-    reader >> fileInfo->fh;
+    fileInfo->fh = reinterpret_cast<std::uint64_t>(new FileHandle()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    reader >> GetFileHandle(fileInfo).remoteFile.file;
 
     fuse_reply_open(request, fileInfo);
     return {};

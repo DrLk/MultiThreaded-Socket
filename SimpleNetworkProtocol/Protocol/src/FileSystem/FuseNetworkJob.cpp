@@ -29,4 +29,9 @@ FuseNetworkJob::Message FuseNetworkJob::GetFreeReadPackets()
     return _reader.GetPackets();
 }
 
+FuseNetworkJob::FileHandle& FuseNetworkJob::GetFileHandle(fuse_file_info* fileInfo)
+{
+    return *(reinterpret_cast<FileHandle*>(fileInfo->fh)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+}
+
 } // namespace FastTransport::TaskQueue

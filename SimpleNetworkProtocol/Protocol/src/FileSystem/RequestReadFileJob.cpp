@@ -15,7 +15,7 @@ RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, siz
     , _inode(inode)
     , _size(size)
     , _off(off)
-    , _file(static_cast<int>(fileInfo->fh))
+    , _fileInfo(fileInfo)
 {
 }
 
@@ -26,7 +26,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
              << " inode: " << _inode
              << " size: " << _size
              << " off: " << _off
-             << " file: " << _file;
+             << " file: " << _fileInfo;
 
 
     writer << MessageType::RequestRead;
@@ -34,7 +34,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
     writer << _inode;
     writer << _size;
     writer << _off;
-    writer << _file;
+    writer << GetFileHandle(_fileInfo).remoteFile.file;
 
     return {};
 }

@@ -15,8 +15,10 @@ ResponseInFuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteResponse(std::
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     int error = 0;
+    FileHandle* handle = nullptr;
     reader >> request;
     reader >> error;
+    reader >> handle;
 
     TRACER() << "Execute"
              << " request: " << request;
@@ -25,6 +27,8 @@ ResponseInFuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteResponse(std::
         fuse_reply_err(request, error);
         return {};
     }
+
+    delete handle; // NOLINT(cppcoreguidelines-owning-memory)
 
     fuse_reply_err(request, error);
 

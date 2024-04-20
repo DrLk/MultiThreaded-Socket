@@ -32,7 +32,6 @@ ResponseFuseNetworkJob::Message ResponseFuseNetworkJob::GetFreeReadPackets()
 
 ResponseFuseNetworkJob::Leaf& ResponseFuseNetworkJob::GetLeaf(fuse_ino_t inode, FileTree& fileTree)
 {
-
     return inode == FUSE_ROOT_ID ? fileTree.GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 }
 

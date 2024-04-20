@@ -19,6 +19,6 @@ namespace FastTransport::TaskQueue {
             fuse_ino_t _inode;
             size_t _size;
             off_t _off;
-            int _file;
+            fuse_file_info* _fileInfo;
     };
 } // namespace FastTransport::TaskQueue

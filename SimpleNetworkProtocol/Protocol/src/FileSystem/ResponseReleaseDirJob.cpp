@@ -4,6 +4,7 @@
 #include <stop_token>
 #include <sys/stat.h>
 
+#include "FileHandle.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
 
@@ -19,9 +20,11 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
     int file = 0;
+    FileSystem::FileHandle* handle = nullptr;
     reader >> request;
     reader >> inode;
     reader >> file;
+    reader >> handle;
 
     writer << MessageType::ResponseReleaseDir;
     writer << request;
@@ -33,6 +36,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
 
     if (inode == FUSE_ROOT_ID) {
         writer << error;
+        writer << handle;
         return {};
     }
 
@@ -41,6 +45,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     }
 
     writer << error;
+    writer << handle;
 
     return {};
 }

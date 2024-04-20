@@ -4,6 +4,7 @@
 #include <memory>
 #include <stop_token>
 
+#include "FileHandle.hpp"
 #include "FileTree.hpp"
 #include "IPacket.hpp"
 #include "Job.hpp"
@@ -18,6 +19,7 @@ protected:
     using Reader = Protocol::MessageReader;
     using FileTree = FileSystem::FileTree;
     using Leaf = FileSystem::Leaf;
+    using FileHandle = FileSystem::FileHandle;
 
 public:
     virtual Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) = 0;
@@ -28,6 +30,7 @@ public:
 
 protected:
     Leaf& GetLeaf(fuse_ino_t inode, FileTree& fileTree);
+    FileHandle& GetFileHandle(fuse_file_info* fileInfo);
     fuse_ino_t GetINode(const Leaf& leaf);
 
 private:
