@@ -1,7 +1,7 @@
 #include "LockedList.hpp"
-#include <cassert>
 #include <gtest/gtest.h>
 
+#include <cassert>
 #include <stop_token>
 #include <utility>
 
