@@ -16,21 +16,21 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     TRACER() << "Execute";
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
-    fuse_ino_t parrentId = 0;
+    fuse_ino_t parentId = 0;
     std::string name;
     reader >> request;
-    reader >> parrentId;
+    reader >> parentId;
     reader >> name;
 
     TRACER() << "Execute"
              << " request: " << request;
 
-    const Leaf& parrent = GetLeaf(parrentId, fileTree);
-    auto file = parrent.Find(name);
+    const Leaf& parent = GetLeaf(parentId, fileTree);
+    auto file = parent.Find(name);
 
     writer << MessageType::ResponseLookup;
     writer << request;
-    writer << parrentId;
+    writer << parentId;
     writer << name;
 
     if (!file) {

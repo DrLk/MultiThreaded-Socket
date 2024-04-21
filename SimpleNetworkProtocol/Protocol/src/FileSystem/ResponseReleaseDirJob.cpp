@@ -7,6 +7,7 @@
 #include "FileHandle.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -19,12 +20,13 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
-    int file = 0;
-    FileSystem::FileHandle* handle = nullptr;
+    FileSystem::RemoteFileHandle* remoteFile = nullptr;
+    FileSystem::FileHandle* fileHandle = nullptr;
     reader >> request;
     reader >> inode;
-    reader >> file;
-    reader >> handle;
+    reader >> remoteFile;
+    ;
+    reader >> fileHandle;
 
     writer << MessageType::ResponseReleaseDir;
     writer << request;
@@ -35,17 +37,22 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     leaf.ReleaseRef();
 
     if (inode == FUSE_ROOT_ID) {
+        delete fileHandle->remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
         writer << error;
-        writer << handle;
+        writer << fileHandle;
         return {};
     }
 
+    int file = remoteFile->file;
     if (close(file) == -1) {
         error = errno;
+        writer << error;
+        return {};
     }
 
+    delete fileHandle->remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
     writer << error;
-    writer << handle;
+    writer << fileHandle;
 
     return {};
 }

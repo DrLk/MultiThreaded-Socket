@@ -7,7 +7,7 @@ namespace FastTransport::FileSystem {
 
 struct FileHandle {
     LocalFileHandle localFile;
-    RemoteFileHandle remoteFile;
-} __attribute__((aligned(8)));
+    RemoteFileHandle* remoteFile;
+} __attribute__((aligned(16)));
 
 } // namespace FastTransport::FileSystem

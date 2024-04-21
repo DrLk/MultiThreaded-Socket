@@ -26,7 +26,7 @@ FuseNetworkJob::Message RequestReleaseDirJob::ExecuteMain(std::stop_token /*stop
     writer << MessageType::RequestReleaseDir;
     writer << _request;
     writer << _inode;
-    writer << _handle->remoteFile.file;
+    writer << _handle->remoteFile;
     writer << _handle;
 
     return {};

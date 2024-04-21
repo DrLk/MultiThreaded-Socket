@@ -6,6 +6,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -41,7 +42,8 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
 
     writer << 0; // No error
     writer << fileInfo;
-    writer << file;
+    auto* remoteFile = new FileSystem::RemoteFileHandle { file }; // NOLINT(cppcoreguidelines-owning-memory)
+    writer << remoteFile;
 
     return {};
 }

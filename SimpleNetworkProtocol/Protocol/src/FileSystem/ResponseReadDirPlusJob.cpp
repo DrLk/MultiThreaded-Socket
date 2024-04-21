@@ -6,6 +6,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReadDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -19,25 +20,25 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
     size_t size = 0;
-    off_t off = 0;
-    int file = 0;
+    off_t offset = 0;
+    FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
     reader >> inode;
     reader >> size;
-    reader >> off;
-    reader >> file;
+    reader >> offset;
+    reader >> remoteFile;
 
     TRACER() << "Execute"
              << " request: " << request
              << " inode: " << inode
              << " size: " << size
-             << " off: " << off
-             << " file: " << file;
+             << " offset: " << offset
+             << " file: " << remoteFile;
 
     writer << MessageType::ResponseReadDirPlus;
     writer << request;
 
-    int error = 0;
+    const int error = 0;
     writer << error;
 
     return {};

@@ -6,6 +6,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseGetAttrJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -19,10 +20,10 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
-    int file = 0;
+    FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
     reader >> inode;
-    reader >> file;
+    reader >> remoteFile;
 
     writer << MessageType::ResponseGetAttr;
     writer << request;
@@ -39,6 +40,7 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     }
 
     struct stat stbuf { };
+    int file = remoteFile != nullptr ? remoteFile->file : 0;
     if (file == 0) {
         error = stat(GetLeaf(inode, fileTree).GetFullPath().c_str(), &stbuf);
     } else {

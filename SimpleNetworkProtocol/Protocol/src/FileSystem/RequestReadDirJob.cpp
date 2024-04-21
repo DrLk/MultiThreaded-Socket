@@ -30,8 +30,7 @@ FuseNetworkJob::Message RequestReadDirJob::ExecuteMain(std::stop_token /*stop*/,
     writer << _inode;
     writer << _size;
     writer << _off;
-    const int file = _fileInfo != nullptr ? GetFileHandle(_fileInfo).remoteFile.file : 0;
-    writer << file;
+    writer << GetFileHandle(_fileInfo).remoteFile;
 
     return {};
 }

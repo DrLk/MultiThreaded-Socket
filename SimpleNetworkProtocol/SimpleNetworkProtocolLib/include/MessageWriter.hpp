@@ -37,6 +37,7 @@ public:
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetWritedPackets();
     [[nodiscard]] IPacket::List GetDataPackets(std::size_t size);
+    void AddFreePackets(IPacket::List&& freePackets);
 
 private:
     IPacket& GetPacket();

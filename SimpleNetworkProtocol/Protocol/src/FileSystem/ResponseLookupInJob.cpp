@@ -18,11 +18,11 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop
 
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
-    fuse_ino_t parrentId = 0;
+    fuse_ino_t parentId = 0;
     std::string name;
     int error = 0;
     reader >> request;
-    reader >> parrentId;
+    reader >> parentId;
     reader >> name;
     reader >> error;
 
@@ -45,7 +45,7 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop
     entry.entry_timeout = 1000.0;
 
     const std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
-    GetLeaf(parrentId, fileTree).AddChild(name, type);
+    GetLeaf(parentId, fileTree).AddChild(name, type);
 
     fuse_reply_entry(request, &entry);
 

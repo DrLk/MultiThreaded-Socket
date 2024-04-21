@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
 #include <span>
+#include <sys/stat.h>
 #include <utility>
 
 #include "IPacket.hpp"
@@ -104,6 +106,7 @@ IPacket::List MessageWriter::GetWritedPackets()
     writedPackets.splice(_packets, _packets.begin(), _packet);
     return writedPackets;
 }
+
 IPacket::List MessageWriter::GetDataPackets(std::size_t size)
 {
     IPacket::List freePackets;
@@ -117,6 +120,10 @@ IPacket::List MessageWriter::GetDataPackets(std::size_t size)
     _packets.splice(std::move(freePackets));
 
     return result;
+}
+void MessageWriter::AddFreePackets(IPacket::List&& freePackets)
+{
+    _packets.splice(std::move(freePackets));
 }
 
 IPacket& MessageWriter::GetPacket()

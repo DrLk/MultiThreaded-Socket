@@ -5,6 +5,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -18,13 +19,13 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
-    int file = 0;
+    FileSystem::RemoteFileHandle* remoteFile = nullptr;
     auto& reader = GetReader();
     reader >> request;
     reader >> inode;
     reader >> size;
     reader >> offset;
-    reader >> file;
+    reader >> remoteFile;
 
     TRACER() << "Execute"
              << " request=" << request;
@@ -46,6 +47,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
         ++packet;
     }
 
+    int file = remoteFile->file ;
     int error = 0;
     const ssize_t readed = preadv(file, iovecs.data(), iovecs.size(), offset);
 

@@ -34,7 +34,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
     writer << _inode;
     writer << _size;
     writer << _off;
-    writer << GetFileHandle(_fileInfo).remoteFile.file;
+    writer << GetFileHandle(_fileInfo).remoteFile;
 
     return {};
 }

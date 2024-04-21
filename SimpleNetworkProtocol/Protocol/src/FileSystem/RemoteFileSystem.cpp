@@ -1,10 +1,14 @@
 #include "RemoteFileSystem.hpp"
 
+#include <cstdint>
 #include <fuse3/fuse_lowlevel.h>
 #include <memory>
 #include <string_view>
+#include <unistd.h>
 
+#include "DirectoryEntryWriter.hpp"
 #include "Logger.hpp"
+#include "Packet.hpp"
 #include "RequestForgetMultiJob.hpp"
 #include "RequestGetAttrJob.hpp"
 #include "RequestLookupJob.hpp"
