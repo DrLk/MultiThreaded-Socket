@@ -47,7 +47,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
         ++packet;
     }
 
-    int file = remoteFile->file ;
+    const int file = remoteFile->file ;
     int error = 0;
     const ssize_t readed = preadv(file, iovecs.data(), iovecs.size(), offset);
 

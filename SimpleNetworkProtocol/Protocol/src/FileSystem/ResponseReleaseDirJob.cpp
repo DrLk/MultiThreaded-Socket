@@ -43,7 +43,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
         return {};
     }
 
-    int file = remoteFile->file;
+    const int file = remoteFile->file;
     if (close(file) == -1) {
         error = errno;
         writer << error;

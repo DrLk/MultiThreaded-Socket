@@ -40,7 +40,7 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     }
 
     struct stat stbuf { };
-    int file = remoteFile != nullptr ? remoteFile->file : 0;
+    const int file = remoteFile != nullptr ? remoteFile->file : 0;
     if (file == 0) {
         error = stat(GetLeaf(inode, fileTree).GetFullPath().c_str(), &stbuf);
     } else {
