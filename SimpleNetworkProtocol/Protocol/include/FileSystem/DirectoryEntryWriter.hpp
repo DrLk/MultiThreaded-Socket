@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <fuse3/fuse_lowlevel.h>
 #include <string_view>
 #include <sys/stat.h>
 
@@ -11,7 +13,8 @@ class DirectoryEntryWriter final {
 public:
     explicit DirectoryEntryWriter(IPacket::List&& packets);
 
-    size_t AddDirectoryEntry(std::string_view name, const struct stat* stbuf, off_t off);
+    size_t AddDirectoryEntry(std::string_view name, fuse_ino_t inode, std::uint32_t mode, off_t off);
+    size_t AddDirectoryEntryPlus(std::string_view name, const struct stat* stbuf, off_t off);
     IPacket::List GetWritedPackets();
     IPacket::List GetPackets();
 

@@ -15,12 +15,13 @@ ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(std::sto
 
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
+    Message data;
+
     reader >> request;
 
     TRACER() << "Execute"
              << " request: " << request;
 
-    Message data;
     reader >> data;
 
     const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);

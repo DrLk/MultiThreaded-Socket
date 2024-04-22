@@ -15,17 +15,6 @@
 
 namespace FastTransport::TaskQueue {
 
-namespace {
-    void AddFile(Protocol::DirectoryEntryWriter& writer, std::string_view name, fuse_ino_t ino, off_t offset)
-    {
-        struct stat stbuf { };
-        memset(&stbuf, 0, sizeof(stbuf));
-        stbuf.st_ino = ino;
-        writer.AddDirectoryEntry(name, &stbuf, offset);
-    }
-
-} // namespace
-
 ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
     auto& reader = GetReader();
@@ -53,11 +42,11 @@ ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_to
     Protocol::DirectoryEntryWriter direcotoryWriter(writer.GetDataPackets(99));
 
     if (offset < 1) {
-        AddFile(direcotoryWriter, ".", inode, 0);
+        direcotoryWriter.AddDirectoryEntry(".", inode, 0, 0);
     }
 
     if (offset < 2) {
-        AddFile(direcotoryWriter, "..", 1, 1);
+        direcotoryWriter.AddDirectoryEntry("..", 1, 0, 1);
     }
 
     auto& parent = GetLeaf(inode, fileTree);
@@ -68,7 +57,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_to
     }
 
     for (off_t i = 0; i < size && child != children.end(); ++i, ++child) {
-        AddFile(direcotoryWriter, child->first, GetINode(child->second), i + 2);
+        direcotoryWriter.AddDirectoryEntry(child->first, GetINode(child->second), 0, i + 2);
     }
 
     writer << direcotoryWriter.GetWritedPackets();

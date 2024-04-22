@@ -15,19 +15,12 @@ ResponseInFuseNetworkJob::Message ResponseReadDirPlusInJob::ExecuteResponse(std:
 
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
-    int error = 0;
+    Message data;
+
     reader >> request;
-    reader >> error;
 
     TRACER() << "Execute"
              << " request: " << request;
-
-    if (error != 0) {
-        fuse_reply_err(request, error);
-        return {};
-    }
-
-    Message data;
 
     reader >> data;
 
