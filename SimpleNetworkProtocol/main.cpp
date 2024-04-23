@@ -102,7 +102,6 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
                 start = std::chrono::steady_clock::now();
             }
 
-            // std::this_thread::sleep_for(500ms);
         } });
 
     recvThread.join();

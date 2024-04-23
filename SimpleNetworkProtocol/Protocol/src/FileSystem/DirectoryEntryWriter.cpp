@@ -109,29 +109,29 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
         assert(entlen_padded <= GetPacket().GetPayload().size());
     }
 
-    uint64_t generation = 0; /* Inode generation: nodeid:gen must
+    const uint64_t generation = 0; /* Inode generation: nodeid:gen must
                             be unique for the fs's lifetime */
-    uint64_t entry_valid = 1; /* Cache timeout for the name */
-    uint64_t attr_valid = 1; /* Cache timeout for the attributes */
-    uint32_t entry_valid_nsec = 1;
-    uint32_t attr_valid_nsec = 1;
+    const uint64_t entry_valid = 1; /* Cache timeout for the name */
+    const uint64_t attr_valid = 1; /* Cache timeout for the attributes */
+    const uint32_t entry_valid_nsec = 1;
+    const uint32_t attr_valid_nsec = 1;
 
-    uint64_t ino = stbuf->st_ino;
-    uint64_t size = stbuf->st_size;
-    uint64_t blocks = 0;
-    uint64_t atime = 0;
-    uint64_t mtime = 0;
-    uint64_t ctime = 0;
-    uint32_t atimensec = 0;
-    uint32_t mtimensec = 0;
-    uint32_t ctimensec = 0;
-    auto mode = static_cast<std::uint32_t>(stbuf->st_mode & S_IFMT >> 12U);
-    uint32_t nlink = stbuf->st_nlink;
-    uint32_t uid = stbuf->st_uid;
-    uint32_t gid = stbuf->st_gid;
-    uint32_t rdev = stbuf->st_rdev;
-    uint32_t blksize = stbuf->st_blksize;
-    uint32_t flags = 0;
+    const uint64_t ino = stbuf->st_ino;
+    const uint64_t size = stbuf->st_size;
+    const uint64_t blocks = 0;
+    const uint64_t atime = 0;
+    const uint64_t mtime = 0;
+    const uint64_t ctime = 0;
+    const uint32_t atimensec = 0;
+    const uint32_t mtimensec = 0;
+    const uint32_t ctimensec = 0;
+    const auto mode = static_cast<std::uint32_t>(stbuf->st_mode & S_IFMT >> 12U);
+    const uint32_t nlink = stbuf->st_nlink;
+    const uint32_t uid = stbuf->st_uid;
+    const uint32_t gid = stbuf->st_gid;
+    const uint32_t rdev = stbuf->st_rdev;
+    const uint32_t blksize = stbuf->st_blksize;
+    const uint32_t flags = 0;
 
     operator<<(stbuf->st_ino);
     operator<<(generation);
