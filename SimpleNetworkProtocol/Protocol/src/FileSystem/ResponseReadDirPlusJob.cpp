@@ -10,7 +10,7 @@
 #include "RemoteFileHandle.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
-#define TRACER() LOGGER() << "[ResponseReadDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[ResponseReadDirPlusJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
