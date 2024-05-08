@@ -3,10 +3,12 @@
 #include <cassert>
 #include <filesystem>
 #include <memory>
-#include <utility>
 
 #include "Leaf.hpp"
+#include "Logger.hpp"
 #include "NativeFile.hpp"
+
+#define TRACER() LOGGER() << "[FileTree] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -65,37 +67,42 @@ FileTree FileTree::GetTestFileTree()
     return tree;
 }
 
-void FileTree::Scan(const std::filesystem::path& directoryPath)
+void FileTree::Scan()
 {
-    Scan(std::move(directoryPath), *_root);
+    Scan(_root->GetFullPath(), *_root);
 }
 
 void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // NOLINT(misc-no-recursion)
 {
-    std::filesystem::directory_iterator itt(directoryPath);
+    try {
+        std::filesystem::directory_iterator itt(directoryPath);
 
-    for (; itt != std::filesystem::directory_iterator(); itt++) {
-        const std::filesystem::path& path = itt->path();
-        if (std::filesystem::is_regular_file(path)) {
-            root.AddFile(
-                path,
-                FilePtr(new NativeFile {
-                    path,
-                    std::filesystem::file_size(path),
-                    std::filesystem::file_type::regular,
-                }));
+        for (; itt != std::filesystem::directory_iterator(); itt++) {
+            const std::filesystem::path& path = itt->path();
+            if (std::filesystem::is_regular_file(path)) {
+                root.AddFile(
+                    path.filename(),
+                    FilePtr(new NativeFile {
+                        path.filename(),
+                        std::filesystem::file_size(path),
+                        std::filesystem::file_type::regular,
+                    }));
 
-        } else if (std::filesystem::is_directory(path)) {
-            auto& directory = root.AddFile(
-                path,
-                FilePtr(new NativeFile {
-                    path,
-                    std::filesystem::file_size(path),
-                    std::filesystem::file_type::directory,
-                }));
+            } else if (std::filesystem::is_directory(path)) {
+                auto& directory = root.AddFile(
+                    path.filename(),
+                    FilePtr(new NativeFile {
+                        path.filename(),
+                        0,
+                        std::filesystem::file_type::directory,
+                    }));
 
-            Scan(path, directory);
+                Scan(path, directory);
+            }
         }
+    } catch (const std::filesystem::filesystem_error& e) {
+        TRACER() << "Error: " << e.what();
+        return;
     }
 }
 

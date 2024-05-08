@@ -27,7 +27,7 @@ public:
 
     static FileTree GetTestFileTree();
 
-    void Scan(const std::filesystem::path& directoryPath);
+    void Scan();
 
 private:
     LeafPtr _root;

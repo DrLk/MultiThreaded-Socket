@@ -15,7 +15,6 @@
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
-#include "MergeRequest.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "TaskScheduler.hpp"
 #include "Test.hpp"
@@ -111,7 +110,6 @@ void TestConnection2()
 {
     using FastTransport::TaskQueue::TaskScheduler;
     using FastTransport::TaskQueue::MessageTypeReadJob;
-    using FastTransport::TaskQueue::MergeRequest;
 
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
@@ -130,8 +128,6 @@ void TestConnection2()
         TaskScheduler destinationTaskScheduler(*dstConnection, fileTree);
 
         destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-
-        destinationTaskScheduler.Schedule(MergeRequest::Create());
 
         using FastTransport::TaskQueue::RemoteFileSystem;
         RemoteFileSystem filesystem("/mnt/test");
@@ -154,7 +150,8 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FileTree fileTree = FileTree::GetTestFileTree();
+        FileTree fileTree("/home/u/Downloads");
+        fileTree.Scan();
         TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
 
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));

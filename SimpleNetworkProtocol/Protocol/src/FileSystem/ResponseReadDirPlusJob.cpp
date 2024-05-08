@@ -68,6 +68,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
         stat(child->second.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = GetINode(child->second);
         direcotoryWriter.AddDirectoryEntryPlus(child->first, &stbuf, i + 2);
+        child->second.AddRef();
     }
 
     writer << direcotoryWriter.GetWritedPackets();

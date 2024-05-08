@@ -84,6 +84,10 @@ void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        if (_freeSendPackets.empty()) {
+            auto freePackets = _connection.get().Send2(stop, IPacket::List());
+            _freeSendPackets.splice(std::move(freePackets));
+        }
         assert(!_freeSendPackets.empty());
         Protocol::MessageWriter writer(std::move(_freeSendPackets));
         Message freePackets = job->ExecuteMain(stop, writer);
@@ -105,6 +109,10 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
 void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        if (_freeSendPackets.empty()) {
+            auto freePackets = _connection.get().Send2(stop, IPacket::List());
+            _freeSendPackets.splice(std::move(freePackets));
+        }
         assert(!_freeSendPackets.empty());
         Protocol::MessageWriter writer(std::move(_freeSendPackets));
         Message freePackets = job->ExecuteResponse(stop, writer, _fileTree);
