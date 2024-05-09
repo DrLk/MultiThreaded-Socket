@@ -1,15 +1,28 @@
 #include "ResponseLookupJob.hpp"
 
+#include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 #include <sys/stat.h>
 
+#include "Leaf.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "NativeFile.hpp"
 
 #define TRACER() LOGGER() << "[ResponseLookupJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
+
+static FileSystem::Leaf& AddLeaf(const std::filesystem::path& path, FileSystem::Leaf& parent)
+{
+    auto type = std::filesystem::status(path).type();
+    if (type == std::filesystem::file_type::not_found) {
+        return parent.AddChild(path.filename(), type);
+    }
+    auto size = type == std::filesystem::file_type::directory ? 0 : std::filesystem::file_size(path);
+    return parent.AddFile(path.filename(), std::unique_ptr<FileSystem::File>(new FileSystem::NativeFile(path, size, type)));
+}
 
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
@@ -25,7 +38,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     TRACER() << "Execute"
              << " request: " << request;
 
-    const Leaf& parent = GetLeaf(parentId, fileTree);
+    Leaf& parent = GetLeaf(parentId, fileTree);
     auto file = parent.Find(name);
 
     writer << MessageType::ResponseLookup;
@@ -33,15 +46,15 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     writer << parentId;
     writer << name;
 
-    if (!file) {
+    const std::string path = parent.GetFullPath() / name;
+    const Leaf& fileRef = file ? file.value().get() : AddLeaf(path, parent);
+
+    if (fileRef.IsDeleted()) {
         writer << ENOENT;
         return {};
     }
 
-    const Leaf& fileRef = file.value().get();
-
     struct stat stbuf { };
-    const std::string path = fileRef.GetFullPath();
     const int error = stat(path.c_str(), &stbuf);
 
     writer << error;
@@ -49,7 +62,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     if (error == 0) {
 
         fileRef.AddRef();
-        writer << GetINode(file.value().get());
+        writer << GetINode(fileRef);
         writer << stbuf.st_mode;
         writer << stbuf.st_nlink;
         writer << stbuf.st_size;

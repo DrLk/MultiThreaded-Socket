@@ -24,6 +24,7 @@ public:
 
     const std::filesystem::path& GetName() const;
     std::filesystem::file_type GetType() const;
+    bool IsDeleted() const;
     void SetFile(FilePtr&& file);
     const File& GetFile() const;
     Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
@@ -33,6 +34,8 @@ public:
     void AddRef() const;
     void ReleaseRef() const;
     void ReleaseRef(uint64_t nlookup) const;
+
+    void Rescan();
 
     const std::map<std::string, Leaf>& GetChildren() const;
 
@@ -47,7 +50,6 @@ private:
     Leaf* _parent;
     FilePtr _file;
     mutable std::uint64_t _nlookup = 0;
-    bool _deleted = false;
 };
 
 } // namespace FastTransport::FileSystem

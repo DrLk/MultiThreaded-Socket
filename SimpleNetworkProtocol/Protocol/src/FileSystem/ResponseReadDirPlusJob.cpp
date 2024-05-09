@@ -57,6 +57,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
         direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 1);
     }
 
+    parent.Rescan();
     const auto& children = parent.GetChildren();
 
     auto child = children.begin();
@@ -64,6 +65,10 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     }
 
     for (off_t i = 0; i < size && child != children.end(); ++i, ++child) {
+        if (child->second.IsDeleted()) {
+            continue;
+        }
+
         struct stat stbuf { };
         stat(child->second.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = GetINode(child->second);

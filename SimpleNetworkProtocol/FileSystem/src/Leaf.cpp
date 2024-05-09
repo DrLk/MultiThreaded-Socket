@@ -5,6 +5,10 @@
 #include <string>
 
 #include "File.hpp"
+#include "Logger.hpp"
+#include "NativeFile.hpp"
+
+#define TRACER() LOGGER() << "[Leaf] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -52,6 +56,11 @@ std::filesystem::file_type Leaf::GetType() const
     return _type;
 }
 
+bool Leaf::IsDeleted() const
+{
+    return _type == std::filesystem::file_type::not_found;
+}
+
 void Leaf::SetFile(FilePtr&& file)
 {
     _file = std::move(file);
@@ -79,6 +88,43 @@ void Leaf::ReleaseRef(uint64_t nlookup) const
     assert(_nlookup >= nlookup);
 
     _nlookup -= nlookup;
+}
+
+void Leaf::Rescan()
+{
+    try {
+        std::filesystem::directory_iterator itt(GetFullPath());
+
+        for (; itt != std::filesystem::directory_iterator(); itt++) {
+            const std::filesystem::path& path = itt->path();
+
+            if (Find(path.filename().native()).has_value()) {
+                continue;
+            }
+
+            if (std::filesystem::is_regular_file(path)) {
+                AddFile(
+                    path.filename(),
+                    FilePtr(new NativeFile {
+                        path.filename(),
+                        std::filesystem::file_size(path),
+                        std::filesystem::file_type::regular,
+                    }));
+
+            } else if (std::filesystem::is_directory(path)) {
+                AddFile(
+                    path.filename(),
+                    FilePtr(new NativeFile {
+                        path.filename(),
+                        0,
+                        std::filesystem::file_type::directory,
+                    }));
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        TRACER() << "Error: " << e.what();
+        return;
+    }
 }
 
 const std::map<std::string, Leaf>& Leaf::GetChildren() const

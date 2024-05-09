@@ -41,8 +41,6 @@ FileTree FileTree::GetTestFileTree()
             0,
             std::filesystem::file_type::directory }));
 
-    root.Find("folder1");
-
     folder1.AddFile(
         "file1",
         FilePtr(new NativeFile {

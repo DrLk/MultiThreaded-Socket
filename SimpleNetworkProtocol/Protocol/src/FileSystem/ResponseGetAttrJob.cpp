@@ -29,17 +29,20 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     writer << request;
 
     int error = 0;
+    struct stat stbuf { };
 
     if (inode == FUSE_ROOT_ID) {
         writer << error;
         writer << inode;
         writer << (S_IFDIR | 0755);
         writer << 2;
-        writer << 0;
+        writer << stbuf.st_size;
+        writer << stbuf.st_uid;
+        writer << stbuf.st_gid;
+        writer << stbuf.st_mtim;
         return {};
     }
 
-    struct stat stbuf { };
     const int file = remoteFile != nullptr ? remoteFile->file : 0;
     if (file == 0) {
         error = stat(GetLeaf(inode, fileTree).GetFullPath().c_str(), &stbuf);

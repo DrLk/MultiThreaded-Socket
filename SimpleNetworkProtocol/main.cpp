@@ -151,7 +151,6 @@ void TestConnection2()
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
         FileTree fileTree("/home/u/Downloads");
-        fileTree.Scan();
         TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
 
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
