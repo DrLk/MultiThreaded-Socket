@@ -17,7 +17,7 @@ public:
     void Write(IPacket::List& packets, size_t size, off_t offset) override;
 
 private:
-    int _file;
+    int _file {-1};
 };
 
 } // namespace FastTransport::FileSystem

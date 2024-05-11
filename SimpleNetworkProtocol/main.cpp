@@ -150,7 +150,7 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FileTree fileTree("/home/u/Downloads");
+        FileTree fileTree("/tmp");
         TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
 
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));

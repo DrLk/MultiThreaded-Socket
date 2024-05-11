@@ -42,29 +42,31 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     Protocol::DirectoryEntryWriter direcotoryWriter(writer.GetDataPackets(99));
 
     auto& parent = GetLeaf(inode, fileTree);
+    size_t writedSize = 0;
     if (offset < 1) {
         struct stat stbuf { };
         memset(&stbuf, 0, sizeof(stbuf));
         stat(parent.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = inode;
-        direcotoryWriter.AddDirectoryEntryPlus(".", &stbuf, 0);
+        writedSize += direcotoryWriter.AddDirectoryEntryPlus(".", &stbuf, 0);
     }
 
     if (offset < 2) {
         struct stat stbuf { };
         memset(&stbuf, 0, sizeof(stbuf));
         stbuf.st_ino = 1;
-        direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 1);
+        writedSize += direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 1);
     }
 
     parent.Rescan();
     const auto& children = parent.GetChildren();
 
     auto child = children.begin();
-    for (off_t i = 2; i <= offset && child != children.end(); ++i, ++child) {
+    off_t inodeIndex = 2;
+    for (; inodeIndex <= offset && child != children.end(); ++inodeIndex, ++child) {
     }
 
-    for (off_t i = 0; i < size && child != children.end(); ++i, ++child) {
+    for (; writedSize + direcotoryWriter.GetEntryPlusSize(child->first) < size && child != children.end(); ++inodeIndex, ++child) {
         if (child->second.IsDeleted()) {
             continue;
         }
@@ -72,7 +74,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
         struct stat stbuf { };
         stat(child->second.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = GetINode(child->second);
-        direcotoryWriter.AddDirectoryEntryPlus(child->first, &stbuf, i + 2);
+        writedSize += direcotoryWriter.AddDirectoryEntryPlus(child->first, &stbuf, inodeIndex);
         child->second.AddRef();
     }
 

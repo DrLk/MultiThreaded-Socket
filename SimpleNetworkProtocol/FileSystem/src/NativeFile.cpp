@@ -20,7 +20,6 @@ NativeFile::NativeFile()
 
 NativeFile::NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
     : File(size, type)
-    , _file(open(name.c_str(), O_RDWR | O_CREAT | O_CLOEXEC)) // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
 {
 }
 

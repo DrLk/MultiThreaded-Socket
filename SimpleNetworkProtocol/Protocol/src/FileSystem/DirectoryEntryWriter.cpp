@@ -92,9 +92,17 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
     return entlen_padded;
 }
 
+size_t DirectoryEntryWriter::GetEntryPlusSize(std::string_view name)
+{
+    constexpr size_t FUSE_NAME_OFFSET_DIRENTPLUS = offsetof(struct fuse_direntplus, dirent.name);
+    size_t entryPlusSize = FUSE_NAME_OFFSET_DIRENTPLUS + name.size();
+    entryPlusSize = (((entryPlusSize) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    return entryPlusSize;
+}
+
 size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const struct stat* stbuf, off_t off)
 {
-    const size_t FUSE_NAME_OFFSET_DIRENTPLUS = offsetof(struct fuse_direntplus, dirent.name);
+    constexpr size_t FUSE_NAME_OFFSET_DIRENTPLUS = offsetof(struct fuse_direntplus, dirent.name);
     std::uint32_t namelen = 0;
     size_t entlen = 0;
     size_t entlen_padded = 0;
