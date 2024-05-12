@@ -35,5 +35,6 @@ public:
 
     virtual IPacket::Ptr GetFreeSendPacket() = 0;
     virtual void AddFreeUserSendPackets(IPacket::List&& freePackets) = 0;
+    virtual void NotifySendPacketsEvent() const = 0;
 };
 } // namespace FastTransport::Protocol

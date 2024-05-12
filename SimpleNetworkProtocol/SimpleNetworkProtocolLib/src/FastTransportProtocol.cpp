@@ -38,6 +38,7 @@ FastTransportContext::FastTransportContext(const ConnectionAddr& address)
     , _recvContextThread(RecvThread, std::ref(*this))
 {
     _udpQueue.Init();
+    _udpQueue.Subscribe(*this);
 }
 
 IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
@@ -64,6 +65,7 @@ IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
 IConnection::Ptr FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 {
     const Connection::Ptr& connection = std::make_shared<Connection>(ConnectionState::SendingSynState, dstAddr, GenerateID());
+    connection->Subscribe(*this);
     connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
     {
@@ -109,6 +111,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         } else {
             auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
             if (connection != nullptr) {
+                connection->Subscribe(*this);
                 connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
                 {
@@ -147,6 +150,12 @@ void FastTransportContext::ConnectionsRun(std::stop_token stop)
 void FastTransportContext::SendQueueStep(std::stop_token stop)
 {
     ZoneScopedN("SendQueueStep");
+    {
+        std::unique_lock<Mutex> lock(_mutex);
+        _condition.wait_for(lock, stop, 500ms, [this]() { return static_cast<bool>(_readySend); });
+        _readySend = false;
+    }
+
     OutgoingPacket::List packets;
 
     {
@@ -281,6 +290,18 @@ IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
     }
 
     return freeRecvPackets;
+}
+
+void FastTransportContext::OnSendPacket()
+{
+    _readySend = true;
+    _condition.notify_all();
+}
+
+void FastTransportContext::OnOutgoingPackets()
+{
+    _readySend = true;
+    _condition.notify_all();
 }
 
 ConnectionID FastTransportContext::GenerateID()

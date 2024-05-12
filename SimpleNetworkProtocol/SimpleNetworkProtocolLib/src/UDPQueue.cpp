@@ -16,6 +16,7 @@
 #include "SendThreadQueue.hpp"
 #include "Socket.hpp"
 #include "ThreadName.hpp"
+#include "UDPQueueEvents.hpp"
 
 using namespace std::chrono_literals;
 
@@ -67,7 +68,7 @@ IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
     return result;
 }
 
-OutgoingPacket::List UDPQueue::Send(std::stop_token stop, OutgoingPacket::List&& data)
+OutgoingPacket::List UDPQueue::Send(std::stop_token  /*stop*/, OutgoingPacket::List&& data)
 {
     if (!data.empty()) {
         _sendQueue.LockedSplice(std::move(data));
@@ -76,7 +77,6 @@ OutgoingPacket::List UDPQueue::Send(std::stop_token stop, OutgoingPacket::List&&
 
     OutgoingPacket::List result;
     {
-        _sendFreeQueue.WaitFor(stop);
         _sendFreeQueue.LockedSwap(result);
     }
 
@@ -101,6 +101,11 @@ IPacket::List UDPQueue::CreateBuffers(size_t size)
     }
 
     return buffers;
+}
+
+void UDPQueue::Subscribe(UDPQueueEvents& events)
+{
+    _eventSubscribers.emplace_back(events);
 }
 
 void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQueue& recvThreadQueue, const Socket& socket, size_t index)
@@ -163,6 +168,13 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
             udpQueue._recvQueue.LockedSplice(std::move(queue));
             udpQueue._recvQueue.NotifyAll();
         }
+    }
+}
+
+void UDPQueue::NotifyOutgoingPacketsSubscribers()
+{
+    for (auto& subscriber : _eventSubscribers) {
+        subscriber.get().OnOutgoingPackets();
     }
 }
 } // namespace FastTransport::Protocol

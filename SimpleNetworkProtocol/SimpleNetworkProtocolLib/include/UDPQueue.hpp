@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <stop_token>
 #include <thread>
 #include <vector>
@@ -20,6 +21,7 @@ namespace FastTransport::Protocol {
 using FastTransport::Containers::LockedList;
 
 class Socket;
+class UDPQueueEvents;
 
 class UDPQueue {
     friend SendThreadQueue;
@@ -35,6 +37,8 @@ public:
     [[nodiscard]] size_t GetThreadCount() const;
 
     static IPacket::List CreateBuffers(size_t size);
+
+    void Subscribe(UDPQueueEvents& events);
 
 private:
     ConnectionAddr _address;
@@ -57,7 +61,10 @@ private:
 
     std::vector<std::shared_ptr<Socket>> _sockets;
 
+    std::vector<std::reference_wrapper<UDPQueueEvents>> _eventSubscribers;
     std::vector<std::jthread> _writeThreads;
     std::vector<std::jthread> _readThreads;
+
+    void NotifyOutgoingPacketsSubscribers();
 };
 } // namespace FastTransport::Protocol

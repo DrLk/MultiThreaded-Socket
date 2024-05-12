@@ -6,11 +6,14 @@
 #include <unordered_map>
 
 #include "Connection.hpp"
+#include "ConnectionEvents.hpp"
 #include "ConnectionKey.hpp"
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
+#include "SpinLock.hpp"
 #include "UDPQueue.hpp"
+#include "UDPQueueEvents.hpp"
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;
@@ -18,14 +21,14 @@ class ConnectionAddr;
 
 namespace FastTransport::Protocol {
 
-class FastTransportContext {
+class FastTransportContext : public ConnectionEvents, public UDPQueueEvents {
 public:
     explicit FastTransportContext(const ConnectionAddr& address);
     FastTransportContext(const FastTransportContext& that) = delete;
     FastTransportContext(FastTransportContext&& that) = delete;
     FastTransportContext& operator=(const FastTransportContext& that) = delete;
     FastTransportContext& operator=(FastTransportContext&& that) = delete;
-    ~FastTransportContext() = default;
+    ~FastTransportContext() override = default;
 
     IPacket::List OnReceive(IPacket::List&& packet);
 
@@ -43,6 +46,11 @@ private:
     OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List& packets);
 
     UDPQueue _udpQueue;
+
+    std::atomic_bool _readySend { true };
+    using Mutex = FastTransport::Thread::SpinLock;
+    mutable Mutex _mutex;
+    std::condition_variable_any _condition;
 
     std::jthread _sendContextThread;
     std::jthread _recvContextThread;
@@ -64,5 +72,8 @@ private:
     IPacket::List GetConnectionsFreeRecvPackets();
 
     static ConnectionID GenerateID();
+
+    void OnSendPacket() override;
+    void OnOutgoingPackets() override;
 };
 } // namespace FastTransport::Protocol

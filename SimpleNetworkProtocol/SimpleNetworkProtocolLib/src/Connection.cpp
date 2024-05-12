@@ -9,6 +9,7 @@
 #include <stop_token>
 #include <utility>
 
+#include "ConnectionEvents.hpp"
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
@@ -66,6 +67,7 @@ IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
     _freeRecvPackets.LockedSwap(temp);
     freePackets.splice(std::move(temp));
 
+    NotifySendPacketsEvent();
     return std::move(freePackets);
 }
 
@@ -110,6 +112,7 @@ void Connection::Send(IPacket::List&& data)
 {
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
+        NotifySendPacketsEvent();
     }
 }
 
@@ -117,6 +120,7 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 {
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
+        NotifySendPacketsEvent();
     }
 
     IPacket::List result;
@@ -214,6 +218,10 @@ const ConnectionKey& Connection::GetConnectionKey() const
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
     const std::size_t size = _inFlightQueue->GetNumberPacketToSend();
+    if (size == 0) {
+        NotifySendPacketsEvent();
+        return {};
+    }
     OutgoingPacket::List packets = _sendQueue->GetPacketsToSend(size);
     _statistics.AddSendPackets(packets.size());
     return packets;
@@ -250,11 +258,13 @@ void Connection::SendServicePackets(IPacket::List&& packets)
 {
     _statistics.AddAckSendPackets(packets.size());
     _sendQueue->SendPackets(std::move(packets), false);
+    NotifySendPacketsEvent();
 }
 
 void Connection::SendDataPackets(IPacket::List&& packets)
 {
     _sendQueue->SendPackets(std::move(packets), true);
+    NotifySendPacketsEvent();
 }
 
 IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
@@ -284,6 +294,7 @@ void Connection::ReSendPackets(OutgoingPacket::List&& packets)
 {
     _statistics.AddLostPackets(packets.size());
     _sendQueue->ReSendPackets(std::move(packets));
+    NotifySendPacketsEvent();
 }
 
 IPacket::List Connection::ProcessAcks()
@@ -365,6 +376,18 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
     if (!freePackets.empty()) {
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
         _freeUserSendPackets.NotifyAll();
+    }
+}
+
+void Connection::Subscribe(ConnectionEvents& subscriber)
+{
+    _eventSubscribers.emplace_back(subscriber);
+}
+
+void Connection::NotifySendPacketsEvent() const
+{
+    for (ConnectionEvents& subscriber : _eventSubscribers) {
+        subscriber.OnSendPacket();
     }
 }
 

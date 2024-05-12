@@ -33,6 +33,7 @@ class ISendQueue;
 class IInFlightQueue;
 class IRecvQueue;
 class IConnectionState;
+class ConnectionEvents;
 
 class Connection final : public IConnectionInternal {
     using clock = std::chrono::steady_clock;
@@ -104,6 +105,8 @@ public:
     IPacket::Ptr GetFreeSendPacket() override;
     void AddFreeUserSendPackets(IPacket::List&& freePackets) override;
 
+    void Subscribe(ConnectionEvents& subscriber);
+    void NotifySendPacketsEvent() const override;
 private:
     std::shared_ptr<ConnectionContext> _context;
     ConnectionKey _key;
@@ -132,5 +135,7 @@ private:
     LockedList<IPacket::Ptr> _sendUserData;
 
     ConnectionID _destinationId { 0 };
+
+    std::vector<std::reference_wrapper<ConnectionEvents>> _eventSubscribers;
 };
 } // namespace FastTransport::Protocol

@@ -111,6 +111,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
             queue.swap(sendQueue);
             udpQueue._sendFreeQueue.LockedSplice(std::move(queue));
             udpQueue._sendFreeQueue.NotifyAll();
+            udpQueue.NotifyOutgoingPacketsSubscribers();
         }
     }
 }
