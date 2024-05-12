@@ -43,11 +43,10 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
         return {};
     }
 
-    const int file = remoteFile != nullptr ? remoteFile->file : 0;
-    if (file == 0) {
-        error = stat(GetLeaf(inode, fileTree).GetFullPath().c_str(), &stbuf);
+    if (remoteFile != nullptr) {
+        error = remoteFile->file2->Stat(stbuf);
     } else {
-        error = fstatat(file, "", &stbuf, 0);
+        error = stat(GetLeaf(inode, fileTree).GetFullPath().c_str(), &stbuf);
     }
 
     writer << error;

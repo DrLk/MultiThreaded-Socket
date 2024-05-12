@@ -1,5 +1,6 @@
 #include "ResponseReadFileJob.hpp"
 
+#include <cstddef>
 #include <stop_token>
 #include <sys/uio.h>
 
@@ -47,10 +48,9 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
         ++packet;
     }
 
-    const int file = remoteFile->file ;
-    int error = 0;
-    const ssize_t readed = preadv(file, iovecs.data(), iovecs.size(), offset);
 
+    const std::size_t readed = remoteFile->file2->Read(dataPackets, size, offset);
+    int error = 0;
     if (readed == -1) {
         TRACER() << "preadv failed";
         error = errno;

@@ -24,12 +24,10 @@ public:
 
     const std::filesystem::path& GetName() const;
     std::filesystem::file_type GetType() const;
+    std::uintmax_t GetSize() const;
     bool IsDeleted() const;
-    void SetFile(FilePtr&& file);
-    const File& GetFile() const;
     Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
     Leaf& AddChild(Leaf&& leaf);
-    Leaf& AddFile(const std::filesystem::path& name, FilePtr&& file);
 
     void AddRef() const;
     void ReleaseRef() const;
@@ -48,7 +46,6 @@ private:
     std::filesystem::path _name;
     std::filesystem::file_type _type;
     Leaf* _parent;
-    FilePtr _file;
     mutable std::uint64_t _nlookup = 0;
 };
 

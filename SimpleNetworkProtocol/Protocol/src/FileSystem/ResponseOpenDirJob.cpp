@@ -1,11 +1,14 @@
 #include "ResponseOpenDirJob.hpp"
 
 #include <fuse3/fuse_lowlevel.h>
+#include <memory>
 #include <stop_token>
 #include <sys/stat.h>
+#include <utility>
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "NativeFile.hpp"
 #include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -34,15 +37,15 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
     writer << MessageType::ResponseOpenDir;
     writer << request;
 
-    const int file = open(leaf.GetFullPath().c_str(), flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
-    if (file == -1) {
+    auto file = std::make_unique<FileSystem::NativeFile>(leaf.GetFullPath());
+    if (!file->IsOpened()) {
         writer << errno;
         return {};
     }
 
     writer << 0; // No error
     writer << fileInfo;
-    auto* remoteFile = new FileSystem::RemoteFileHandle { file }; // NOLINT(cppcoreguidelines-owning-memory)
+    auto* remoteFile = new FileSystem::RemoteFileHandle { std::move(file) }; // NOLINT(cppcoreguidelines-owning-memory)
     writer << remoteFile;
 
     return {};

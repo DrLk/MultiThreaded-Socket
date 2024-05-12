@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "File.hpp"
 #include "IPacket.hpp"
 
@@ -9,11 +11,13 @@ class NativeFile : public File {
     using IPacket = FastTransport::Protocol::IPacket;
 
 public:
-    NativeFile();
-    NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type);
+    explicit NativeFile(const std::filesystem::path& name);
 
     void Open() override;
-    IPacket::List Read(IPacket::List& packets, std::size_t size, off_t offset) override;
+    [[nodiscard]] bool IsOpened() const override;
+    int Close() override;
+    int Stat(struct stat& stat) override;
+    std::size_t Read(IPacket::List& packets, std::size_t size, off_t offset) override;
     void Write(IPacket::List& packets, size_t size, off_t offset) override;
 
 private:

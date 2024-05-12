@@ -6,7 +6,6 @@
 
 #include "Leaf.hpp"
 #include "Logger.hpp"
-#include "NativeFile.hpp"
 
 #define TRACER() LOGGER() << "[FileTree] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -34,34 +33,13 @@ FileTree FileTree::GetTestFileTree()
 
     auto& root = tree.GetRoot();
 
-    auto& folder1 = root.AddFile(
-        "folder1",
-        FilePtr(new NativeFile {
-            "folder1",
-            0,
-            std::filesystem::file_type::directory }));
+    auto& folder1 = root.AddChild("folder1", std::filesystem::file_type::directory);
 
-    folder1.AddFile(
-        "file1",
-        FilePtr(new NativeFile {
-            "file1",
-            10L * 1024L * 1024L * 1024L,
-            std::filesystem::file_type::regular }));
+    folder1.AddChild("file1", std::filesystem::file_type::regular);
 
-    auto& folder2 = root.AddFile(
-        "folder2",
-        FilePtr(new NativeFile {
-            "folder2",
-            0,
-            std::filesystem::file_type::directory }));
+    auto& folder2 = root.AddChild("folder2", std::filesystem::file_type::directory);
 
-    folder2.AddFile(
-        "file2",
-        FilePtr(new NativeFile {
-            "file2",
-            2LL * 1024 * 1024,
-            std::filesystem::file_type::regular }));
-
+    folder2.AddChild("file2", std::filesystem::file_type::regular);
     return tree;
 }
 
@@ -78,23 +56,10 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
         for (; itt != std::filesystem::directory_iterator(); itt++) {
             const std::filesystem::path& path = itt->path();
             if (std::filesystem::is_regular_file(path)) {
-                root.AddFile(
-                    path.filename(),
-                    FilePtr(new NativeFile {
-                        path.filename(),
-                        std::filesystem::file_size(path),
-                        std::filesystem::file_type::regular,
-                    }));
+                root.AddChild(path.filename(), std::filesystem::file_type::regular);
 
             } else if (std::filesystem::is_directory(path)) {
-                auto& directory = root.AddFile(
-                    path.filename(),
-                    FilePtr(new NativeFile {
-                        path.filename(),
-                        0,
-                        std::filesystem::file_type::directory,
-                    }));
-
+                auto& directory = root.AddChild(path.filename(), std::filesystem::file_type::directory);
                 Scan(path, directory);
             }
         }

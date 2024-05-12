@@ -119,7 +119,7 @@ void FileSystem::Start()
 }
 // NOLINTBEGIN
 
-void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const File& file)
+void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const Leaf& file)
 {
     stbuf->st_ino = ino;
     switch (file.GetType()) {
@@ -158,7 +158,7 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
         entry.ino = GetINode(*file);
         entry.attr_timeout = 1.0;
         entry.entry_timeout = 1.0;
-        Stat(entry.ino, &entry.attr, (*file).get().GetFile());
+        Stat(entry.ino, &entry.attr, file.value());
 
         fuse_reply_entry(req, &entry);
     }
@@ -188,7 +188,7 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
 
     auto& file = GetLeaf(inode, req);
     memset(&stbuf, 0, sizeof(stbuf));
-    Stat(inode, &stbuf, file.GetFile());
+    Stat(inode, &stbuf, file);
     fuse_reply_attr(req, &stbuf, 1.0);
 }
 

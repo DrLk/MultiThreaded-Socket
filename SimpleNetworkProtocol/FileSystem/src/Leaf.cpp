@@ -1,12 +1,10 @@
 #include "Leaf.hpp"
 
+#include <cstdint>
 #include <filesystem>
-#include <memory>
 #include <string>
 
-#include "File.hpp"
 #include "Logger.hpp"
-#include "NativeFile.hpp"
 
 #define TRACER() LOGGER() << "[Leaf] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -38,14 +36,6 @@ Leaf& Leaf::AddChild(Leaf&& leaf)
     return insertedLeaf->second;
 }
 
-Leaf& Leaf::AddFile(const std::filesystem::path& name, FilePtr&& file)
-{
-    Leaf leaf(name, file->GetType(), this);
-    leaf._file = std::move(file);
-    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
-    return insertedLeaf->second;
-}
-
 const std::filesystem::path& Leaf::GetName() const
 {
     return _name;
@@ -56,19 +46,18 @@ std::filesystem::file_type Leaf::GetType() const
     return _type;
 }
 
+std::uintmax_t Leaf::GetSize() const
+{
+    if (_type == std::filesystem::file_type::regular) {
+        return std::filesystem::file_size(GetFullPath());
+    }
+
+    return 0;
+}
+
 bool Leaf::IsDeleted() const
 {
     return _type == std::filesystem::file_type::not_found;
-}
-
-void Leaf::SetFile(FilePtr&& file)
-{
-    _file = std::move(file);
-}
-
-const File& Leaf::GetFile() const
-{
-    return *_file;
 }
 
 void Leaf::AddRef() const
@@ -103,22 +92,10 @@ void Leaf::Rescan()
             }
 
             if (std::filesystem::is_regular_file(path)) {
-                AddFile(
-                    path.filename(),
-                    FilePtr(new NativeFile {
-                        path.filename(),
-                        std::filesystem::file_size(path),
-                        std::filesystem::file_type::regular,
-                    }));
+                AddChild(path.filename(), std::filesystem::file_type::regular);
 
             } else if (std::filesystem::is_directory(path)) {
-                AddFile(
-                    path.filename(),
-                    FilePtr(new NativeFile {
-                        path.filename(),
-                        0,
-                        std::filesystem::file_type::directory,
-                    }));
+                AddChild(path.filename(), std::filesystem::file_type::directory);
             }
         }
     } catch (const std::filesystem::filesystem_error& e) {

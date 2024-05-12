@@ -6,6 +6,8 @@
 #include "ByteStream.hpp"
 #include "IPacket.hpp"
 
+struct stat;
+
 namespace FastTransport::FileSystem {
 
 class File {
@@ -35,7 +37,10 @@ public:
     }
 
     virtual void Open() = 0;
-    virtual IPacket::List Read(IPacket::List& packets, size_t size, off_t off) = 0;
+    [[nodiscard]] virtual bool IsOpened() const = 0;
+    virtual int Close() = 0;
+    virtual int Stat(struct stat& stat) = 0;
+    virtual std::size_t Read(IPacket::List& packets, size_t size, off_t off) = 0;
     virtual void Write(IPacket::List& packets, size_t size, off_t off) = 0;
 
     [[nodiscard]] std::uint64_t GetSize() const;

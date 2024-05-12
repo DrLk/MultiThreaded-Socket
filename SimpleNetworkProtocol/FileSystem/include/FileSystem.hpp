@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <sys/types.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -12,6 +11,8 @@
 
 #include "File.hpp"
 #include "FileTree.hpp"
+
+struct stat;
 
 namespace FastTransport::FileSystem {
 class FileSystem {
@@ -45,7 +46,7 @@ private:
     static void FuseInit(void* userdata, struct fuse_conn_info* conn);
     static void BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name, fuse_ino_t ino);
     static int ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bufferSize, off_t off, size_t maxSize);
-    static void Stat(fuse_ino_t ino, struct stat* stbuf, const File& file);
+    static void Stat(fuse_ino_t ino, struct stat* stbuf, const Leaf& file);
 
     static void FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name);
     static void FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup);

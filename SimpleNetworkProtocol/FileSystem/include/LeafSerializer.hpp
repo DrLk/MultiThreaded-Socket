@@ -5,7 +5,6 @@
 #include "ByteStream.hpp"
 #include "File.hpp"
 #include "Leaf.hpp"
-#include "NativeFile.hpp"
 
 namespace FastTransport::FileSystem {
 class LeafSerializer final {
@@ -31,9 +30,7 @@ public:
         stream >> name;
         std::filesystem::file_type type {};
         stream >> type;
-        FilePtr file(new NativeFile());
         Leaf leaf(name, type, parent);
-        leaf.SetFile(std::move(file));
 
         std::uint64_t size = 0;
         stream >> size;

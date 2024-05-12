@@ -169,7 +169,7 @@ void TestConnection3()
 
     RemoteFileSystem filesystem("/mnt/test");
     filesystem.Start();
-    const NativeFile file("/mnt/test/test.txt", 10, std::filesystem::file_type::regular);
+    const NativeFile file("/mnt/test/test.txt");
 }
 
 void TestReadV()

@@ -6,6 +6,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "NativeFile.hpp"
 #include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -33,8 +34,8 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
     writer << MessageType::ResponseOpen;
     writer << request;
 
-    const int file = open(leaf.GetFullPath().c_str(), flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
-    if (file == -1) {
+    auto file = std::make_unique<FileSystem::NativeFile>(leaf.GetFullPath());
+    if (!file->IsOpened()) {
         writer << errno;
         return {};
     }
@@ -43,7 +44,7 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
 
     writer << 0; // No error
     writer << fileInfo;
-    auto* remoteFile = new FileSystem::RemoteFileHandle { file }; // NOLINT(cppcoreguidelines-owning-memory)
+    auto* remoteFile = new FileSystem::RemoteFileHandle { std::move(file) }; // NOLINT(cppcoreguidelines-owning-memory)
     writer << remoteFile;
 
     return {};

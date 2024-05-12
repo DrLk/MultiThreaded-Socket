@@ -1,7 +1,9 @@
 #include "NativeFile.hpp"
+#include <cstddef>
 
 #ifdef __linux__
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
 #endif
 
@@ -13,13 +15,8 @@
 
 namespace FastTransport::FileSystem {
 
-NativeFile::NativeFile()
-    : NativeFile("", 0, std::filesystem::file_type::none)
-{
-}
-
-NativeFile::NativeFile(const std::filesystem::path& name, std::uint64_t size, std::filesystem::file_type type)
-    : File(size, type)
+NativeFile::NativeFile(const std::filesystem::path& name)
+    : _file { open(name.c_str(), ~O_NOFOLLOW) } // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
 {
 }
 
@@ -28,9 +25,27 @@ void NativeFile::Open()
     assert(_file != -1);
 }
 
-NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t size, off_t offset)
+bool NativeFile::IsOpened() const
 {
-    IPacket::List result;
+    return _file != -1;
+}
+
+int NativeFile::Close()
+{
+    assert(_file != -1);
+    int result = close(_file); // NOLINT (cppcoreguidelines-pro-type-cstyle-cas
+    _file = -1;
+    return result;
+}
+
+int NativeFile::Stat(struct stat& stat)
+{
+    assert(_file != -1);
+    return fstat(_file, &stat);
+}
+
+std::size_t NativeFile::Read(IPacket::List& packets, std::size_t size, off_t offset)
+{
 #ifdef __linux__
     if (packets.empty()) {
         throw std::runtime_error("No packets to read into");
@@ -50,12 +65,10 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
         assert(blockSize == (*packet)->GetPayload().size());
     }
 
-    int error = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
-    assert(error != -1);
+    std::size_t readed = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
     ++packet;
-    result.splice(packets, packets.begin(), packet);
 #endif // __linux__
-    return result;
+    return readed;
 }
 
 void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)

@@ -8,7 +8,6 @@
 #include "Leaf.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
-#include "NativeFile.hpp"
 
 #define TRACER() LOGGER() << "[ResponseLookupJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -17,11 +16,8 @@ namespace FastTransport::TaskQueue {
 static FileSystem::Leaf& AddLeaf(const std::filesystem::path& path, FileSystem::Leaf& parent)
 {
     auto type = std::filesystem::status(path).type();
-    if (type == std::filesystem::file_type::not_found) {
-        return parent.AddChild(path.filename(), type);
-    }
-    auto size = type == std::filesystem::file_type::directory ? 0 : std::filesystem::file_size(path);
-    return parent.AddFile(path.filename(), std::unique_ptr<FileSystem::File>(new FileSystem::NativeFile(path, size, type)));
+    return parent.AddChild(path.filename(), type);
+
 }
 
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
