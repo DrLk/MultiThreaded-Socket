@@ -38,16 +38,6 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     writer << offset;
 
     Message dataPackets = writer.GetDataPackets(200);
-    std::array<iovec, 200> iovecs {};
-
-    auto packet = dataPackets.begin();
-    for (auto& iovec : iovecs) {
-        iovec.iov_base = (*packet)->GetPayload().data();
-        iovec.iov_len = (*packet)->GetPayload().size();
-        assert(1300 == (*packet)->GetPayload().size());
-        ++packet;
-    }
-
 
     const size_t readed = remoteFile->file2->Read(dataPackets, size, offset);
     int error = 0;
