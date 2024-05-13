@@ -45,7 +45,9 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
         return {};
     }
 
+    size_t readed = 0;
     Message data;
+    reader >> readed;
     reader >> data;
 
     const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
@@ -59,17 +61,17 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     for (auto& packet : data) {
         auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         buffer.mem = packet->GetPayload().data();
-        buffer.size = std::min(packet->GetPayload().size(), size);
+        buffer.size = std::min(packet->GetPayload().size(), readed);
         buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         buffer.pos = 0;
         buffer.fd = 0;
 
         count++;
-        if (size <= packet->GetPayload().size()) {
+        if (readed <= packet->GetPayload().size()) {
             break;
         }
 
-        size -= packet->GetPayload().size();
+        readed -= packet->GetPayload().size();
         offset += static_cast<off_t>(packet->GetPayload().size());
     }
     buffVector->count = count;

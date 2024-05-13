@@ -16,7 +16,7 @@
 namespace FastTransport::FileSystem {
 
 NativeFile::NativeFile(const std::filesystem::path& name)
-    : _file { open(name.c_str(), ~O_NOFOLLOW) } // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
+    : _file { open(name.c_str(), O_CLOEXEC) } // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
 {
 }
 
@@ -63,10 +63,10 @@ std::size_t NativeFile::Read(IPacket::List& packets, std::size_t size, off_t off
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
         assert(blockSize == (*packet)->GetPayload().size());
+        ++packet;
     }
 
     std::size_t readed = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
-    ++packet;
 #endif // __linux__
     return readed;
 }
@@ -89,11 +89,11 @@ void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
         assert(blockSize == (*packet)->GetPayload().size());
+        ++packet;
     }
 
     const ssize_t error = pwritev(_file, iovecs.data(), blocks, offset);
     assert(error != -1);
-    ++packet;
 #endif // __linux__
 }
 } // namespace FastTransport::FileSystem
