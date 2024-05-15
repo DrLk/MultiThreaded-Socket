@@ -2,7 +2,6 @@
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
-#include <sys/stat.h>
 
 #include "FileHandle.hpp"
 #include "Logger.hpp"

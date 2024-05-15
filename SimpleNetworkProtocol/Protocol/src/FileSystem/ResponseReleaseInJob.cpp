@@ -2,7 +2,6 @@
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
-#include <sys/types.h>
 
 #include "Logger.hpp"
 #include "ResponseInFuseNetworkJob.hpp"

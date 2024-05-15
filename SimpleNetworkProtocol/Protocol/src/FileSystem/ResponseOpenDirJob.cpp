@@ -3,7 +3,6 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <memory>
 #include <stop_token>
-#include <sys/stat.h>
 #include <utility>
 
 #include "Logger.hpp"

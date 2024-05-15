@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <fuse3/fuse_lowlevel.h>
 #include <string_view>
-#include <sys/stat.h>
 
 #include "Concepts.hpp"
 #include "IPacket.hpp"
