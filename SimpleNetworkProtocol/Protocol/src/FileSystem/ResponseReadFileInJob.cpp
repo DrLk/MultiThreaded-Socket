@@ -50,12 +50,12 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     reader >> readed;
     reader >> data;
 
+    readed = std::min(readed, size);
     const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int index = 0;
     size_t count = 0;
 
-    /* buffVector->off = offset; */
     buffVector->off = 0;
     buffVector->idx = 0;
     for (auto& packet : data) {
