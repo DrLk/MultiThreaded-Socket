@@ -37,7 +37,7 @@ std::size_t CachedFile::Read(Protocol::IPacket::List&  /*packets*/, size_t  /*si
 
 void CachedFile::Write(Protocol::IPacket::List&  /*packets*/, size_t  size, off_t  offset)
 {
-    _chunks.insert(std::make_pair(Range{offset, size}, Protocol::IPacket::List{}));
+    _chunks.insert(Range(size, offset));
 }
 
 

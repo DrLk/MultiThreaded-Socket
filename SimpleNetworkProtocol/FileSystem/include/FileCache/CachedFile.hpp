@@ -1,19 +1,59 @@
 #pragma once
 
 #include <filesystem>
-#include <map>
+#include <set>
 #include <sys/types.h>
 
 #include "File.hpp"
 
 namespace FastTransport::FileSystem::FileCache {
 
-class Range {
+class Range final {
 public:
-    [[nodiscard]] off_t GetOffset() const;
-    [[nodiscard]] size_t GetSize() const;
-    [[nodiscard]] const FastTransport::Protocol::IPacket::List& GetPackets() const;
-    [[nodiscard]] FastTransport::Protocol::IPacket::List& GetPackets();
+    Range(size_t size, off_t offset)
+        : _offset(offset)
+        , _size(size)
+    {
+    }
+
+    Range(const Range&) = delete;
+    Range(Range&& other) noexcept
+        : _offset(other._offset)
+        , _size(other._size)
+        , _packets(std::move(other._packets))
+    {
+    }
+
+    Range& operator=(const Range&) = delete;
+    Range& operator=(Range&& other) noexcept
+    {
+        _offset = other._offset;
+        _size = other._size;
+        _packets = std::move(other._packets);
+        return *this;
+    }
+
+    ~Range() = default;
+
+    [[nodiscard]] off_t GetOffset() const
+    {
+        return _offset;
+    }
+
+    [[nodiscard]] size_t GetSize() const
+    {
+        return _size;
+    }
+
+    [[nodiscard]] const FastTransport::Protocol::IPacket::List& GetPackets() const
+    {
+        return _packets;
+    }
+    
+    [[nodiscard]] FastTransport::Protocol::IPacket::List& GetPackets()
+    {
+        return _packets;
+    }
 
     void AddRef()
     {
@@ -25,6 +65,15 @@ public:
         if (--_counter == 0) {
             delete this;
         }
+    }
+
+    bool operator<(const Range& other) const // NOLINT(fuchsia-overloaded-operator)
+    {
+        if (_offset < other._offset) {
+            return true;
+        }
+
+        return _size < other._size;
     }
 
 private:
@@ -55,7 +104,7 @@ public:
     void Write(Protocol::IPacket::List& packets, size_t size, off_t offset) override;
 
 private:
-    std::map<Range, IPacket::List> _chunks;
+    std::set<Range> _chunks;
 };
 
 class WriteCachedFileJob {
