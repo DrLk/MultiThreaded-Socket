@@ -5,7 +5,7 @@ project(FileSystem)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(INCLUDE_DIRS include)
+set(INCLUDE_DIRS include include/FileCache)
 
 if (NOT TARGET Packet)
     add_subdirectory(../Packet Packet)
@@ -20,7 +20,7 @@ if (NOT TARGET Tracy)
     add_subdirectory(../external/tracy Tracy EXCLUDE_FROM_ALL SYSTEM)
 endif()
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.hpp include/*.hpp)
+file(GLOB_RECURSE SRC_FILES src/*.cpp src/FileCache/*.cpp include/*.hpp include/FileCache/*.hpp)
 
 include_directories(${INCLUDE_DIRS})
 
