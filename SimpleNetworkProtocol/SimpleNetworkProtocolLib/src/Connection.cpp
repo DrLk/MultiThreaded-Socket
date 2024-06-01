@@ -217,12 +217,15 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
-    const std::size_t size = _inFlightQueue->GetNumberPacketToSend();
+    std::size_t size = _inFlightQueue->GetNumberPacketToSend();
     if (size == 0) {
         NotifySendPacketsEvent();
         return {};
     }
     OutgoingPacket::List packets = _sendQueue->GetPacketsToSend(size);
+    assert(size >= packets.size());
+    size -= packets.size();
+    _inFlightQueue->RevertNumberPacketToSend(size);
     _statistics.AddSendPackets(packets.size());
     return packets;
 }

@@ -34,6 +34,7 @@ public:
     ~SpeedController() override = default;
 
     size_t GetNumberPacketToSend();
+    void RevertNumberPacketToSend(size_t number);
     void UpdateStats(const TimeRangedStats& stats);
     [[nodiscard]] clock::duration GetTimeout() const;
 
@@ -53,6 +54,7 @@ private:
     std::atomic<size_t> _minSpeed { 0 };
     std::atomic<size_t> _maxSpeed { 0 };
     std::shared_ptr<ConnectionContext> _context;
+    size_t _number { 0 };
 
     void OnSettingsChanged(Settings key, size_t value) override;
     void OnMinSpeedChanged(size_t minSpeed);

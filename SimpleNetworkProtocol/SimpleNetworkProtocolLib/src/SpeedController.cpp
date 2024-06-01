@@ -31,7 +31,7 @@ size_t SpeedController::GetNumberPacketToSend()
     auto diff = now - _lastSend;
 
     if (diff < Interval) {
-        return 0;
+        return _number;
     }
 
     const auto& state = _states[_currentState];
@@ -43,15 +43,20 @@ size_t SpeedController::GetNumberPacketToSend()
         const size_t ration = 1s / TimeRangedStats::Interval;
 
         const size_t realSpeed = std::clamp<size_t>(speedState.realSpeed, _minSpeed, _maxSpeed);
-        const size_t number = realSpeed * ration * 100 / coeficient;
-        if (number != 0) {
+        _number = realSpeed * ration * 100 / coeficient;
+        if (_number != 0) {
             _lastSend = now;
         }
 
-        return number;
+        return _number;
     }
 
     return 0;
+}
+
+void SpeedController::RevertNumberPacketToSend(size_t number)
+{
+    _number = number;
 }
 
 void SpeedController::UpdateStats(const TimeRangedStats& stats)

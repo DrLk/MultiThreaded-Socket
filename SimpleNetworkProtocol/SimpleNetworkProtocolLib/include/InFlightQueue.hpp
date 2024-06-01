@@ -30,6 +30,7 @@ public:
     [[nodiscard]] IPacket::List ProcessAcks() override;
     [[nodiscard]] OutgoingPacket::List CheckTimeouts() override;
     [[nodiscard]] size_t GetNumberPacketToSend() override;
+    void RevertNumberPacketToSend(size_t number) override;
     [[nodiscard]] IPacket::List GetAllPackets() override;
 
 private:

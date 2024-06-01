@@ -128,6 +128,11 @@ std::size_t InFlightQueue::GetNumberPacketToSend()
     return _speedController.GetNumberPacketToSend();
 }
 
+void InFlightQueue::RevertNumberPacketToSend(size_t number)
+{
+    _speedController.RevertNumberPacketToSend(number);
+}
+
 IPacket::List InFlightQueue::GetAllPackets()
 {
     IPacket::List freePackets;
