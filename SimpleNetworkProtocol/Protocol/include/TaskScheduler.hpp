@@ -33,6 +33,7 @@ public:
     void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) override;
     void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) override;
     void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) override;
+    void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) override;
 
 private:
     TaskQueue _diskQueue;

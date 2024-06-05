@@ -5,6 +5,7 @@
 #include <stop_token>
 #include <thread>
 
+#include "CacheTreeJob.hpp"
 #include "DiskJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "FuseNetworkJob.hpp"
@@ -141,6 +142,13 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
+    });
+}
+
+void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
+{
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        job->ExecuteCachedTree(stop, _fileTree);
     });
 }
 

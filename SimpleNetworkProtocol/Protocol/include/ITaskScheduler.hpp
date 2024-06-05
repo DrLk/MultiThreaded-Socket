@@ -14,6 +14,7 @@ class MainJob;
 class MainReadJob;
 class FuseNetworkJob;
 class ResponseFuseNetworkJob;
+class CacheTreeJob;
 
 class ITaskScheduler {
 public:
@@ -35,6 +36,7 @@ public:
     virtual void ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job) = 0;
     virtual void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) = 0;
     virtual void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) = 0;
+    virtual void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

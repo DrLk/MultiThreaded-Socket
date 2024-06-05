@@ -21,9 +21,9 @@ private:
     static void FuseForgetmulti(fuse_req_t request, size_t count, fuse_forget_data* forgets);
     static void FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo);
     static void FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo);
-    static void FuseRead(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo);
-    static void FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo);
-    static void FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo);
+    static void FuseRead(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo);
+    static void FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo);
+    static void FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo);
 };
 
 } // namespace FastTransport::TaskQueue
