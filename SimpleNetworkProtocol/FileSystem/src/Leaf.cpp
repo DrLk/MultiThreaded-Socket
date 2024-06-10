@@ -2,8 +2,11 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <fuse3/fuse_lowlevel.h>
+#include <stdexcept>
 #include <string>
 
+#include "IPacket.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[Leaf] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -126,6 +129,54 @@ std::filesystem::path Leaf::GetFullPath() const
         path = leaf->GetName() / path;
     }
     return path;
+}
+
+Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
+{
+    _data.insert(FileCache::Range(offset, size, std::move(data)));
+
+    Data empty;
+    return empty;
+}
+
+std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
+{
+    auto data = _data.upper_bound(FileCache::Range(offset, size, Data {}));
+    if (data == _data.begin()) {
+        return nullptr;
+    }
+
+    --data; // Move to the previous range
+
+    if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
+
+        size_t readed = 0;
+        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (size / 1500);
+        std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        int index = 0;
+        size_t count = 0;
+
+        buffVector->off = 0;
+        buffVector->idx = 0;
+        for ( const auto& packet : data->GetPackets()) {
+            auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+            buffer.mem = packet->GetPayload().data();
+            buffer.size = std::min(packet->GetPayload().size(), readed);
+            buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+            buffer.pos = 0;
+            buffer.fd = 0;
+        
+            count++;
+            if (readed <= packet->GetPayload().size()) {
+                break;
+            }
+        
+            readed -= packet->GetPayload().size();
+        }
+        buffVector->count = count;
+    }
+
+    throw std::runtime_error("Data not found");
 }
 
 } // namespace FastTransport::FileSystem

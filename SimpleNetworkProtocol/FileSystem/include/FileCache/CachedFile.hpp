@@ -20,7 +20,7 @@ public:
     Range(Range&& other) noexcept
         : _offset(other._offset)
         , _size(other._size)
-        , _packets(std::move(other._packets))
+        , _data(std::move(other._data))
     {
     }
 
@@ -29,7 +29,7 @@ public:
     {
         _offset = other._offset;
         _size = other._size;
-        _packets = std::move(other._packets);
+        _data = std::move(other._data);
         return *this;
     }
 
@@ -47,12 +47,12 @@ public:
 
     [[nodiscard]] const FastTransport::Protocol::IPacket::List& GetPackets() const
     {
-        return _packets;
+        return _data;
     }
     
     [[nodiscard]] FastTransport::Protocol::IPacket::List& GetPackets()
     {
-        return _packets;
+        return _data;
     }
 
     void AddRef()
@@ -73,13 +73,13 @@ public:
             return true;
         }
 
-        return _size < other._size;
+        return _offset == other._offset && _size < other._size;
     }
 
 private:
     off_t _offset;
     size_t _size;
-    FastTransport::Protocol::IPacket::List _packets;
+    FastTransport::Protocol::IPacket::List _data;
     std::atomic<int> _counter { 1 };
 
 } __attribute__((aligned(64)));

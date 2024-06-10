@@ -6,7 +6,6 @@
 
 #include "FileHandle.hpp"
 #include "FileTree.hpp"
-#include "IPacket.hpp"
 #include "Job.hpp"
 
 namespace FastTransport::TaskQueue {
@@ -15,6 +14,9 @@ class CacheTreeJob : public Job {
 protected:
     using FileHandle = FileSystem::FileHandle;
     using FileTree = FileSystem::FileTree;
+    using Leaf = FileSystem::Leaf;
+
+    Leaf& GetLeaf(fuse_ino_t inode, FileTree& fileTree);
 
 public:
     virtual void ExecuteCachedTree(std::stop_token stop, FileTree& tree) = 0;

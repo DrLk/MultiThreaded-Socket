@@ -19,7 +19,7 @@ void ResponseReadFileInJob::GetBuffer(const Message& message)
     buf.count = message.size();
 }
 
-ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token  /*stop*/, FileTree&  /*fileTree*/)
+ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token  /*stop*/, FileTree&  fileTree)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
@@ -50,7 +50,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     reader >> readed;
     reader >> data;
 
-    readed = std::min(readed, size);
+    size_t replySize = std::min(readed, size);
     const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int index = 0;
@@ -61,23 +61,23 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     for (auto& packet : data) {
         auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         buffer.mem = packet->GetPayload().data();
-        buffer.size = std::min(packet->GetPayload().size(), readed);
+        buffer.size = std::min(packet->GetPayload().size(), replySize);
         buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
         buffer.pos = 0;
         buffer.fd = 0;
 
         count++;
-        if (readed <= packet->GetPayload().size()) {
+        if (replySize <= packet->GetPayload().size()) {
             break;
         }
 
-        readed -= packet->GetPayload().size();
+        replySize -= packet->GetPayload().size();
         offset += static_cast<off_t>(packet->GetPayload().size());
     }
     buffVector->count = count;
 
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
-    return data;
+    return GetLeaf(inode, fileTree).AddData(offset, readed, std::move(data));
 }
 
 } // namespace FastTransport::TaskQueue

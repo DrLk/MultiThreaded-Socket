@@ -1,5 +1,6 @@
 #include "ReadFileCacheJob.hpp"
 
+#include "Leaf.hpp"
 #include "Logger.hpp"
 #include "Packet.hpp"
 
@@ -24,6 +25,10 @@ void ReadFileCacheJob::ExecuteCachedTree(std::stop_token stop, FileTree& tree)
              << " size: " << _size
              << " off: " << _offset
              << " fileInfo: " << _fileInfo;
+
+    auto& leaf = GetLeaf(_inode, tree);
+    std::unique_ptr<fuse_bufvec> buffer = leaf.GetData(_offset, _size);
+    /* scheduler->Schedule(std::make_unique<RequestReadFileJob>(request, inode, size, offset, fileInfo)); */
 
     Protocol::IPacket::List data;
     for (int i = 0; i < 200; i++) {
