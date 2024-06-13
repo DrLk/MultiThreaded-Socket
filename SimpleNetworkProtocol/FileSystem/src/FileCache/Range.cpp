@@ -62,11 +62,7 @@ namespace FastTransport::FileSystem::FileCache {
 
     bool Range::operator<(const Range& other) const // NOLINT(fuchsia-overloaded-operator)
     {
-        if (_offset < other._offset) {
-            return true;
-        }
-
-        return _offset == other._offset && _size < other._size;
+        return _offset < other._offset;
     }
 
 }  // namespace FastTransport::FileSystem::FileCache

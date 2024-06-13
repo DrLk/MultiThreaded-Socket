@@ -150,30 +150,49 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 
     if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
 
-        size_t readed = 0;
-        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (size / 1500);
-        std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        int index = 0;
-        size_t count = 0;
+        const auto& packets = data->GetPackets();
 
+        if (packets.empty()) {
+            throw std::runtime_error("Data not found");
+        }
+
+        size_t start = offset - data->GetOffset();
+
+        auto packet = packets.begin();
+        while (start >= (*packet)->GetPayload().size()) {
+            start -= (*packet)->GetPayload().size();
+            packet++;
+        }
+
+        size_t readed = size;
+        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (size / 1400);
+        std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        buffVector->count = 1;
         buffVector->off = 0;
         buffVector->idx = 0;
-        for ( const auto& packet : data->GetPackets()) {
+
+        auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+        buffer.mem = (*packet)->GetPayload().data() + start;
+        buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
+        buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        buffer.pos = 0;
+        buffer.fd = 0;
+
+        readed -= buffer.size;
+        int index = 1;
+        for (packet++; packet != packets.end() && readed != 0; packet++) {
             auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-            buffer.mem = packet->GetPayload().data();
-            buffer.size = std::min(packet->GetPayload().size(), readed);
+            buffer.mem = (*packet)->GetPayload().data();
+            buffer.size = std::min((*packet)->GetPayload().size(), readed);
             buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
             buffer.pos = 0;
             buffer.fd = 0;
-        
-            count++;
-            if (readed <= packet->GetPayload().size()) {
-                break;
-            }
-        
-            readed -= packet->GetPayload().size();
+
+            readed -= buffer.size;
+            buffVector->count++;
         }
-        buffVector->count = count;
+
+        return buffVector;
     }
 
     throw std::runtime_error("Data not found");
