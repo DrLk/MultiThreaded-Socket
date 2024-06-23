@@ -33,6 +33,11 @@ namespace FastTransport::FileSystem::FileCache {
         return _offset;
     }
 
+    void Range::SetSize(size_t size)
+    {
+        _size = size;
+    }
+
     [[nodiscard]] size_t Range::GetSize() const
     {
         return _size;

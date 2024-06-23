@@ -125,8 +125,44 @@ TEST(LeafTest, LeafGetDataTest)
     span = std::span<std::byte>(static_cast<std::byte*>(buffer6->buf[1].mem), buffer6->buf[1].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer.begin(), buffer.end() - 1)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-    int iii = 0;
-    iii++;
+}
+
+TEST(LeafTest, LeafAddDataTest)
+{
+    Leaf root = GetTestLeaf();
+
+    Protocol::IPacket::List data;
+    constexpr size_t PacketSize = 1400;
+    std::array<std::byte, PacketSize> buffer0 {};
+    for (auto& byte : buffer0) {
+        byte = std::byte(0);
+    }
+    auto packet0 = std::make_unique<Protocol::Packet>(1500);
+    packet0->SetPayload(buffer0);
+    data.push_back(std::move(packet0));
+
+    root.AddData(0, PacketSize, std::move(data));
+
+    Protocol::IPacket::List data2;
+    std::array<std::byte, PacketSize> buffer1 {};
+    for (auto& byte : buffer1) {
+        byte = std::byte(1);
+    }
+    auto packet1 = std::make_unique<Protocol::Packet>(1500);
+    packet1->SetPayload(buffer1);
+    data.push_back(std::move(packet1));
+
+    root.AddData(1400, PacketSize, std::move(data));
+
+    auto result1 = root.GetData(0, 2800);
+
+    EXPECT_EQ(result1->count, 2);
+    auto span = std::span<std::byte>(static_cast<std::byte*>(result1->buf[0].mem), result1->buf[0].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    EXPECT_THAT(span, ::testing::ElementsAreArray(buffer0.begin(), buffer0.end())); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    span = std::span<std::byte>(static_cast<std::byte*>(result1->buf[1].mem), result1->buf[1].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    EXPECT_THAT(span, ::testing::ElementsAreArray(buffer1.begin(), buffer1.end())); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
+
 }
 
 } // namespace FastTransport::FileSystem

@@ -7,7 +7,7 @@ namespace FastTransport::FileCache {
 class ReadFileCacheJob : public TaskQueue::CacheTreeJob {
 public:
     ReadFileCacheJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo);
-    void ExecuteCachedTree(std::stop_token stop, FileTree& tree) override;
+    void ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree) override;
 
 private:
     fuse_req_t _request;

@@ -19,7 +19,7 @@ protected:
     Leaf& GetLeaf(fuse_ino_t inode, FileTree& fileTree);
 
 public:
-    virtual void ExecuteCachedTree(std::stop_token stop, FileTree& tree) = 0;
+    virtual void ExecuteCachedTree(ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree) = 0;
 
 
 private:

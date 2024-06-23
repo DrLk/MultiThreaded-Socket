@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "MultiList.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
 class IPacket;
@@ -22,6 +23,7 @@ public:
     ~Range();
 
     [[nodiscard]] off_t GetOffset() const;
+    void SetSize(size_t size);
     [[nodiscard]] size_t GetSize() const;
 
     [[nodiscard]] const Data& GetPackets() const;

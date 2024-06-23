@@ -148,7 +148,7 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
 void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
-        job->ExecuteCachedTree(stop, _fileTree);
+        job->ExecuteCachedTree(*this, stop, _fileTree);
     });
 }
 

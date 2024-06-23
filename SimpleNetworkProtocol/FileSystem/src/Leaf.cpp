@@ -133,10 +133,28 @@ std::filesystem::path Leaf::GetFullPath() const
 
 Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 {
-    _data.insert(FileCache::Range(offset, size, std::move(data)));
+    auto oldData = _data.upper_bound(FileCache::Range(offset, size, Data {}));
+    if (oldData == _data.begin()) {
+        _data.insert(FileCache::Range(offset, size, std::move(data)));
+        return {};
+    }
 
-    Data empty;
-    return empty;
+    --oldData;
+    auto node = _data.extract(oldData);
+    if (node.value().GetOffset() + node.value().GetSize() == offset) {
+        node.value().GetPackets().splice(std::move(data));
+        node.value().SetSize(node.value().GetSize() + size);
+        _data.insert(std::move(node));
+        return {};
+    }
+
+    return {};
+    assert(false);
+    node.value().GetPackets().splice(std::move(data));
+    node.value().SetSize(node.value().GetSize() + size);
+    _data.insert(std::move(node));
+
+    return {};
 }
 
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const

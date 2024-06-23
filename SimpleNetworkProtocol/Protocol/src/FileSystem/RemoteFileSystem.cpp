@@ -133,7 +133,6 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
              << " fileInfo: " << fileInfo;
 
     scheduler->Schedule(std::make_unique<FileCache::ReadFileCacheJob>(request, inode, size, offset, fileInfo));
-    return;
 }
 
 void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
