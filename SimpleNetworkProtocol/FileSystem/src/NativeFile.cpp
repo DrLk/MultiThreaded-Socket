@@ -43,8 +43,7 @@ int NativeFile::Stat(struct stat& stat)
     assert(_file != -1);
     return fstat(_file, &stat);
 }
-
-std::size_t NativeFile::Read(IPacket::List& packets, std::size_t size, off_t offset)
+NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t size, off_t offset)
 {
 #ifdef __linux__
     if (packets.empty()) {
@@ -67,8 +66,15 @@ std::size_t NativeFile::Read(IPacket::List& packets, std::size_t size, off_t off
     }
 
     std::size_t readed = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
+
+    if (blocks * packets.size() != readed) {
+        auto readPackets = packets.TryGenerate((readed + blockSize - 1) / blockSize);
+        readPackets.back()->SetPayloadSize(readed - ((readPackets.size() -1) * blockSize));
+        return readPackets;
+    }
+
 #endif // __linux__
-    return readed;
+    return {};
 }
 
 void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)

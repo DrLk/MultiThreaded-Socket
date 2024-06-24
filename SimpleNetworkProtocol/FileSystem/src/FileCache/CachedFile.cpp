@@ -30,9 +30,9 @@ int CachedFile::Stat(struct stat&  /*stat*/)
     return 0;
 }
 
-std::size_t CachedFile::Read(Protocol::IPacket::List&  /*packets*/, size_t  /*size*/, off_t  /*offset*/)
+CachedFile::IPacket::List CachedFile::Read(Protocol::IPacket::List&  /*packets*/, size_t  /*size*/, off_t  /*offset*/)
 {
-    return 0;
+    return {};
 }
 
 void CachedFile::Write(Protocol::IPacket::List&  /*packets*/, size_t  size, off_t  offset)

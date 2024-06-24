@@ -39,9 +39,9 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
 
     Message dataPackets = writer.GetDataPackets(200);
 
-    const size_t readed = remoteFile->file2->Read(dataPackets, size, offset);
+    Message readed = remoteFile->file2->Read(dataPackets, size, offset);
     int error = 0;
-    if (readed == -1) {
+    if (readed.empty()) {
         TRACER() << "preadv failed";
         error = errno;
         writer << error;
@@ -49,8 +49,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     }
 
     writer << error;
-    writer << readed;
-    writer << std::move(dataPackets);
+    writer << std::move(readed);
 
     return {};
 }

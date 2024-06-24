@@ -17,7 +17,7 @@ public:
     [[nodiscard]] bool IsOpened() const override;
     int Close() override;
     int Stat(struct stat& stat) override;
-    std::size_t Read(IPacket::List& packets, std::size_t size, off_t offset) override;
+    IPacket::List Read(IPacket::List& packets, std::size_t size, off_t offset) override;
     void Write(IPacket::List& packets, size_t size, off_t offset) override;
 
 private:

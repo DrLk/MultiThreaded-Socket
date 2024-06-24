@@ -45,11 +45,10 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
         return {};
     }
 
-    size_t readed = 0;
     Message data;
-    reader >> readed;
     reader >> data;
 
+    const size_t readed = data.size() * data.front()->GetPayload().size() + data.back()->GetPayload().size();
     size_t replySize = std::min(readed, size);
     const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -72,7 +71,6 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
         }
 
         replySize -= packet->GetPayload().size();
-        offset += static_cast<off_t>(packet->GetPayload().size());
     }
     buffVector->count = count;
 
