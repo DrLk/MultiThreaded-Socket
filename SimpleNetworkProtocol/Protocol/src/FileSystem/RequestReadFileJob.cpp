@@ -10,11 +10,11 @@
 
 namespace FastTransport::TaskQueue {
 
-RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo)
+RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
     : _request(request)
     , _inode(inode)
     , _size(size)
-    , _off(off)
+    , _offset(offset)
     , _fileInfo(fileInfo)
 {
 }
@@ -25,7 +25,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
              << "request: " << _request
              << " inode: " << _inode
              << " size: " << _size
-             << " off: " << _off
+             << " offset: " << _offset
              << " file: " << _fileInfo;
 
 
@@ -33,7 +33,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
     writer << _request;
     writer << _inode;
     writer << _size;
-    writer << _off;
+    writer << _offset;
     writer << GetFileHandle(_fileInfo).remoteFile;
 
     return {};

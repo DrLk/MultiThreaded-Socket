@@ -13,13 +13,7 @@
 
 namespace FastTransport::TaskQueue {
 
-void ResponseReadFileInJob::GetBuffer(const Message& message)
-{
-    fuse_bufvec buf{};
-    buf.count = message.size();
-}
-
-ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token  /*stop*/, FileTree&  fileTree)
+ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;

@@ -1,5 +1,7 @@
 #include "ReadFileCacheJob.hpp"
 
+#include <memory>
+
 #include "ITaskScheduler.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
@@ -24,7 +26,7 @@ void ReadFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, s
              << " request: " << _request
              << " inode: " << _inode
              << " size: " << _size
-             << " off: " << _offset
+             << " offset: " << _offset
              << " fileInfo: " << _fileInfo;
 
     auto& leaf = GetLeaf(_inode, tree);

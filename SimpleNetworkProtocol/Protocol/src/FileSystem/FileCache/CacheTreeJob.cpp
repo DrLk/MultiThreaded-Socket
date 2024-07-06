@@ -1,9 +1,6 @@
 #include "CacheTreeJob.hpp"
 
 #include "ITaskScheduler.hpp"
-#include "Logger.hpp"
-
-#define TRACER() LOGGER() << "[ReadFileCacheJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 

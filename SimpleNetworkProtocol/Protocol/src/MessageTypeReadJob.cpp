@@ -7,6 +7,7 @@
 
 #include "FreeRecvPacketsJob.hpp"
 #include "IConnection.hpp"
+#include "IStatistics.hpp"
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "MergeIn.hpp"
@@ -66,6 +67,8 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     TRACER() << "messageSize: " << messageSize;
     if (messageSize > _messages.size()) {
         auto messages = connection.Recv(stop, IPacket::List());
+        TRACER() << "Recv Lost: " << connection.GetStatistics().GetLostPackets()
+                 << " Duplicate: " << connection.GetStatistics().GetDuplicatePackets();
         _messages.splice(std::move(messages));
         scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
         return;

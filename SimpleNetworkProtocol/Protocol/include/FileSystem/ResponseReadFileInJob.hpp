@@ -16,6 +16,5 @@ public:
 
 private:
     Reader _reader;
-    void GetBuffer(const Message& message);
 };
 } // namespace FastTransport::TaskQueue

@@ -141,6 +141,18 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
     --oldData;
     auto node = _data.extract(oldData);
+    if (node.value().GetOffset() >= offset && offset <= node.value().GetOffset() + node.value().GetSize()) {
+        size_t start = offset - node.value().GetOffset();
+        if (node.value().GetPackets().size() > 1)
+        {
+            size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
+            node.value().GetPackets().TryGenerate((offset + blockSize -1) / blockSize);
+        }
+        node.value().GetPackets().splice(std::move(data));
+        node.value().SetSize(node.value().GetSize() + size);
+        _data.insert(std::move(node));
+        return {};
+    }
     if (node.value().GetOffset() + node.value().GetSize() == offset) {
         node.value().GetPackets().splice(std::move(data));
         node.value().SetSize(node.value().GetSize() + size);
@@ -148,8 +160,6 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
         return {};
     }
 
-    return {};
-    assert(false);
     node.value().GetPackets().splice(std::move(data));
     node.value().SetSize(node.value().GetSize() + size);
     _data.insert(std::move(node));
@@ -166,7 +176,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 
     --data; // Move to the previous range
 
-    if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
+    if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize() && size <= data->GetSize() - (offset - data->GetOffset())) {
 
         const auto& packets = data->GetPackets();
 
@@ -183,7 +193,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
         }
 
         size_t readed = size;
-        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (size / 1400);
+        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * ((size + (*packet)->GetPayload().size() - 1) / (*packet)->GetPayload().size());
         std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         buffVector->count = 1;
         buffVector->off = 0;
@@ -213,7 +223,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
         return buffVector;
     }
 
-    throw std::runtime_error("Data not found");
+    return nullptr;
 }
 
 } // namespace FastTransport::FileSystem

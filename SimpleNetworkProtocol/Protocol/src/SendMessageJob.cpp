@@ -1,6 +1,7 @@
 #include "SendMessageJob.hpp"
 
 #include "IConnection.hpp"
+#include "IStatistics.hpp"
 #include "Logger.hpp"
 #include "WriteNetworkJob.hpp"
 
@@ -23,6 +24,8 @@ void SendMessageJob::ExecuteWriteNetwork(std::stop_token  /*stop*/, ITaskSchedul
 {
     TRACER() << "Execute";
 
+    TRACER() << "Send Lost: " << connection.GetStatistics().GetLostPackets()
+             << " Duplicate: " << connection.GetStatistics().GetDuplicatePackets();
     connection.Send(std::move(_message));
 }
 } // namespace FastTransport::TaskQueue
