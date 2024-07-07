@@ -5,6 +5,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "IPacket.hpp"
 #include "Logger.hpp"
@@ -140,30 +141,32 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
     }
 
     --oldData;
-    auto node = _data.extract(oldData);
-    if (node.value().GetOffset() >= offset && offset <= node.value().GetOffset() + node.value().GetSize()) {
-        size_t start = offset - node.value().GetOffset();
-        if (node.value().GetPackets().size() > 1)
-        {
-            size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
-            node.value().GetPackets().TryGenerate((offset + blockSize -1) / blockSize);
+    if (oldData->GetOffset() <= offset && offset <= oldData->GetOffset() + oldData->GetSize()) {
+        auto node = _data.extract(oldData);
+
+        if (node.value().GetOffset() + node.value().GetSize() == offset) {
+            node.value().GetPackets().splice(std::move(data));
+            node.value().SetSize(node.value().GetSize() + size);
+            _data.insert(std::move(node));
+            return {};
         }
-        node.value().GetPackets().splice(std::move(data));
-        node.value().SetSize(node.value().GetSize() + size);
-        _data.insert(std::move(node));
-        return {};
-    }
-    if (node.value().GetOffset() + node.value().GetSize() == offset) {
-        node.value().GetPackets().splice(std::move(data));
-        node.value().SetSize(node.value().GetSize() + size);
-        _data.insert(std::move(node));
-        return {};
+
+        assert(node.value().GetOffset() + node.value().GetSize() > offset);
+
+        size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
+        if (node.value().GetPackets().size() > 1) {
+            size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
+            auto skipData = data.TryGenerate((skipSize + blockSize - 1) / blockSize);
+            auto newData = std::exchange(data, std::move(skipData));
+
+            node.value().GetPackets().splice(std::move(newData));
+            node.value().SetSize(node.value().GetSize() + size - skipSize);
+            _data.insert(std::move(node));
+            return skipData;
+        }
     }
 
-    node.value().GetPackets().splice(std::move(data));
-    node.value().SetSize(node.value().GetSize() + size);
-    _data.insert(std::move(node));
-
+    _data.insert(FileCache::Range(offset, size, std::move(data)));
     return {};
 }
 
