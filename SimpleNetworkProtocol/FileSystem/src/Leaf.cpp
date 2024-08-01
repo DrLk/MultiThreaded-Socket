@@ -135,6 +135,28 @@ std::filesystem::path Leaf::GetFullPath() const
 Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 {
     auto oldData = _data.upper_bound(FileCache::Range(offset, size, Data {}));
+
+    if (oldData != _data.end() && oldData->GetOffset() == offset + size) {
+        auto node = _data.extract(oldData);
+        data.splice(std::move(node.value().GetPackets()));
+        if (oldData != _data.begin()) {
+            --oldData;
+            if (oldData->GetOffset() + oldData->GetSize() == offset) {
+                auto prevNode = _data.extract(oldData);
+                prevNode.value().GetPackets().splice(std::move(data));
+                prevNode.value().SetSize(prevNode.value().GetSize() + size + node.value().GetSize());
+                _data.insert(std::move(prevNode));
+                return {};
+            }
+        }
+
+        node.value().GetPackets() = std::move(data);
+        node.value().SetSize(node.value().GetSize() + size);
+        node.value().SetOffset(offset);
+        _data.insert(std::move(node));
+        return {};
+    }
+
     if (oldData == _data.begin()) {
         _data.insert(FileCache::Range(offset, size, std::move(data)));
         return {};

@@ -28,6 +28,11 @@ namespace FastTransport::FileSystem::FileCache {
 
     Range::~Range() = default;
 
+    void Range::SetOffset(off_t offset)
+    {
+        _offset = offset;
+    }
+
     [[nodiscard]] off_t Range::GetOffset() const
     {
         return _offset;

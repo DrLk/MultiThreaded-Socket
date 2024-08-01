@@ -22,6 +22,7 @@ public:
 
     ~Range();
 
+    void SetOffset(off_t offset);
     [[nodiscard]] off_t GetOffset() const;
     void SetSize(size_t size);
     [[nodiscard]] size_t GetSize() const;
