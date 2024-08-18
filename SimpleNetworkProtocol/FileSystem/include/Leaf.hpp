@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -7,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "FileCache/Range.hpp" 
 
@@ -64,7 +66,8 @@ private:
     Leaf* _parent;
     mutable std::uint64_t _nlookup = 0;
 
-    std::set<FileCache::Range> _data;
+    static constexpr size_t BlockSize = static_cast<const size_t>(1024U * 1024);
+    std::unordered_map<size_t, std::set<FileCache::Range>> _data;
 };
 
 } // namespace FastTransport::FileSystem
