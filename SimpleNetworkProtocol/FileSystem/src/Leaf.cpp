@@ -134,31 +134,33 @@ std::filesystem::path Leaf::GetFullPath() const
 
 Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 {
-    auto it = _data.find(offset / BlockSize);
-    if (it == _data.end()) {
+    auto block = _data.find(offset / BlockSize);
+    if (block == _data.end()) {
         std::set<FileCache::Range> blocks;
         blocks.insert(FileCache::Range(offset, size, std::move(data)));
         _data.insert({ offset / BlockSize, std::move(blocks) });
         return {};
     }
 
-    std::set<FileCache::Range>& blocks = it->second;
+    std::set<FileCache::Range>& blocks = block->second;
     auto oldData = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
 
     if (oldData != blocks.end() && oldData->GetOffset() == offset + size) {
-        auto node = blocks.extract(oldData);
-        data.splice(std::move(node.value().GetPackets()));
         if (oldData != blocks.begin()) {
-            --oldData;
-            if (oldData->GetOffset() + oldData->GetSize() == offset) {
-                auto prevNode = blocks.extract(oldData);
+            auto node = blocks.extract(oldData);
+            data.splice(std::move(node.value().GetPackets()));
+            auto prevData = oldData;
+            --prevData;
+            if (prevData->GetOffset() + prevData->GetSize() == offset) {
+                auto prevNode = blocks.extract(prevData);
                 prevNode.value().GetPackets().splice(std::move(data));
                 prevNode.value().SetSize(prevNode.value().GetSize() + size + node.value().GetSize());
                 blocks.insert(std::move(prevNode));
                 return {};
             }
         }
-
+        auto node = blocks.extract(oldData);
+        data.splice(std::move(node.value().GetPackets()));
         node.value().GetPackets() = std::move(data);
         node.value().SetSize(node.value().GetSize() + size);
         node.value().SetOffset(offset);
@@ -168,6 +170,11 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
     if (oldData == blocks.begin()) {
         blocks.insert(FileCache::Range(offset, size, std::move(data)));
+        if (oldData->GetOffset() >= offset && oldData->GetOffset() + oldData->GetSize() <= offset +size)
+        {
+            auto removedData = blocks.extract(oldData);
+            return std::move(removedData.value().GetPackets());
+        }
         return {};
     }
 
@@ -203,12 +210,12 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 {
-    auto it = _data.find(offset / BlockSize);
-    if (it == _data.end()) {
+    auto block = _data.find(offset / BlockSize);
+    if (block == _data.end()) {
         return nullptr;
     }
 
-    const std::set<FileCache::Range>& blocks = it->second;
+    const std::set<FileCache::Range>& blocks = block->second;
     auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
     if (data == blocks.begin()) {
         return nullptr;
