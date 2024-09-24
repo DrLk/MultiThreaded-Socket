@@ -210,67 +210,78 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 {
-    auto block = _data.find(offset / BlockSize);
-    if (block == _data.end()) {
-        return nullptr;
-    }
+    size_t readed = size;
+    int index = 0;
+    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * ((size + 1399) / 1400));
+    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    buffVector->count = 0;
+    buffVector->off = 0;
+    buffVector->idx = 0;
 
-    const std::set<FileCache::Range>& blocks = block->second;
-    auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
-    if (data == blocks.begin()) {
-        return nullptr;
-    }
-
-    --data; // Move to the previous range
-
-    if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize() && size <= data->GetSize() - (offset - data->GetOffset())) {
-
-        const auto& packets = data->GetPackets();
-
-        if (packets.empty()) {
-            throw std::runtime_error("Data not found");
+    while (readed > 0) {
+        auto block = _data.find(offset / BlockSize);
+        if (block == _data.end()) {
+            return buffVector;
         }
 
-        size_t start = offset - data->GetOffset();
-
-        auto packet = packets.begin();
-        while (start >= (*packet)->GetPayload().size()) {
-            start -= (*packet)->GetPayload().size();
-            packet++;
+        const std::set<FileCache::Range>& blocks = block->second;
+        auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
+        if (data == blocks.begin()) {
+            return buffVector;
         }
 
-        size_t readed = size;
-        const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * ((size + (*packet)->GetPayload().size() - 1) / (*packet)->GetPayload().size());
-        std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        buffVector->count = 1;
-        buffVector->off = 0;
-        buffVector->idx = 0;
+        --data; // Move to the previous range
 
-        auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-        buffer.mem = (*packet)->GetPayload().data() + start;
-        buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
-        buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
-        buffer.pos = 0;
-        buffer.fd = 0;
+        if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
 
-        readed -= buffer.size;
-        int index = 1;
-        for (packet++; packet != packets.end() && readed != 0; packet++) {
-            auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-            buffer.mem = (*packet)->GetPayload().data();
-            buffer.size = std::min((*packet)->GetPayload().size(), readed);
-            buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
-            buffer.pos = 0;
-            buffer.fd = 0;
+            const auto& packets = data->GetPackets();
 
-            readed -= buffer.size;
-            buffVector->count++;
+            if (packets.empty()) {
+                throw std::runtime_error("Data not found");
+            }
+
+            size_t start = offset - data->GetOffset();
+
+            auto packet = packets.begin();
+            while (start >= (*packet)->GetPayload().size()) {
+                start -= (*packet)->GetPayload().size();
+                packet++;
+                if (packet == packets.end())
+                {
+                    return buffVector;
+                }
+            }
+            if (index == 0) {
+
+                auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                buffer.mem = (*packet)->GetPayload().data() + start;
+                buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
+                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.pos = 0;
+                buffer.fd = 0;
+                buffVector->count = 1;
+                index++;
+                readed -= buffer.size;
+                offset += static_cast<off_t>(buffer.size);
+                packet++;
+            }
+
+            for (; packet != packets.end() && readed != 0; packet++) {
+                auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                buffer.mem = (*packet)->GetPayload().data();
+                buffer.size = std::min((*packet)->GetPayload().size(), readed);
+                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.pos = 0;
+                buffer.fd = 0;
+
+                readed -= buffer.size;
+                offset += static_cast<off_t>(buffer.size);
+                buffVector->count++;
+            }
         }
-
-        return buffVector;
     }
 
-    return nullptr;
+    return buffVector;
 }
 
 } // namespace FastTransport::FileSystem

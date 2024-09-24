@@ -24,6 +24,8 @@
 
 #include "Logger.hpp"
 
+namespace {
+
 using FastTransport::FileSystem::FileTree;
 
 using namespace FastTransport::Protocol; // NOLINT
@@ -72,9 +74,7 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
     sendThread.join();
 }
 
-void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
-{
-    std::jthread recvThread([srcAddress, srcPort](std::stop_token stop) {
+void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort) { std::jthread recvThread([srcAddress, srcPort](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 
@@ -108,8 +108,8 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 
 void TestConnection2()
 {
-    using FastTransport::TaskQueue::TaskScheduler;
     using FastTransport::TaskQueue::MessageTypeReadJob;
+    using FastTransport::TaskQueue::TaskScheduler;
 
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
@@ -162,7 +162,7 @@ void TestConnection2()
     sendThread.join();
 }
 
-void TestConnection3()
+void TestFileSystem()
 {
     using NativeFile = FastTransport::FileSystem::NativeFile;
     using FastTransport::TaskQueue::RemoteFileSystem;
@@ -189,10 +189,13 @@ void TestReadV()
     assert(result != -1);
 }
 
+} // namespace
+
 int main(int argc, char** argv)
 {
     TestConnection2();
-    return 0;
+    TestFileSystem();
+    TestReadV();
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);

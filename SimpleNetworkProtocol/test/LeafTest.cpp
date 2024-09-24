@@ -1,6 +1,6 @@
 #include "Leaf.hpp"
-#include <gtest/gtest.h>
 #include <cstddef>
+#include <gtest/gtest.h>
 
 #include <sstream>
 
@@ -42,7 +42,6 @@ void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-recursio
     EXPECT_EQ(left.GetName(), right.GetName());
     EXPECT_EQ(left.GetType(), right.GetType());
     EXPECT_EQ(left.GetChildren().size(), right.GetChildren().size());
-
 
     for (const auto& [name, child] : left.GetChildren()) {
         const auto& rightChild = right.GetChildren().find(name);
@@ -105,7 +104,7 @@ TEST(LeafTest, LeafGetDataTest)
         byte = std::byte(value++);
     }
 
-    constexpr size_t PacketNumber = 200; 
+    constexpr size_t PacketNumber = 200;
     for (int i = 0; i < PacketNumber; i++) {
         auto packet = std::make_unique<Protocol::Packet>(1500);
         packet->SetPayload(buffer);
@@ -143,7 +142,6 @@ TEST(LeafTest, LeafGetDataTest)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer.begin() + 1, buffer.end())); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     span = std::span<std::byte>(static_cast<std::byte*>(buffer6->buf[1].mem), buffer6->buf[1].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer.begin(), buffer.end() - 1)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
 }
 
 TEST(LeafTest, LeafAddDataTest)
@@ -180,8 +178,6 @@ TEST(LeafTest, LeafAddDataTest)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer0.begin(), buffer0.end())); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     span = std::span<std::byte>(static_cast<std::byte*>(result1->buf[1].mem), result1->buf[1].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer1.begin(), buffer1.end())); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
-
 }
 
 TEST(LeafTest, LeafAddDifferentRangeDataTest)
@@ -379,7 +375,6 @@ TEST(LeafTest, LeafAddIntersectionDataTest2)
     constexpr auto Offset1MB = static_cast<const size_t>(1024 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(1024 * 1024);
 
-
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
     root.AddData(Offset1MB, PacketSize, std::move(data));
@@ -389,7 +384,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest2)
     root.AddData(2 * Offset1MB, PacketSize, std::move(data1));
 
     auto result1 = root.GetData(0, 2800);
-    EXPECT_EQ(result1, nullptr);
+    EXPECT_EQ(result1->count, 0);
 
     auto result2 = root.GetData(Offset1MB + 1, 2800);
     EXPECT_EQ(result2->count, 3);
@@ -398,7 +393,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest2)
     EXPECT_EQ(result3->count, 2);
 
     result1 = root.GetData(0, 2800);
-    EXPECT_EQ(result1, nullptr);
+    EXPECT_EQ(result1->count, 0);
 
     result2 = root.GetData(Offset1MB + 1, 2800);
     EXPECT_EQ(result2->count, 3);
@@ -421,7 +416,6 @@ TEST(LeafTest, LeafAddIntersectionDataTest3)
     constexpr auto Offset512KB = static_cast<const size_t>(512 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(512 * 1024);
 
-
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
     root.AddData(0, PacketSize, std::move(data));
@@ -432,8 +426,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest3)
 
     auto result1 = root.GetData(0, 2 * PacketSize);
     size_t size = 0;
-    for (int index = 0; index < result1->count; index++)
-    {
+    for (int index = 0; index < result1->count; index++) {
         size += result1->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
@@ -446,7 +439,6 @@ TEST(LeafTest, LeafAddIntersectionDataTest4)
     constexpr auto Offset512KB = static_cast<const size_t>(512 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(512 * 1024);
 
-
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
     root.AddData(Offset512KB, PacketSize, std::move(data));
@@ -457,8 +449,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest4)
 
     auto result1 = root.GetData(0, 2 * PacketSize);
     size_t size = 0;
-    for (int index = 0; index < result1->count; index++)
-    {
+    for (int index = 0; index < result1->count; index++) {
         size += result1->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
@@ -472,8 +463,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest4)
     EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     size = 0;
-    for (auto& packet : freePackets)
-    {
+    for (auto& packet : freePackets) {
         size += packet->GetPayload().size();
     }
 
@@ -486,31 +476,67 @@ TEST(LeafTest, LeafGetData2MBTest)
     constexpr auto Offset1MB = static_cast<const size_t>(1024 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(1024 * 1024);
 
-    constexpr char Value0 = 0;
-    auto data = GetTestData(PacketSize, Value0);
+    constexpr char Value1 = 1;
+    auto data = GetTestData(PacketSize, Value1);
     root.AddData(Offset1MB, PacketSize, std::move(data));
 
-    constexpr char Value1 = 1;
-    Protocol::IPacket::List data1 = GetTestData(PacketSize, Value1);
-    auto freePackets = root.AddData(0, PacketSize, std::move(data1));
-
-    auto result1 = root.GetData(0, 2 * PacketSize);
+    auto result1 = root.GetData(Offset1MB, 2 * PacketSize);
     size_t size = 0;
-    for (int index = 0; index < result1->count; index++)
-    {
+    for (int index = 0; index < result1->count; index++) {
         size += result1->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
     EXPECT_EQ(size, PacketSize);
 
-    char* buf = static_cast<char*>(result1->buf[0].mem);
+    constexpr char Value0 = 0;
+    Protocol::IPacket::List data1 = GetTestData(PacketSize, Value0);
+    auto freePackets = root.AddData(0, PacketSize, std::move(data1));
+
+    auto result2 = root.GetData(0, 2 * PacketSize);
+    size = 0;
+    for (int index = 0; index < result2->count; index++) {
+        size += result2->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+
+    EXPECT_EQ(size, PacketSize * 2);
+
+    char* buf = static_cast<char*>(result2->buf[0].mem);
+    EXPECT_EQ(buf[0], Value0); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    EXPECT_EQ(buf[1], Value0); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                               //
+    buf = static_cast<char*>(result2->buf[result2->count - 1].mem); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_EQ(buf[1], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-                               //
-    buf = static_cast<char*>(result1->buf[result1->count - 1].mem); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-    EXPECT_EQ(buf[0], Value0); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     EXPECT_EQ(freePackets.size(), 0);
+
+    auto result3 = root.GetData(Offset1MB - 1, 2 * PacketSize);
+    size = 0;
+    for (int index = 0; index < result3->count; index++) {
+        size += result3->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+
+    EXPECT_EQ(size, PacketSize + 1);
+
+    buf = static_cast<char*>(result3->buf[0].mem);
+    EXPECT_EQ(buf[0], Value0); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                               //
+    buf = static_cast<char*>(result3->buf[1].mem); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                               //
+    auto result4 = root.GetData(Offset1MB + 1, 2 * PacketSize);
+    size = 0;
+    for (int index = 0; index < result4->count; index++) {
+        size += result4->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+
+    EXPECT_EQ(size, PacketSize - 1);
+
+    buf = static_cast<char*>(result4->buf[0].mem);
+    EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                               //
+    buf = static_cast<char*>(result4->buf[1].mem); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 } // namespace FastTransport::FileSystem
