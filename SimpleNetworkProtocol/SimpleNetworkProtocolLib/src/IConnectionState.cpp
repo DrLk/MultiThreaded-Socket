@@ -52,7 +52,7 @@ ConnectionState BasicConnectionState::OnTimeOut(IConnectionInternal& /*connectio
 
 std::chrono::milliseconds BasicConnectionState::GetTimeout() const
 {
-    return 3s;
+    return 30s;
 }
 
 void BasicConnectionState::ProcessInflightPackets(IConnectionInternal& connection)

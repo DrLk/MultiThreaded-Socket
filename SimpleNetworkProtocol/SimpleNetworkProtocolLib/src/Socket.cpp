@@ -204,7 +204,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     IPacket::List freePackets;
     auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 64));
     std::vector<iovec> iov(packets.size());
-    std::vector<char> control(ControlMessageSpace);
+    std::vector<char> control(ControlMessageSpace * packets.size());
     std::vector<sockaddr_storage> addresses(packets.size());
     auto iovBegin = iov.begin();
     auto controlBegin = control.begin();
@@ -234,7 +234,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
             .msg_flags = 0,
         };
 
-        controlBegin += UDPMaxSegments;
+        controlBegin += UDPMaxSegments * ControlMessageSpace;
         iovBegin += UDPMaxSegments;
 
         return mmsghdr { .msg_hdr = message };

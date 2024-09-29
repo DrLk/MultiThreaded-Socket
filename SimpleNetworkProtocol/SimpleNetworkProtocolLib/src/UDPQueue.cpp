@@ -153,10 +153,8 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
             packet->SetAddr(connectionAddr);
 
             IPacket::List::Iterator temp = it;
-            {
-                recvThreadQueue._recvThreadQueue.push_back(std::move(*temp));
-                it = recvQueue.erase(temp);
-            }
+            recvThreadQueue._recvThreadQueue.push_back(std::move(*temp));
+            it = recvQueue.erase(temp);
         }
 
 #endif
