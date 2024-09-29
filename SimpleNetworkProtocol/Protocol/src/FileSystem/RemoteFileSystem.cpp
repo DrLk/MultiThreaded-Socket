@@ -6,9 +6,7 @@
 #include <string_view>
 #include <unistd.h>
 
-#include "DirectoryEntryWriter.hpp"
 #include "Logger.hpp"
-#include "Packet.hpp"
 #include "ReadFileCacheJob.hpp"
 #include "RequestForgetMultiJob.hpp"
 #include "RequestGetAttrJob.hpp"
@@ -17,11 +15,17 @@
 #include "RequestOpenJob.hpp"
 #include "RequestReadDirJob.hpp"
 #include "RequestReadDirPlusJob.hpp"
-#include "RequestReadFileJob.hpp"
 #include "RequestReleaseDirJob.hpp"
 #include "RequestReleaseJob.hpp"
 
 #define TRACER() LOGGER() << "[RemoteFileSystem] " // NOLINT(cppcoreguidelines-macro-usage)
+
+namespace {
+FastTransport::FileSystem::FileHandle& GetFileHandle(fuse_file_info* fileInfo)
+{
+    return *(reinterpret_cast<FastTransport::FileSystem::FileHandle*>(fileInfo->fh)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+}
+} // namespace
 
 namespace FastTransport::TaskQueue {
 RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
@@ -46,7 +50,8 @@ void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_i
              << " request: " << req
              << " inode: " << inode;
 
-    scheduler->Schedule(std::make_unique<RequestGetAttrJob>(req, inode, fileInfo));
+    FastTransport::FileSystem::RemoteFileHandle* remoteFile = fileInfo != nullptr ? GetFileHandle(fileInfo).remoteFile : nullptr;
+    scheduler->Schedule(std::make_unique<RequestGetAttrJob>(req, inode, remoteFile));
 }
 
 void RemoteFileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name)
@@ -86,9 +91,6 @@ void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uin
              << " inode: " << inode
              << " nlookup: " << nlookup;
 
-    /*auto* fileInfo = new fuse_file_info();
-    scheduler->Schedule(std::make_unique<RequestGetAttrJob>(request, inode, fileInfo));
-    return;*/
     fuse_forget_data forget = { inode, nlookup };
     scheduler->Schedule(std::make_unique<RequestForgetMultiJob>(request, std::span(&forget, 1)));
 }
@@ -110,7 +112,7 @@ void RemoteFileSystem::FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_fi
              << " inode: " << inode
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<RequestReleaseJob>(request, inode, fileInfo));
+    scheduler->Schedule(std::make_unique<RequestReleaseJob>(request, inode, &GetFileHandle(fileInfo)));
 }
 
 void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
@@ -120,7 +122,7 @@ void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse
              << " inode: " << inode
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<RequestReleaseDirJob>(request, inode, fileInfo));
+    scheduler->Schedule(std::make_unique<RequestReleaseDirJob>(request, inode, &GetFileHandle(fileInfo)));
 }
 
 void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
@@ -132,7 +134,7 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
              << " off: " << offset
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<FileCache::ReadFileCacheJob>(request, inode, size, offset, fileInfo));
+    scheduler->Schedule(std::make_unique<FileCache::ReadFileCacheJob>(request, inode, size, offset, GetFileHandle(fileInfo).remoteFile));
 }
 
 void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
@@ -144,7 +146,7 @@ void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t 
              << " off: " << offset
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<RequestReadDirJob>(request, inode, size, offset, fileInfo));
+    scheduler->Schedule(std::make_unique<RequestReadDirJob>(request, inode, size, offset, GetFileHandle(fileInfo).remoteFile));
 }
 
 void RemoteFileSystem::FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
@@ -156,7 +158,7 @@ void RemoteFileSystem::FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, siz
              << " off: " << offset
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<RequestReadDirPlusJob>(request, inode, size, offset, fileInfo));
+    scheduler->Schedule(std::make_unique<RequestReadDirPlusJob>(request, inode, size, offset, GetFileHandle(fileInfo).remoteFile));
 }
 
 ITaskScheduler* RemoteFileSystem::scheduler = nullptr; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

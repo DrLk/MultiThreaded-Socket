@@ -55,7 +55,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
 {
     TRACER() << "Execute";
 
-    if (_messages.empty()) {
+    while (_messages.empty()) {
         auto messages = connection.Recv(stop, IPacket::List());
         _messages.splice(std::move(messages));
     }

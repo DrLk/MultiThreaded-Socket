@@ -5,17 +5,18 @@
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[RequestReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
+RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile)
     : _request(request)
     , _inode(inode)
     , _size(size)
     , _offset(offset)
-    , _fileInfo(fileInfo)
+    , _remoteFile(remoteFile)
 {
 }
 
@@ -26,7 +27,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
              << " inode: " << _inode
              << " size: " << _size
              << " offset: " << _offset
-             << " file: " << _fileInfo;
+             << " remoteFile: " << _remoteFile;
 
 
     writer << MessageType::RequestRead;
@@ -34,7 +35,7 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
     writer << _inode;
     writer << _size;
     writer << _offset;
-    writer << GetFileHandle(_fileInfo).remoteFile;
+    writer << _remoteFile;
 
     return {};
 }

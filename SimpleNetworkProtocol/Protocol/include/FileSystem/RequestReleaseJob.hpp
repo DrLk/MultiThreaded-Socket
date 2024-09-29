@@ -9,7 +9,7 @@ using Writer = Protocol::MessageWriter;
 
 class RequestReleaseJob : public FuseNetworkJob {
 public:
-    RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo);
+    RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, FileHandle* handle);
     Message ExecuteMain(std::stop_token stop, Writer& writer) override;
 
 private:

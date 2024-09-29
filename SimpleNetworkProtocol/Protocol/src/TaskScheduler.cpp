@@ -112,7 +112,7 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
 void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
-        if (_freeSendPackets.empty()) {
+        if (_freeSendPackets.size() < 250) {
             auto freePackets = _connection.get().Send2(stop, IPacket::List());
             _freeSendPackets.splice(std::move(freePackets));
         }

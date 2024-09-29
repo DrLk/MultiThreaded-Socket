@@ -10,10 +10,10 @@
 
 namespace FastTransport::TaskQueue {
 
-RequestReleaseJob::RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
+RequestReleaseJob::RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, FileHandle* handle)
     : _request(request)
     , _inode(inode)
-    , _handle(&GetFileHandle(fileInfo))
+    , _handle(handle)
 {
     TRACER() << "Create";
 }

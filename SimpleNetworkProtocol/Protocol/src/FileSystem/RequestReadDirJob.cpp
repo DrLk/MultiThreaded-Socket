@@ -5,17 +5,18 @@
 #include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[RequestReadDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
 
-RequestReadDirJob::RequestReadDirJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, fuse_file_info* fileInfo)
+RequestReadDirJob::RequestReadDirJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t off, FileSystem::RemoteFileHandle* remoteFile)
     : _request(request)
     , _inode(inode)
     , _size(size)
     , _off(off)
-    , _fileInfo(fileInfo)
+    , _remoteFile(remoteFile)
 {
     TRACER() << "Create";
 }
@@ -30,7 +31,7 @@ FuseNetworkJob::Message RequestReadDirJob::ExecuteMain(std::stop_token /*stop*/,
     writer << _inode;
     writer << _size;
     writer << _off;
-    writer << GetFileHandle(_fileInfo).remoteFile;
+    writer << _remoteFile;
 
     return {};
 }

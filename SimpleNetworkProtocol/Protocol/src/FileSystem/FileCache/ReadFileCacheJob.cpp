@@ -11,12 +11,12 @@
 
 namespace FastTransport::FileCache {
 
-ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
+ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile)
     : _request(request)
     , _inode(inode)
     , _size(size)
     , _offset(offset)
-    , _fileInfo(fileInfo)
+    , _remoteFile(remoteFile)
 {
 }
 
@@ -27,15 +27,16 @@ void ReadFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, s
              << " inode: " << _inode
              << " size: " << _size
              << " offset: " << _offset
-             << " fileInfo: " << _fileInfo;
+             << " remoteFile: " << _remoteFile;
 
     auto& leaf = GetLeaf(_inode, tree);
     std::unique_ptr<fuse_bufvec> buffer = leaf.GetData(_offset, _size);
 
-    if (!buffer) {
-        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, _fileInfo));
+    if (!buffer || buffer->count == 0) {
+        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
         return;
     }
+
     fuse_reply_data(_request, buffer.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
 }
 

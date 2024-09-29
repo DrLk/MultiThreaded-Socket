@@ -10,10 +10,10 @@
 
 namespace FastTransport::TaskQueue {
 
-RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
+RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, FileSystem::RemoteFileHandle* remoteFile)
     : _request(request)
     , _inode(inode)
-    , _fileInfo(fileInfo)
+    , _remoteFile(remoteFile)
 {
     TRACER() << "Create";
 }
@@ -26,8 +26,7 @@ FuseNetworkJob::Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/,
     writer << MessageType::RequestGetAttr;
     writer << _request;
     writer << _inode;
-    const FileSystem::RemoteFileHandle* handle = _fileInfo != nullptr ? GetFileHandle(_fileInfo).remoteFile : nullptr;
-    writer << handle;
+    writer << _remoteFile;
 
     return {};
 }

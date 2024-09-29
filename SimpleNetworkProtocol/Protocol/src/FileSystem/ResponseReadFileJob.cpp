@@ -42,7 +42,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     writer << size;
     writer << offset;
 
-    Message dataPackets = writer.GetDataPackets(500);
+    Message dataPackets = writer.GetDataPackets(1000);
     assert(size <= dataPackets.size() * dataPackets.front()->GetPayload().size());
 
     Message readed = remoteFile->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset);

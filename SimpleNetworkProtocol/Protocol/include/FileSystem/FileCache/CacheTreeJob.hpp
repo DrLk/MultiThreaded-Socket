@@ -8,6 +8,10 @@
 #include "FileTree.hpp"
 #include "Job.hpp"
 
+namespace FastTransport::FileSystem {
+struct RemoteFileHandle;
+} // namespace FastTransport::FileSystem
+
 namespace FastTransport::TaskQueue {
 
 class CacheTreeJob : public Job {

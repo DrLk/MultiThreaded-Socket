@@ -36,7 +36,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     leaf.ReleaseRef();
 
     if (inode == FUSE_ROOT_ID) {
-        delete fileHandle->remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
+        delete remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
         writer << error;
         writer << fileHandle;
         return {};
@@ -48,7 +48,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
         return {};
     }
 
-    delete fileHandle->remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
+    delete remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
     writer << error;
     writer << fileHandle;
 

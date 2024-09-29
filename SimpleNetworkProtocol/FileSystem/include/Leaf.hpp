@@ -66,7 +66,7 @@ private:
     Leaf* _parent;
     mutable std::uint64_t _nlookup = 0;
 
-    static constexpr size_t BlockSize = static_cast<const size_t>(1024U * 1024);
+    static constexpr size_t BlockSize = static_cast<const size_t>(1000 * 1300U);
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
 };
 
