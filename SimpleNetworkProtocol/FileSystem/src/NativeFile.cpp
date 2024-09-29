@@ -67,14 +67,14 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
 
     std::size_t readed = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
 
-    if (blocks * packets.size() != readed) {
+    if (blockSize * packets.size() != readed) {
         auto readPackets = packets.TryGenerate((readed + blockSize - 1) / blockSize);
         readPackets.back()->SetPayloadSize(readed - ((readPackets.size() -1) * blockSize));
         return readPackets;
     }
 
 #endif // __linux__
-    return {};
+    return std::move(packets);
 }
 
 void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
