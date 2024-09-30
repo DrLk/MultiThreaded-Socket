@@ -77,7 +77,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
     return std::move(packets);
 }
 
-void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
+void NativeFile::Write(IPacket::List&& packets, size_t size, off_t offset)
 {
 #ifdef __linux__
     if (packets.empty()) {

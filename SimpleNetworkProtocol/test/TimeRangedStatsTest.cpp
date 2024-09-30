@@ -178,7 +178,8 @@ TEST(TimeRangedStatsTest, UpdateStats2)
     EXPECT_EQ(result, packetCount);
     EXPECT_EQ(sample->GetAllPackets(), packetCount);
     EXPECT_EQ(sample->GetLostPackets(), packetCount / 2);
-    EXPECT_EQ(sample->GetLost(), 50.0);
+    const double ExpectedLost = 50.0;
+    EXPECT_EQ(sample->GetLost(), ExpectedLost);
     EXPECT_EQ(finalStats.GetAverageRtt(), 500ms);
 }
 

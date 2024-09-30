@@ -1,6 +1,8 @@
 #include "CachedFile.hpp"
 #include <sys/stat.h>
 
+#include "Range.hpp"
+
 namespace FastTransport::FileSystem::FileCache {
 
 CachedFile::CachedFile(std::filesystem::path&  /*path*/)
@@ -35,9 +37,9 @@ CachedFile::IPacket::List CachedFile::Read(Protocol::IPacket::List&  /*packets*/
     return {};
 }
 
-void CachedFile::Write(Protocol::IPacket::List&  /*packets*/, size_t  size, off_t  offset)
+void CachedFile::Write(Protocol::IPacket::List&&  packets, size_t  size, off_t  offset)
 {
-    _chunks.insert(Range(size, offset));
+    _chunks.insert(Range(offset, size, std::move(packets)));
 }
 
 

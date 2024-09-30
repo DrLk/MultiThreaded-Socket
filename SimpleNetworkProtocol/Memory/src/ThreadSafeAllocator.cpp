@@ -9,7 +9,13 @@ ThreadSafeAllocator::ThreadSafeAllocator(std::pmr::memory_resource* resource)
 {
 }
 
-ThreadSafeAllocator::~ThreadSafeAllocator() = default;
+ThreadSafeAllocator::~ThreadSafeAllocator()
+{
+    const std::scoped_lock<Mutex> lock(_mutex);
+    for (auto [size, pointer] : _pool) {
+        _resource->deallocate(pointer, size.first, size.second);
+    }
+}
 
 void* ThreadSafeAllocator::Allocate(std::size_t size, std::size_t alignment)
 {
@@ -58,7 +64,7 @@ void ThreadSafeAllocator::Deallocate(AllocationNodes&& nodes) // NOLINT(cppcoreg
 
     for (auto&& node : nodes) {
         if (node.empty()) {
-            break;
+            continue;
         }
 
         _pool.insert(std::move(node));

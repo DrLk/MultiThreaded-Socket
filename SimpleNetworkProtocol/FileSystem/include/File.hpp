@@ -42,7 +42,7 @@ public:
     virtual int Close() = 0;
     virtual int Stat(struct stat& stat) = 0;
     virtual IPacket::List Read(IPacket::List& packets, size_t size, off_t offset) = 0;
-    virtual void Write(IPacket::List& packets, size_t size, off_t offset) = 0;
+    virtual void Write(IPacket::List&& packets, size_t size, off_t offset) = 0;
 
     [[nodiscard]] std::uint64_t GetSize() const;
     [[nodiscard]] std::filesystem::file_type GetType() const;
