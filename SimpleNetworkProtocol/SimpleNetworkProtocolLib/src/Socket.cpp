@@ -236,6 +236,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
 
         controlBegin += UDPMaxSegments * ControlMessageSpace;
         iovBegin += UDPMaxSegments;
+        addressBegin += UDPMaxSegments;
 
         return mmsghdr { .msg_hdr = message };
     });
