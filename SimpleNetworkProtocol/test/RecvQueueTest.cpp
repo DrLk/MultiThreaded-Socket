@@ -17,7 +17,7 @@ TEST(RecvQueueTest, RecvQueue)
     std::unique_ptr<IRecvQueue> queue = std::make_unique<RecvQueue>();
 
     std::vector<IPacket::Ptr> packets;
-    constexpr SeqNumberType beginSeqNumber = 0;
+    constexpr SeqNumberType beginSeqNumber = 1;
     constexpr int PacketCount = 97;
     for (int i = 0; i < PacketCount; i++) {
         IPacket::Ptr packet(new Packet(1400));

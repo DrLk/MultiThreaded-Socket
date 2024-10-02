@@ -32,7 +32,7 @@ private:
     LockedList<IPacket::Ptr> _data;
     Thread::SpinLock _selectiveAcksMutex;
     std::list<SeqNumberType> _selectiveAcks;
-    SeqNumberType _beginFullRecievedAck { 0 };
+    SeqNumberType _beginFullRecievedAck { 1 };
 };
 
 } // namespace FastTransport::Protocol

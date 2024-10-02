@@ -57,6 +57,7 @@ void RecvQueue::ProccessUnorderedPackets()
     IPacket::List data;
     while (true) {
         auto& nextPacket = _queue[_beginFullRecievedAck++ % QueueSize];
+        assert(_beginFullRecievedAck != (std::numeric_limits<SeqNumberType>::max)());
         if (!nextPacket) {
             break;
         }

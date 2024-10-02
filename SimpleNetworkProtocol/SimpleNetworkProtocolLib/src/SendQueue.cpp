@@ -12,7 +12,7 @@ namespace FastTransport::Protocol {
 
 SendQueue::SendQueue()
     : _resendPackets(OutgoingComparator)
-    , _nextPacketNumber(-1)
+    , _nextPacketNumber(0)
 {
 }
 
