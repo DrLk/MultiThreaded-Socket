@@ -4,6 +4,8 @@
 #include <chrono>
 #include <compare>
 #include <cstddef>
+#include <functional>
+#include <thread>
 #include <vector>
 
 #include "ConnectionAddr.hpp"
@@ -120,6 +122,95 @@ TEST(SocketTest, GSOSendMsg)
         }
     }
     EXPECT_EQ(recvSize, PacketNumber);
+}
+
+namespace {
+    void SendThread(ConnectionAddr& srcAddr, const ConnectionAddr& dstAddr, int PacketNumber)
+    {
+        Socket src(srcAddr);
+        src.Init();
+
+        constexpr int PacketSize = Socket::GsoSize;
+        constexpr int PayloadSize = PacketSize - 100;
+        std::array<std::byte, PayloadSize> payload {};
+
+        OutgoingPacket::List sendPackets;
+        for (int i = 0; i < PacketNumber; ++i) {
+            auto packet = std::make_unique<Packet>(PacketSize);
+            packet->SetPayload(payload);
+            packet->SetAddr(dstAddr);
+            sendPackets.push_back({ std::move(packet), false });
+        }
+
+        while (!sendPackets.empty()) {
+            if (!src.WaitWrite()) {
+                continue;
+            }
+            auto packets = sendPackets.TryGenerate(Socket::UDPMaxSegments);
+            for (auto& packet : packets) {
+                ZoneScopedN("SendQueueLoop");
+                packet.SetSendTime(std::chrono::steady_clock::now());
+            }
+            auto result = src.SendMsg(packets, 0);
+            EXPECT_EQ(result, packets.size() * PacketSize);
+        }
+    }
+
+    void RecvThread(ConnectionAddr& dstAddr, int PacketNumber)
+    {
+        static constexpr auto TestTimeout = 10s;
+
+        Socket dst(dstAddr);
+        dst.Init();
+
+        constexpr int PacketSize = 1500;
+
+        IPacket::List recvPackets {};
+        for (int i = 0; i < PacketNumber; ++i) {
+            auto packet = std::make_unique<Packet>(PacketSize);
+            recvPackets.push_back(std::move(packet));
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        size_t recvSize = 0;
+        while (recvSize < PacketNumber) {
+            if (now + TestTimeout < std::chrono::steady_clock::now()) {
+                break;
+            }
+
+            if (!dst.WaitRead()) {
+                continue;
+            }
+
+            auto freePackets = dst.RecvMsg(recvPackets, 0);
+            recvSize += recvPackets.size();
+            recvPackets.splice(std::move(freePackets));
+        }
+        EXPECT_EQ(recvSize, PacketNumber);
+    }
+} // namespace
+
+TEST(SocketTest, GSOSendMsg2)
+{
+    ConnectionAddr src1("0.0.0.0", 13101);
+    ConnectionAddr src2("0.0.0.0", 13102);
+    ConnectionAddr dstAddr1("127.0.0.1", 13201);
+    ConnectionAddr dstAddr2("127.0.0.1", 13202);
+    ConnectionAddr dst1("0.0.0.0", 13201);
+    ConnectionAddr dst2("0.0.0.0", 13202);
+
+    constexpr int PacketNumber = 10000;
+
+    std::jthread recvThread1(RecvThread, std::ref(dst1), PacketNumber);
+    std::jthread recvThread2(RecvThread, std::ref(dst2), PacketNumber);
+    std::this_thread::sleep_for(1s);
+    std::jthread sendThread1(SendThread, std::ref(src1), std::ref(dstAddr1), PacketNumber);
+    std::jthread sendThread2(SendThread, std::ref(src2), std::ref(dstAddr2), PacketNumber);
+
+    sendThread1.join();
+    sendThread2.join();
+    recvThread1.join();
+    recvThread2.join();
 }
 
 #endif

@@ -60,7 +60,7 @@ void SendThreadQueue::WriteThread(std::stop_token stop, UDPQueue& udpQueue, Send
         sendQueue.swap(list);
         while (!list.empty()) {
             if (!socket.WaitWrite()) {
-                break;
+                continue;
             }
 
             auto packets = list.TryGenerate(Socket::UDPMaxSegments);
