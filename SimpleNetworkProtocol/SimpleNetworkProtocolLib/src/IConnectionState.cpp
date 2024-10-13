@@ -176,6 +176,7 @@ ConnectionState WaitingSynAckState::OnTimeOut(IConnectionInternal& connection)
 ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 {
     std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
+    auto lastAck = connection.GetRecvQueue().GetLastAck();
     // TODO: maybe error after std::move second loop
     while (!acks.empty()) {
         IPacket::Ptr packet = connection.GetFreeSendPacket();
@@ -194,8 +195,12 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
                 break;
             }
 
-            packetAcks.push_back(*ack);
-            acks.erase(ack++);
+            if (*ack >= lastAck) 
+            {
+                packetAcks.push_back(*ack);
+            }
+
+            ack = acks.erase(ack);
         }
 
         packet->SetAcks(packetAcks);

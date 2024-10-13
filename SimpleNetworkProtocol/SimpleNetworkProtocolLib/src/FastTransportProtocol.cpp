@@ -33,7 +33,7 @@ class ConnectionAddr;
 namespace FastTransport::Protocol {
 
 FastTransportContext::FastTransportContext(const ConnectionAddr& address)
-    : _udpQueue(address, 4, 1000, 1000)
+    : _udpQueue(address, 4, 10000, 10000)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
