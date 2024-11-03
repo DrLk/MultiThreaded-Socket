@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
@@ -14,6 +14,7 @@ if(MSVC)
   add_compile_options(/MP)
 endif()
 
+if(LINUX)
 if (NOT TARGET FileSystem)
   add_subdirectory(FileSystem)
 endif()
@@ -23,10 +24,14 @@ endif()
 if (NOT TARGET SimpleNetworkProtocolLib)
   add_subdirectory(SimpleNetworkProtocolLib)
 endif()
+endif()
 
 add_executable(SimpleNetworkProtocol main.cpp)
 
-target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib FileSystem)
+target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
+if(LINUX)
+  target_link_libraries(SimpleNetworkProtocol PRIVATE FileSystem)
+endif()
 target_link_options(SimpleNetworkProtocol PRIVATE -static-libgcc -static-libstdc++)
 
 if(ENABLE_PRECOMPILE_HEADERS)
@@ -54,10 +59,12 @@ if(ENABLE_TESTS)
     SimpleNetworkProtocolTest
     PRIVATE
     SimpleNetworkProtocolLib
-    FileSystem
     GTest::gtest_main
     GTest::gmock_main
   )
+  if(LINUX)
+  target_link_libraries(SimpleNetworkProtocolTest PRIVATE FileSystem)
+endif()
   target_link_options(SimpleNetworkProtocolTest
       PRIVATE
       -static-libgcc

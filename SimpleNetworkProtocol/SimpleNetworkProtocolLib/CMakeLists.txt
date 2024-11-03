@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25)
 
 project(SimpleNetworkProtocolLib)
 
@@ -31,7 +31,10 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp include/*.hpp)
 include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
-target_link_libraries(SimpleNetworkProtocolLib PUBLIC Packet LockedList Logger Memory Tracy Protocol)
+target_link_libraries(SimpleNetworkProtocolLib PUBLIC Packet LockedList Logger Memory Tracy)
+if(LINUX)
+  target_link_libraries(SimpleNetworkProtocolLib PUBLIC Protocol)
+endif()
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )

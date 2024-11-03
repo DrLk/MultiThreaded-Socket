@@ -12,21 +12,24 @@
 
 #include "ConnectionAddr.hpp"
 #include "FastTransportProtocol.hpp"
-#include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
-#include "MessageTypeReadJob.hpp"
-#include "TaskScheduler.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
-
-#include "NativeFile.hpp"
-
 #include "Logger.hpp"
+
+#ifdef __linux__
+#include "FileSystem/RemoteFileSystem.hpp"
+#include "MessageTypeReadJob.hpp"
+#include "NativeFile.hpp"
+#include "TaskScheduler.hpp"
+#endif
 
 namespace {
 
+#ifdef __linux__
 using FastTransport::FileSystem::FileTree;
+#endif
 
 using namespace FastTransport::Protocol; // NOLINT
 
@@ -106,6 +109,7 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort) { s
     recvThread.join();
 }
 
+#ifdef __linux__
 void TestConnection2()
 {
     using FastTransport::TaskQueue::MessageTypeReadJob;
@@ -188,14 +192,17 @@ void TestReadV()
     const std::int64_t result = preadv(file, iovecs.data(), blocks, 11);
     assert(result != -1);
 }
+#endif
 
 } // namespace
 
 int main(int argc, char** argv)
 {
+#ifdef __linux__
     TestConnection2();
     TestFileSystem();
     TestReadV();
+#endif
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
