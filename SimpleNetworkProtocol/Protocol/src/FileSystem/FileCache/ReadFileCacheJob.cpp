@@ -32,7 +32,7 @@ void ReadFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, s
     auto& leaf = GetLeaf(_inode, tree);
     std::unique_ptr<fuse_bufvec> buffer = leaf.GetData(_offset, _size);
 
-    if (!buffer || buffer->count == 0) {
+    if (!buffer || buffer->count < 100) {
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
         return;
     }

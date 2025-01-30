@@ -132,6 +132,12 @@ std::filesystem::path Leaf::GetFullPath() const
     return path;
 }
 
+std::filesystem::path Leaf::GetCachePath() const
+{
+    std::filesystem::path path = GetName();
+    return path;
+}
+
 Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 {
     auto block = _data.find(offset / BlockSize);

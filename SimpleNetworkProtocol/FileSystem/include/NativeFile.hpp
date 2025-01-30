@@ -18,6 +18,7 @@ public:
     int Close() override;
     int Stat(struct stat& stat) override;
     IPacket::List Read(IPacket::List& packets, std::size_t size, off_t offset) override;
+    void Write(IPacket::List& packets, size_t size, off_t offset) override;
     void Write(IPacket::List&& packets, size_t size, off_t offset) override;
 
 private:

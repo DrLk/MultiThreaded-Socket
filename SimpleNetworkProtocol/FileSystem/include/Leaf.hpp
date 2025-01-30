@@ -55,6 +55,7 @@ public:
     std::optional<std::reference_wrapper<const Leaf>> Find(const std::string& name) const;
 
     std::filesystem::path GetFullPath() const;
+    std::filesystem::path GetCachePath() const;
 
     Data AddData(off_t offset, size_t size, Data&& data);
     std::unique_ptr<fuse_bufvec> GetData(off_t offset, size_t size) const;

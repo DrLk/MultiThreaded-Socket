@@ -42,9 +42,9 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     Message data;
     reader >> data;
 
-    const size_t readed = (data.size() - 1) * data.front()->GetPayload().size() + data.back()->GetPayload().size();
+    const size_t readed = ((data.size() - 1) * data.front()->GetPayload().size()) + data.back()->GetPayload().size();
     size_t replySize = std::min(readed, size);
-    const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
+    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (data.size() - 1));
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int index = 0;
     size_t count = 0;

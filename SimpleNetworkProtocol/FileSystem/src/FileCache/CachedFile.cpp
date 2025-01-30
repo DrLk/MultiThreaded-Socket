@@ -37,10 +37,14 @@ CachedFile::IPacket::List CachedFile::Read(Protocol::IPacket::List&  /*packets*/
     return {};
 }
 
-void CachedFile::Write(Protocol::IPacket::List&&  packets, size_t  size, off_t  offset)
+void CachedFile::Write(Protocol::IPacket::List& /*packets*/, size_t /*size*/, off_t /*offset*/)
+{
+    throw std::runtime_error("Not implemented");
+}
+
+void CachedFile::Write(Protocol::IPacket::List&& packets, size_t size, off_t offset)
 {
     _chunks.insert(Range(offset, size, std::move(packets)));
 }
-
 
 } // namespace FastTransport::FileSystem::FileCache
