@@ -14,6 +14,7 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
     , _data(std::move(data))
     , _remoteFile(remoteFile)
 {
+    assert(_data.size() > 0);
 }
 
 WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
@@ -26,8 +27,9 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(std::stop_token /*
 
     Leaf& leaf = GetLeaf(_inode, fileTree);
     FileSystem::NativeFile file(leaf.GetCachePath());
+    file.Open();
     file.Write(_data, _size, _offset);
-    return GetLeaf(_inode, fileTree).AddData(_offset, _size, std::move(_data));
+    return std::move(_data);
 }
 
 } // namespace FastTransport::FileCache

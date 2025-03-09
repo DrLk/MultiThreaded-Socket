@@ -69,7 +69,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     buffVector->count = count;
 
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
-    return GetLeaf(inode, fileTree).AddData(offset, readed, std::move(data));
+    return fileTree.AddData(inode, offset, readed, std::move(data));
 }
 
 } // namespace FastTransport::TaskQueue

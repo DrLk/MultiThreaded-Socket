@@ -290,4 +290,27 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
     return buffVector;
 }
 
+std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t size)
+{
+    Leaf::Data extractedData;
+    auto block = _data.begin();
+
+    if (block == _data.end()) {
+        return { 0, {} };
+    }
+
+    std::set<FileCache::Range>& ranges = block->second;
+
+    off_t offset = ranges.begin()->GetOffset();
+    for (auto it = ranges.begin(); it != ranges.end() && size > 0;) {
+        auto extractedIt = it;
+        it++;
+        auto range = ranges.extract(extractedIt);
+        extractedData.splice(std::move(range.value().GetPackets()));
+    }
+
+    _data.erase(block);
+    return { offset, std::move(extractedData) };
+}
+
 } // namespace FastTransport::FileSystem

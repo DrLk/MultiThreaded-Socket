@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <sys/types.h>
 #include <unordered_map>
 
 #include "FileCache/Range.hpp" 
@@ -59,6 +60,8 @@ public:
 
     Data AddData(off_t offset, size_t size, Data&& data);
     std::unique_ptr<fuse_bufvec> GetData(off_t offset, size_t size) const;
+    std::pair<off_t, Data> ExtractBlock(size_t size);
+    static constexpr ssize_t BlockSize = static_cast<const size_t>(1000 * 1300U);
 
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set
@@ -67,7 +70,6 @@ private:
     Leaf* _parent;
     mutable std::uint64_t _nlookup = 0;
 
-    static constexpr size_t BlockSize = static_cast<const size_t>(1000 * 1300U);
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
 };
 
