@@ -15,13 +15,20 @@
 
 namespace FastTransport::FileSystem {
 
-NativeFile::NativeFile(const std::filesystem::path& name)
-    : _file { open(name.c_str(), O_CLOEXEC) } // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
+NativeFile::NativeFile(std::filesystem::path&& name)
+    : _name(std::move(name))
 {
 }
 
 void NativeFile::Open()
 {
+    _file = open(_name.c_str(), O_CLOEXEC); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
+    assert(_file != -1);
+}
+
+void NativeFile::Create()
+{
+    _file = open(_name.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, S_IRUSR | S_IWUSR); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
     assert(_file != -1);
 }
 
@@ -69,7 +76,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
 
     if (blockSize * packets.size() != readed) {
         auto readPackets = packets.TryGenerate((readed + blockSize - 1) / blockSize);
-        readPackets.back()->SetPayloadSize(readed - ((readPackets.size() -1) * blockSize));
+        readPackets.back()->SetPayloadSize(readed - ((readPackets.size() - 1) * blockSize));
         return readPackets;
     }
 

@@ -34,6 +34,7 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
     writer << request;
 
     auto file = std::make_unique<FileSystem::NativeFile>(leaf.GetFullPath());
+    file->Open();
     if (!file->IsOpened()) {
         writer << errno;
         return {};

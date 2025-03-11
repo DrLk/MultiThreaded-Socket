@@ -31,7 +31,7 @@ class Leaf {
     using Data = Containers::MultiList<std::unique_ptr<Protocol::IPacket>>;
 
 public:
-    Leaf(const std::filesystem::path& name, std::filesystem::file_type type, Leaf* parent);
+    Leaf(std::filesystem::path&& name, std::filesystem::file_type type, Leaf* parent);
     Leaf(const Leaf& that) = delete;
     Leaf(Leaf&& that) noexcept;
     Leaf& operator=(const Leaf& that) = delete;
@@ -42,7 +42,7 @@ public:
     std::filesystem::file_type GetType() const;
     std::uintmax_t GetSize() const;
     bool IsDeleted() const;
-    Leaf& AddChild(const std::filesystem::path& name, std::filesystem::file_type type);
+    Leaf& AddChild(std::filesystem::path&& name, std::filesystem::file_type type);
     Leaf& AddChild(Leaf&& leaf);
 
     void AddRef() const;

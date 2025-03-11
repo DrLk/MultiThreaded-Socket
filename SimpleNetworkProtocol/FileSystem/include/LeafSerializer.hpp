@@ -30,7 +30,7 @@ public:
         stream >> name;
         std::filesystem::file_type type {};
         stream >> type;
-        Leaf leaf(name, type, parent);
+        Leaf leaf(std::move(name), type, parent);
 
         std::uint64_t size = 0;
         stream >> size;

@@ -38,6 +38,7 @@ public:
     }
 
     virtual void Open() = 0;
+    virtual void Create() = 0;
     [[nodiscard]] virtual bool IsOpened() const = 0;
     virtual int Close() = 0;
     virtual int Stat(struct stat& stat) = 0;

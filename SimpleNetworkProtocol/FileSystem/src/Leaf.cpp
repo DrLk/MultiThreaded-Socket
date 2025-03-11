@@ -14,7 +14,7 @@
 
 namespace FastTransport::FileSystem {
 
-Leaf::Leaf(const std::filesystem::path& name, std::filesystem::file_type type, Leaf* parent)
+Leaf::Leaf(std::filesystem::path&& name, std::filesystem::file_type type, Leaf* parent)
     : _name(std::move(name))
     , _type(type)
     , _parent(parent)
@@ -27,9 +27,9 @@ Leaf& Leaf::operator=(Leaf&& that) noexcept = default;
 
 Leaf::~Leaf() = default;
 
-Leaf& Leaf::AddChild(const std::filesystem::path& name, std::filesystem::file_type type)
+Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type type)
 {
-    Leaf leaf(name, type, this);
+    Leaf leaf(std::move(name), type, this);
     auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
     return insertedLeaf->second;
 }

@@ -26,8 +26,8 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(std::stop_token /*
              << " data.size=" << _data.size();
 
     Leaf& leaf = GetLeaf(_inode, fileTree);
-    FileSystem::NativeFile file(leaf.GetCachePath());
-    file.Open();
+    FileSystem::NativeFile file(fileTree.GetCacheFolder() / leaf.GetCachePath());
+    file.Create();
     file.Write(_data, _size, _offset);
     return std::move(_data);
 }

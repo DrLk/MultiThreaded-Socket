@@ -14,9 +14,9 @@
 #include "FastTransportProtocol.hpp"
 #include "IPacket.hpp"
 #include "IStatistics.hpp"
+#include "Logger.hpp"
 #include "Test.hpp"
 #include "UDPQueue.hpp"
-#include "Logger.hpp"
 
 #ifdef __linux__
 #include "FileSystem/RemoteFileSystem.hpp"
@@ -128,7 +128,7 @@ void TestConnection2()
         dstConnection->AddFreeRecvPackets(std::move(recvPackets));
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FileTree fileTree = FileTree("/tmp/test2");
+        FileTree fileTree = FileTree("/tmp/test2", "/tmp/cache");
         TaskScheduler destinationTaskScheduler(*dstConnection, fileTree);
 
         destinationTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
@@ -154,7 +154,7 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        FileTree fileTree("/tmp");
+        FileTree fileTree("/tmp", "/tmp/cache");
         TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
 
         sourceTaskScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));

@@ -76,7 +76,7 @@ class FileTree {
 public:
     using Data = Containers::MultiList<std::unique_ptr<Protocol::IPacket>>;
 
-    explicit FileTree(const std::filesystem::path& name);
+    explicit FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder);
     FileTree(const FileTree& that) = delete;
     FileTree(FileTree&& that) noexcept;
     FileTree& operator=(const FileTree& that) = delete;
@@ -84,6 +84,7 @@ public:
     ~FileTree();
 
     Leaf& GetRoot();
+    std::filesystem::path GetCacheFolder() const;
 
     static FileTree GetTestFileTree();
 
@@ -96,6 +97,7 @@ public:
 
 private:
     LeafPtr _root;
+    std::filesystem::path _cacheFolder;
 
     std::unordered_map<fuse_ino_t, size_t> _cache;
     std::unordered_map<std::uint64_t, std::shared_ptr<Leaf>> _openedFiles;

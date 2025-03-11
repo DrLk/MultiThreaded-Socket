@@ -11,8 +11,9 @@
 
 namespace FastTransport::FileSystem {
 
-FileTree::FileTree(const std::filesystem::path& name)
-    : _root(std::make_unique<Leaf>(name, std::filesystem::file_type::directory, nullptr))
+FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
+    : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, nullptr))
+    , _cacheFolder(std::move(cacheFolder))
 {
 }
 
@@ -27,9 +28,14 @@ Leaf& FileTree::GetRoot()
     return *_root;
 }
 
+std::filesystem::path FileTree::GetCacheFolder() const
+{
+    return _cacheFolder;
+}
+
 FileTree FileTree::GetTestFileTree()
 {
-    FileTree tree("/tmp/test");
+    FileTree tree("/tmp/test", "/tmp/test/cache");
 
     auto& root = tree.GetRoot();
 

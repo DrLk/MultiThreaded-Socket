@@ -37,6 +37,7 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
     writer << request;
 
     auto file = std::make_unique<FileSystem::NativeFile>(leaf.GetFullPath());
+    file->Open();
     if (!file->IsOpened()) {
         writer << errno;
         return {};
