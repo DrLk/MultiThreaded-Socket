@@ -39,6 +39,7 @@ public:
     void LockedPushBack(T&& element);
     T LockedGetBack();
     [[nodiscard]] bool LockedEmpty() const;
+    [[nodiscard]] size_t LockedSize() const;
 
 private:
     MultiList<T> _list;
@@ -171,5 +172,13 @@ bool LockedList<T>::LockedEmpty() const
     const std::scoped_lock<Mutex> lock(_mutex);
 
     return _list.empty();
+}
+
+template <class T>
+size_t LockedList<T>::LockedSize() const
+{
+    const std::scoped_lock<Mutex> lock(_mutex);
+
+    return _list.size();
 }
 } // namespace FastTransport::Containers

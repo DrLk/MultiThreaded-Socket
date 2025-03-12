@@ -49,7 +49,7 @@ void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         auto freePackets = _connection.get().Send2(stop, IPacket::List());
         _freeSendPackets.splice(std::move(freePackets));
-        TRACER() << "freePackets.size(): " << _freeSendPackets.size();
+        TRACER() << "3freePackets.size(): " << _freeSendPackets.size();
         _freeSendPackets = job->ExecuteMain(stop, *this, std::move(_freeSendPackets));
         assert(!_freeSendPackets.empty());
     });
@@ -105,7 +105,7 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
         _freeSendPackets = writer.GetPackets();
-        TRACER() << "freePackets.size(): " << _freeSendPackets.size();
+        TRACER() << "2freePackets.size(): " << _freeSendPackets.size();
     });
 }
 
@@ -131,7 +131,7 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
         _freeSendPackets = writer.GetPackets();
-        TRACER() << "freePackets.size(): " << _freeSendPackets.size();
+        TRACER() << "1freePackets.size(): " << _freeSendPackets.size();
     });
 }
 

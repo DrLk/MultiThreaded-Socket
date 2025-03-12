@@ -201,9 +201,8 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
         if (node.value().GetPackets().size() > 1) {
             size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
             auto skipData = data.TryGenerate((skipSize + blockSize - 1) / blockSize);
-            auto newData = std::exchange(data, std::move(skipData));
 
-            node.value().GetPackets().splice(std::move(newData));
+            node.value().GetPackets().splice(std::move(data));
             node.value().SetSize(node.value().GetSize() + size - skipSize);
             blocks.insert(std::move(node));
             return skipData;

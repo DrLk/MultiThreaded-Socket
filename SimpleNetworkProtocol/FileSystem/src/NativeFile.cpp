@@ -20,6 +20,11 @@ NativeFile::NativeFile(std::filesystem::path&& name)
 {
 }
 
+NativeFile::~NativeFile()
+{
+    Close();
+}
+
 void NativeFile::Open()
 {
     _file = open(_name.c_str(), O_CLOEXEC); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)

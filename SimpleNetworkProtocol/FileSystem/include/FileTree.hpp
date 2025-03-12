@@ -99,7 +99,7 @@ private:
     LeafPtr _root;
     std::filesystem::path _cacheFolder;
 
-    std::unordered_map<fuse_ino_t, size_t> _cache;
+    std::unordered_map<fuse_ino_t, int> _cache;
     std::unordered_map<std::uint64_t, std::shared_ptr<Leaf>> _openedFiles;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);

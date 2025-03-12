@@ -12,6 +12,11 @@ class NativeFile : public File {
 
 public:
     explicit NativeFile(std::filesystem::path&& name);
+    ~NativeFile() override;
+    NativeFile(const NativeFile&) = delete;
+    NativeFile(NativeFile&&) = delete;
+    NativeFile& operator=(const NativeFile&) = delete;
+    NativeFile& operator=(NativeFile&&) = delete;
 
     void Open() override;
     void Create() override;

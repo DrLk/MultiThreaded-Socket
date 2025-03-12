@@ -1,7 +1,6 @@
 #include "UDPQueue.hpp"
 
 #include <Tracy.hpp>
-#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <stop_token>
@@ -37,7 +36,7 @@ void UDPQueue::Init()
         _sockets.emplace_back(std::make_shared<Socket>(threadAddress));
     }
 
-    std::for_each(_sockets.begin(), _sockets.end(), [](std::shared_ptr<Socket>& socket) {
+    std::ranges::for_each(_sockets, [](std::shared_ptr<Socket>& socket) {
         socket->Init();
     });
 

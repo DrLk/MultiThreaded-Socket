@@ -62,10 +62,16 @@ std::unique_ptr<fuse_bufvec> FileTree::GetData(fuse_ino_t inode, off_t offset, s
 
 FileTree::Data FileTree::AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data)
 {
-    size_t packetsNumber = data.size();
+    int packetsNumber = static_cast<int>(data.size());
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     auto freePackets = leaf.AddData(offset, size, std::move(data));
-    _cache.insert({ inode, packetsNumber - freePackets.size() });
+    auto entry = _cache.find(inode);
+    if (entry != _cache.end()) {
+        entry->second += packetsNumber - static_cast<int>(freePackets.size());
+    } else {
+        _cache.insert({ inode, packetsNumber - freePackets.size() });
+    }
+
     return freePackets;
 }
 
@@ -79,7 +85,7 @@ FreeData FileTree::GetFreeData(size_t size)
     fuse_ino_t inode = entry->first;
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     auto [offset, data] = leaf.ExtractBlock(size);
-    entry->second -= data.size();
+    entry->second -= static_cast<int>(data.size());
     assert(entry->second >= 0);
     if (entry->second == 0) {
         _cache.erase(entry);

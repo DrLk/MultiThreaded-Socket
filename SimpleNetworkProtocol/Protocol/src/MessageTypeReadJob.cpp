@@ -64,7 +64,7 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     assert(_messages.front()->GetPayload().size() >= sizeof(messageSize));
     std::memcpy(&messageSize, _messages.front()->GetPayload().data(), sizeof(messageSize));
 
-    TRACER() << "messageSize: " << messageSize;
+    TRACER() << "messageSize: " << messageSize << " messageSize: " << _messages.size();
     if (messageSize > _messages.size()) {
         auto messages = connection.Recv(stop, IPacket::List());
         TRACER() << "Recv Lost: " << connection.GetStatistics().GetLostPackets()

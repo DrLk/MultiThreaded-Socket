@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
@@ -153,6 +154,13 @@ void TestConnection2()
         IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        std::filesystem::path cacheFolder = "/tmp/cache";
+        if (!std::filesystem::exists(cacheFolder)) {
+            if (!std::filesystem::create_directory(cacheFolder)) {
+                throw std::runtime_error("Failed to create cache folder");
+            }
+        }
 
         FileTree fileTree("/tmp", "/tmp/cache");
         TaskScheduler sourceTaskScheduler(*srcConnection, fileTree);
