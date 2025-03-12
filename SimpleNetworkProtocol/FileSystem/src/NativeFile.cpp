@@ -15,7 +15,7 @@
 
 namespace FastTransport::FileSystem {
 
-NativeFile::NativeFile(std::filesystem::path&& name)
+NativeFile::NativeFile(std::filesystem::path name)
     : _name(std::move(name))
 {
 }

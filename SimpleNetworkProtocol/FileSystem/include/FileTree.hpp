@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <cstdint>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
 #include <memory>
@@ -12,52 +11,10 @@
 
 namespace FastTransport::FileSystem {
 
-class CachedEntry {
-public:
-    CachedEntry(off_t offset, size_t size, fuse_ino_t inode)
-        : offset(offset)
-        , size(size)
-        , inode(inode)
-    {
-    }
+namespace FileCache {
+    class FileCache;
+} // namespace FileCache
 
-    [[nodiscard]] off_t GetOffset() const
-    {
-        return offset;
-    }
-
-    [[nodiscard]] size_t GetSize() const
-    {
-        return size;
-    }
-
-    [[nodiscard]] fuse_ino_t GetInode() const
-    {
-        return inode;
-    }
-
-    bool operator==(const CachedEntry& other) const // NOLINT(fuchsia-overloaded-operator)
-    {
-        return offset == other.offset && size == other.size && inode == other.inode;
-    }
-
-private:
-    off_t offset;
-    size_t size;
-    fuse_ino_t inode;
-};
-
-struct CachedEntryHash {
-    std::size_t operator()(const CachedEntry& entry) const // NOLINT(fuchsia-overloaded-operator)
-    {
-        auto firstHash = std::hash<off_t> {}(entry.GetOffset());
-        auto secondHash = std::hash<size_t> {}(entry.GetSize());
-        auto thirdHash = std::hash<fuse_ino_t> {}(entry.GetInode());
-
-        auto result = firstHash ^ secondHash ^ thirdHash;
-        return result;
-    }
-};
 
 struct FreeData {
     fuse_ino_t inode;
@@ -72,6 +29,7 @@ class Leaf;
 class FileTree {
     using FilePtr = std::unique_ptr<File>;
     using LeafPtr = std::unique_ptr<Leaf>;
+    using FileCachePtr = std::unique_ptr<FileCache::FileCache>;
 
 public:
     using Data = Containers::MultiList<std::unique_ptr<Protocol::IPacket>>;
@@ -95,12 +53,14 @@ public:
 
     FreeData GetFreeData(size_t size);
 
+    FileCache::FileCache& GetFileCache();
+
 private:
     LeafPtr _root;
     std::filesystem::path _cacheFolder;
 
     std::unordered_map<fuse_ino_t, int> _cache;
-    std::unordered_map<std::uint64_t, std::shared_ptr<Leaf>> _openedFiles;
+    FileCachePtr _fileCache;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
 };

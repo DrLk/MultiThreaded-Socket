@@ -17,10 +17,10 @@ private:
 public:
     File();
     File(const File& that) = delete;
-    File(File&& that) noexcept = delete;
+    File(File&& that) noexcept = default;
     File(std::uint64_t size, std::filesystem::file_type type);
     File& operator=(const File& that) = delete;
-    File& operator=(File&& that) noexcept = delete;
+    File& operator=(File&& that) noexcept = default;
     virtual ~File();
 
     template <OutputStream Stream>

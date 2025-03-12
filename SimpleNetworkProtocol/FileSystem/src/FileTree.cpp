@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "FileCache/FileCache.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
@@ -14,6 +15,7 @@ namespace FastTransport::FileSystem {
 FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
     : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, nullptr))
     , _cacheFolder(std::move(cacheFolder))
+    , _fileCache(std::make_unique<FileCache::FileCache>())
 {
 }
 
@@ -91,6 +93,11 @@ FreeData FileTree::GetFreeData(size_t size)
         _cache.erase(entry);
     }
     return { .inode = inode, .offset = offset, .data = std::move(data) };
+}
+
+FileCache::FileCache& FileTree::GetFileCache()
+{
+    return *_fileCache;
 }
 
 void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // NOLINT(misc-no-recursion)

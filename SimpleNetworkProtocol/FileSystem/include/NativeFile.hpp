@@ -11,12 +11,14 @@ class NativeFile : public File {
     using IPacket = FastTransport::Protocol::IPacket;
 
 public:
-    explicit NativeFile(std::filesystem::path&& name);
+    using Ptr = std::shared_ptr<NativeFile>;
+
+    explicit NativeFile(std::filesystem::path name);
     ~NativeFile() override;
     NativeFile(const NativeFile&) = delete;
-    NativeFile(NativeFile&&) = delete;
+    NativeFile(NativeFile&&) = default;
     NativeFile& operator=(const NativeFile&) = delete;
-    NativeFile& operator=(NativeFile&&) = delete;
+    NativeFile& operator=(NativeFile&&) = default;
 
     void Open() override;
     void Create() override;
