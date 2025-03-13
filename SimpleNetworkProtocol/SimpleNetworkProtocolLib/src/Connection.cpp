@@ -177,8 +177,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            std::array<std::byte, 1300> payload {};
-            packet->SetPayload(payload);
+            packet->SetPayloadSize(1300);
         }
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }
@@ -187,8 +186,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 void Connection::AddFreeSendPackets(IPacket::List&& freePackets)
 {
     for (auto& packet : freePackets) {
-        std::array<std::byte, 1300> payload {};
-        packet->SetPayload(payload);
+        packet->SetPayloadSize(1300);
     }
     _freeUserSendPackets.LockedSplice(std::move(freePackets));
 }
@@ -243,6 +241,10 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
     _freeInternalSendPackets.splice(std::move(freeInternalPackets));
 
     if (!freePackets.empty()) {
+        for (auto& packet : freePackets) {
+            packet->SetPayloadSize(1300);
+        }
+
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
         _freeUserSendPackets.NotifyAll();
     }
@@ -377,6 +379,10 @@ IPacket::Ptr Connection::GetFreeSendPacket()
 void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
+        for (auto& packet : freePackets) {
+            packet->SetPayloadSize(1300);
+        }
+
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
         _freeUserSendPackets.NotifyAll();
     }
