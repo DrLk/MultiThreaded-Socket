@@ -13,12 +13,16 @@
 
 namespace FastTransport::TaskQueue {
 
-static FileSystem::Leaf& AddLeaf(const std::filesystem::path& path, FileSystem::Leaf& parent)
-{
-    auto type = std::filesystem::status(path).type();
-    return parent.AddChild(path.filename(), type);
+namespace {
+    FileSystem::Leaf& AddLeaf(const std::filesystem::path& path, FileSystem::Leaf& parent)
+    {
+        auto type = std::filesystem::status(path).type();
 
-}
+        std::error_code error;
+        uintmax_t size = std::filesystem::file_size(path, error);
+        return parent.AddChild(path.filename(), type, size);
+    }
+} // namespace
 
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {

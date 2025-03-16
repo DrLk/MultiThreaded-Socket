@@ -16,6 +16,7 @@ public:
     {
         stream << leaf.GetName();
         stream << leaf.GetType();
+        stream << leaf.GetSize();
         const std::uint64_t size = leaf.GetChildren().size();
         stream << size;
         for (const auto& [name, child] : leaf.GetChildren()) {
@@ -30,7 +31,9 @@ public:
         stream >> name;
         std::filesystem::file_type type {};
         stream >> type;
-        Leaf leaf(std::move(name), type, parent);
+        uintmax_t fileSize {};
+        stream >> fileSize;
+        Leaf leaf(std::move(name), type, fileSize, parent);
 
         std::uint64_t size = 0;
         stream >> size;

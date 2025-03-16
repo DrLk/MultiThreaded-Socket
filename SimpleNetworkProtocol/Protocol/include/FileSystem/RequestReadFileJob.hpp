@@ -10,7 +10,7 @@ using Writer = Protocol::MessageWriter;
 
 class RequestReadFileJob : public FuseNetworkJob {
 public:
-    RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile);
+    RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, off_t skipped, FileSystem::RemoteFileHandle* remoteFile);
     Message ExecuteMain(std::stop_token stop, Writer& writer) override;
 
 private:
@@ -18,6 +18,7 @@ private:
     fuse_ino_t _inode;
     size_t _size;
     off_t _offset;
+    off_t _skipped;
     FileSystem::RemoteFileHandle* _remoteFile;
 };
 } // namespace FastTransport::TaskQueue

@@ -14,9 +14,10 @@
 
 namespace FastTransport::FileSystem {
 
-Leaf::Leaf(std::filesystem::path&& name, std::filesystem::file_type type, Leaf* parent)
+Leaf::Leaf(std::filesystem::path&& name, std::filesystem::file_type type, uintmax_t size, Leaf* parent)
     : _name(std::move(name))
     , _type(type)
+    , _size(size)
     , _parent(parent)
 {
 }
@@ -27,9 +28,9 @@ Leaf& Leaf::operator=(Leaf&& that) noexcept = default;
 
 Leaf::~Leaf() = default;
 
-Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type type)
+Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type type, uintmax_t size)
 {
-    Leaf leaf(std::move(name), type, this);
+    Leaf leaf(std::move(name), type, size, this);
     auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
     return insertedLeaf->second;
 }
@@ -52,11 +53,7 @@ std::filesystem::file_type Leaf::GetType() const
 
 std::uintmax_t Leaf::GetSize() const
 {
-    if (_type == std::filesystem::file_type::regular) {
-        return std::filesystem::file_size(GetFullPath());
-    }
-
-    return 0;
+    return _size;
 }
 
 bool Leaf::IsDeleted() const
@@ -96,10 +93,11 @@ void Leaf::Rescan()
             }
 
             if (std::filesystem::is_regular_file(path)) {
-                AddChild(path.filename(), std::filesystem::file_type::regular);
+                uintmax_t size = std::filesystem::file_size(path);
+                AddChild(path.filename(), std::filesystem::file_type::regular, size);
 
             } else if (std::filesystem::is_directory(path)) {
-                AddChild(path.filename(), std::filesystem::file_type::directory);
+                AddChild(path.filename(), std::filesystem::file_type::directory, 0);
             }
         }
     } catch (const std::filesystem::filesystem_error& e) {
@@ -215,7 +213,7 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 {
-    size_t readed = size;
+    size_t readed = std::min(size, _size - offset);
     int index = 0;
     const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * ((size + 1299) / 1300));
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -226,6 +224,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
     while (readed > 0) {
         auto block = _data.find(offset / BlockSize);
         if (block == _data.end()) {
+            buffVector->count = 0;
             return buffVector;
         }
 

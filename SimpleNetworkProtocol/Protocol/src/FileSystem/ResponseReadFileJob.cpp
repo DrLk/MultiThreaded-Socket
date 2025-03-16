@@ -21,12 +21,14 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
+    off_t skipped = 0;
     FileSystem::RemoteFileHandle* remoteFile = nullptr;
     auto& reader = GetReader();
     reader >> request;
     reader >> inode;
     reader >> size;
     reader >> offset;
+    reader >> skipped;
     reader >> remoteFile;
 
     TRACER() << "Execute"
@@ -34,6 +36,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
              << " inode=" << inode
              << " size=" << size
              << " offset=" << offset
+             << " skipped=" << skipped
              << " remoteFile=" << remoteFile;
 
     writer << MessageType::ResponseRead;
@@ -41,11 +44,12 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     writer << inode;
     writer << size;
     writer << offset;
+    writer << skipped;
 
     Message dataPackets = writer.GetDataPackets(1000);
     assert(size <= dataPackets.size() * dataPackets.front()->GetPayload().size());
 
-    Message readed = remoteFile->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset);
+    Message readed = remoteFile->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset + skipped);
     int error = 0;
     if (readed.empty()) {
         TRACER() << "preadv failed";
@@ -57,7 +61,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     writer << error;
     writer << std::move(readed);
 
-    return {};
+    return dataPackets;
 }
 
 } // namespace FastTransport::TaskQueue

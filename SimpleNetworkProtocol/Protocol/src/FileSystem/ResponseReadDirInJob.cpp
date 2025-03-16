@@ -10,7 +10,7 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& /*fileTree*/)
+ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
 
     auto& reader = GetReader();
@@ -24,7 +24,7 @@ ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(std::sto
 
     reader >> data;
 
-    const std::size_t length = sizeof(fuse_bufvec) + sizeof(fuse_buf) * (data.size() - 1);
+    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (data.size() - 1));
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int index = 0;
 

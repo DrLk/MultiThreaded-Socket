@@ -13,6 +13,8 @@
 
 namespace FastTransport::TaskQueue {
 
+class ITaskScheduler;
+
 class ResponseInFuseNetworkJob : public Job {
 protected:
     using Message = Protocol::IPacket::List;
@@ -22,7 +24,7 @@ protected:
     using FileHandle = FileSystem::FileHandle;
 
 public:
-    virtual Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) = 0;
+    virtual Message ExecuteResponse(ITaskScheduler& scheduler, std::stop_token stop, FileTree& fileTree) = 0;
 
     void InitReader(Reader&& reader);
     Reader& GetReader();

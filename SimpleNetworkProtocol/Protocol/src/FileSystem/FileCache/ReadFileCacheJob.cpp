@@ -6,7 +6,6 @@
 #include "Leaf.hpp"
 #include "Logger.hpp"
 #include "RequestReadFileJob.hpp"
-#include "WriteFileCacheJob.hpp"
 
 #define TRACER() LOGGER() << "[ReadFileCacheJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -30,16 +29,24 @@ void ReadFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, s
              << " offset: " << _offset
              << " remoteFile: " << _remoteFile;
 
+    auto& leaf = _inode == FUSE_ROOT_ID ? tree.GetRoot() : *(reinterpret_cast<Leaf*>(_inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+
+    if (leaf.GetSize() <= _offset) {
+        TRACER() << "File size is less than offset";
+        fuse_reply_err(_request, EIO);
+        return;
+    }
+
+    if (leaf.GetSize() < _offset + _size) {
+        TRACER() << "Last block is not full";
+        _size = leaf.GetSize() - _offset;
+    }
+
     std::unique_ptr<fuse_bufvec> buffer = tree.GetData(_inode, _offset, _size);
 
-    if (!buffer || buffer->count < 200) {
-        if (_offset > Leaf::BlockSize) {
-            auto [inode, offset, size, data] = tree.GetFreeData(1);
-            if (data.size() > 0) {
-                scheduler.Schedule(std::make_unique<FileCache::WriteFileCacheJob>(inode, size, offset, std::move(data), _remoteFile));
-            }
-        }
-        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
+    if (!buffer || buffer->count == 0) {
+        off_t skipped = _offset > 0 ? Leaf::BlockSize - (_offset % Leaf::BlockSize) : 0;
+        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         return;
     }
 

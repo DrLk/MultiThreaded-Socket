@@ -81,7 +81,9 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
 
     if (blockSize * packets.size() != readed) {
         auto readPackets = packets.TryGenerate((readed + blockSize - 1) / blockSize);
-        readPackets.back()->SetPayloadSize(readed - ((readPackets.size() - 1) * blockSize));
+        if (!readPackets.empty()) {
+            readPackets.back()->SetPayloadSize(readed - ((readPackets.size() - 1) * blockSize));
+        }
         return readPackets;
     }
 

@@ -8,11 +8,13 @@
 
 namespace FastTransport::TaskQueue {
 
+class ITaskScheduler;
+
 class ResponseReadFileInJob : public ResponseInFuseNetworkJob {
     using Reader = Protocol::MessageReader;
 
 public:
-    Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) override;
+    Message ExecuteResponse(ITaskScheduler& scheduler, std::stop_token stop, FileTree& fileTree) override;
 
 private:
     Reader _reader;

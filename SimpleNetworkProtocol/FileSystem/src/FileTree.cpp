@@ -13,7 +13,7 @@
 namespace FastTransport::FileSystem {
 
 FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
-    : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, nullptr))
+    : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))
     , _cacheFolder(std::move(cacheFolder))
     , _fileCache(std::make_unique<FileCache::FileCache>())
 {
@@ -41,13 +41,13 @@ FileTree FileTree::GetTestFileTree()
 
     auto& root = tree.GetRoot();
 
-    auto& folder1 = root.AddChild("folder1", std::filesystem::file_type::directory);
+    auto& folder1 = root.AddChild("folder1", std::filesystem::file_type::directory, 0);
 
-    folder1.AddChild("file1", std::filesystem::file_type::regular);
+    folder1.AddChild("file1", std::filesystem::file_type::regular, 100);
 
-    auto& folder2 = root.AddChild("folder2", std::filesystem::file_type::directory);
+    auto& folder2 = root.AddChild("folder2", std::filesystem::file_type::directory, 0);
 
-    folder2.AddChild("file2", std::filesystem::file_type::regular);
+    folder2.AddChild("file2", std::filesystem::file_type::regular, 200);
     return tree;
 }
 
@@ -108,10 +108,10 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
         for (; itt != std::filesystem::directory_iterator(); itt++) {
             const std::filesystem::path& path = itt->path();
             if (std::filesystem::is_regular_file(path)) {
-                root.AddChild(path.filename(), std::filesystem::file_type::regular);
+                root.AddChild(path.filename(), std::filesystem::file_type::regular, std::filesystem::file_size(path));
 
             } else if (std::filesystem::is_directory(path)) {
-                auto& directory = root.AddChild(path.filename(), std::filesystem::file_type::directory);
+                auto& directory = root.AddChild(path.filename(), std::filesystem::file_type::directory, 0);
                 Scan(path, directory);
             }
         }

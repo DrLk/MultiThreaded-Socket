@@ -12,6 +12,6 @@ class ResponseReleaseInJob : public ResponseInFuseNetworkJob {
     using FileTree = FileSystem::FileTree;
 
 public:
-    Message ExecuteResponse(std::stop_token stop, FileTree& fileTree) override;
+    Message ExecuteResponse(ITaskScheduler& scheduler, std::stop_token stop, FileTree& fileTree) override;
 };
 } // namespace FastTransport::TaskQueue

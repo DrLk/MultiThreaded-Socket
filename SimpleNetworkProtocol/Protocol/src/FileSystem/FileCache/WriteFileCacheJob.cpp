@@ -3,22 +3,20 @@
 #include "FileCache/FileCache.hpp"
 #include "Logger.hpp"
 #include "NativeFile.hpp"
-#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[WriteFileCacheJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileCache {
-WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset, Message&& data, FileSystem::RemoteFileHandle* remoteFile)
+WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset, Message&& data)
     : _inode(inode)
     , _size(size)
     , _offset(offset)
     , _data(std::move(data))
-    , _remoteFile(remoteFile)
 {
     assert(_data.size() > 0);
 }
 
-WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
+WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
     TRACER() << "Execute"
              << " inode=" << _inode

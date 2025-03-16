@@ -13,7 +13,7 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
+ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
@@ -21,10 +21,12 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
+    off_t skipped = 0;
     reader >> request;
     reader >> inode;
     reader >> size;
     reader >> offset;
+    reader >> skipped;
     reader >> error;
 
     TRACER() << "Execute"
@@ -32,6 +34,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
              << " inode=" << inode
              << " size=" << size
              << " offset=" << offset
+             << " skipped=" << skipped
              << " error=" << error;
 
     if (error != 0) {
@@ -39,37 +42,23 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(std::st
         return {};
     }
 
+
     Message data;
     reader >> data;
 
-    const size_t readed = ((data.size() - 1) * data.front()->GetPayload().size()) + data.back()->GetPayload().size();
-    size_t replySize = std::min(readed, size);
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (data.size() - 1));
-    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    int index = 0;
-    size_t count = 0;
+    const size_t readed = data.empty() ? 0 : ((data.size() - 1) * data.front()->GetPayload().size()) + data.back()->GetPayload().size();
+    size_t replySize = std::min(readed + skipped, size);
 
-    buffVector->off = 0;
-    buffVector->idx = 0;
-    for (auto& packet : data) {
-        auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-        buffer.mem = packet->GetPayload().data();
-        buffer.size = std::min(packet->GetPayload().size(), replySize);
-        buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
-        buffer.pos = 0;
-        buffer.fd = 0;
-
-        count++;
-        if (replySize <= packet->GetPayload().size()) {
-            break;
-        }
-
-        replySize -= packet->GetPayload().size();
-    }
-    buffVector->count = count;
-
+    auto freePackets = fileTree.AddData(inode, offset + skipped, readed, std::move(data));
+    auto buffVector = fileTree.GetData(inode, offset, replySize);
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
-    return fileTree.AddData(inode, offset, readed, std::move(data));
+    if (offset > Leaf::BlockSize) {
+        // auto [inode, offset, size, data] = fileTree.GetFreeData(1);
+        // if (data.size() > 0) {
+        //     scheduler.Schedule(std::make_unique<FileCache::WriteFileCacheJob>(inode, size, offset, std::move(data)));
+        // }
+    }
+    return freePackets;
 }
 
 } // namespace FastTransport::TaskQueue

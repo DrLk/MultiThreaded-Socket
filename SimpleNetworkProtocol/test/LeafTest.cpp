@@ -1,7 +1,7 @@
 #include "Leaf.hpp"
-#include <cstddef>
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <sstream>
 
 #include "ByteStream.hpp"
@@ -14,25 +14,25 @@ using FastTransport::FileSystem::Leaf;
 
 Leaf GetTestLeaf()
 {
-    Leaf root("test", std::filesystem::file_type::directory, nullptr);
+    Leaf root("test", std::filesystem::file_type::directory, 0, nullptr);
 
     root.AddChild(
             "folder1",
-            std::filesystem::file_type::directory)
+            std::filesystem::file_type::directory, 0)
         .AddChild(
             "file1",
-            std::filesystem::file_type::regular);
+            std::filesystem::file_type::regular, 100);
 
     Leaf& folder2 = root.AddChild(
         "folder2",
-        std::filesystem::file_type::directory);
+        std::filesystem::file_type::directory, 0);
 
     folder2.AddChild(
         "file2_1",
-        std::filesystem::file_type::regular);
+        std::filesystem::file_type::regular, 200);
     folder2.AddChild(
         "file2_2",
-        std::filesystem::file_type::regular);
+        std::filesystem::file_type::regular, 300);
 
     return root;
 }

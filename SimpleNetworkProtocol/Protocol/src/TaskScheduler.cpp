@@ -139,7 +139,7 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
         assert(!_freeSendPackets.empty());
-        Message freePackets = job->ExecuteResponse(stop, _fileTree);
+        Message freePackets = job->ExecuteResponse(*this, stop, _fileTree);
         freePackets.splice(job->GetFreeReadPackets());
 
         if (!freePackets.empty()) {

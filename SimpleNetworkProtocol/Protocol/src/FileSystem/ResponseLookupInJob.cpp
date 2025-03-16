@@ -10,7 +10,7 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop_token /*stop*/, FileTree& fileTree)
+ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
     TRACER() << "Execute";
 
@@ -43,7 +43,8 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(std::stop
     entry.entry_timeout = 1000.0;
 
     const std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
-    GetLeaf(parentId, fileTree).AddChild(name, type);
+    const uintmax_t size = entry.attr.st_size;
+    GetLeaf(parentId, fileTree).AddChild(name, type, size);
 
     fuse_reply_entry(request, &entry);
 
