@@ -51,7 +51,7 @@ public:
     std::unique_ptr<fuse_bufvec> GetData(fuse_ino_t inode, off_t offset, size_t size);
     FileTree::Data AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data);
 
-    FreeData GetFreeData(size_t size);
+    FreeData GetFreeData(size_t index);
 
     FileCache::FileCache& GetFileCache();
 

@@ -130,6 +130,10 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
         }
     }
 
+    for (auto& packet : result) {
+        packet->SetPayloadSize(1300);
+    }
+
     return result;
 }
 
@@ -159,13 +163,11 @@ IPacket::List Connection::Recv(std::size_t size, std::stop_token stop, IPacket::
     IPacket::List result;
     {
         LockedList<IPacket::Ptr>& userData = _recvQueue->GetUserData();
-        while (size > 0) {
-            if (userData.Wait(stop, [this]() { return IsClosed(); })) {
+        while (size > 0 && !stop.stop_requested()) {
+            if (userData.WaitFor(stop, [this]() { return IsClosed(); })) {
                 IPacket::List packets = userData.LockedTryGenerate(size);
                 size -= packets.size();
                 result.splice(std::move(packets));
-            } else {
-                break;
             }
         }
     }

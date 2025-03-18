@@ -77,7 +77,7 @@ FileTree::Data FileTree::AddData(fuse_ino_t inode, off_t offset, size_t size, Da
     return freePackets;
 }
 
-FreeData FileTree::GetFreeData(size_t size)
+FreeData FileTree::GetFreeData(size_t index)
 {
     if (_cache.empty()) {
         return {};
@@ -86,7 +86,7 @@ FreeData FileTree::GetFreeData(size_t size)
     auto entry = _cache.begin();
     fuse_ino_t inode = entry->first;
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
-    auto [offset, data] = leaf.ExtractBlock(size);
+    auto [offset, data] = leaf.ExtractBlock(index);
     entry->second -= static_cast<int>(data.size());
     assert(entry->second >= 0);
     if (entry->second == 0) {

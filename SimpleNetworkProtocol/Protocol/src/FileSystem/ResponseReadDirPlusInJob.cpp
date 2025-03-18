@@ -39,7 +39,7 @@ ResponseInFuseNetworkJob::Message ResponseReadDirPlusInJob::ExecuteResponse(ITas
 
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_SPLICE_MOVE);
 
-    return reader.GetPackets();
+    return data;
 }
 
 } // namespace FastTransport::TaskQueue

@@ -282,16 +282,18 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
                 offset += static_cast<off_t>(buffer.size);
                 buffVector->count++;
             }
+        } else {
+            return buffVector;
         }
     }
 
     return buffVector;
 }
 
-std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t size)
+std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 {
     Leaf::Data extractedData;
-    auto block = _data.begin();
+    auto block = _data.find(index);
 
     if (block == _data.end()) {
         return { 0, {} };
@@ -300,7 +302,7 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t size)
     std::set<FileCache::Range>& ranges = block->second;
 
     off_t offset = ranges.begin()->GetOffset();
-    for (auto it = ranges.begin(); it != ranges.end() && size > 0;) {
+    for (auto it = ranges.begin(); it != ranges.end();) {
         auto extractedIt = it;
         it++;
         auto range = ranges.extract(extractedIt);
