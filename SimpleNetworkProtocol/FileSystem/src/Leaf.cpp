@@ -19,6 +19,7 @@ Leaf::Leaf(std::filesystem::path&& name, std::filesystem::file_type type, uintma
     , _type(type)
     , _size(size)
     , _parent(parent)
+    , _piecesStatus((size / BlockSize) + 1)
 {
 }
 
@@ -143,6 +144,7 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
         std::set<FileCache::Range> blocks;
         blocks.insert(FileCache::Range(offset, size, std::move(data)));
         _data.insert({ offset / BlockSize, std::move(blocks) });
+        _piecesStatus.SetStatus(offset / BlockSize, PieceStatus::InCache);
         return {};
     }
 
@@ -299,6 +301,8 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
         return { 0, {} };
     }
 
+    _piecesStatus.SetStatus(index, PieceStatus::NotFound);
+
     std::set<FileCache::Range>& ranges = block->second;
 
     off_t offset = ranges.begin()->GetOffset();
@@ -311,6 +315,11 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 
     _data.erase(block);
     return { offset, std::move(extractedData) };
+}
+
+PiecesStatus& Leaf::GetPiecesStatus()
+{
+    return _piecesStatus;
 }
 
 } // namespace FastTransport::FileSystem

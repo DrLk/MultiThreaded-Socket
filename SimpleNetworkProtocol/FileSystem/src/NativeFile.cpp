@@ -25,6 +25,11 @@ NativeFile::~NativeFile()
     Close();
 }
 
+int NativeFile::GetHandle() const
+{
+    return _file;
+}
+
 void NativeFile::Open()
 {
     _file = open(_name.c_str(), O_CLOEXEC); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)

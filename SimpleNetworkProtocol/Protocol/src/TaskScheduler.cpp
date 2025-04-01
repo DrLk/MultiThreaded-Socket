@@ -78,8 +78,9 @@ void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job
 
 void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token /*stop*/) mutable {
-        job->ExecuteDisk(*this, 123.0);
+    _diskQueue.Async([job = std::move(job), this](std::stop_token /*stop*/) mutable {
+        auto freeDiskPackets = job->ExecuteDisk(*this, std::move(_freeDiskPackets));
+        _freeDiskPackets = std::move(freeDiskPackets);
     });
 }
 

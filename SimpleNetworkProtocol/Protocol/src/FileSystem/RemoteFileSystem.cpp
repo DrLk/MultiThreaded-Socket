@@ -6,8 +6,8 @@
 #include <string_view>
 #include <unistd.h>
 
+#include "FuseReadFileJob.hpp"
 #include "Logger.hpp"
-#include "ReadFileCacheJob.hpp"
 #include "RequestForgetMultiJob.hpp"
 #include "RequestGetAttrJob.hpp"
 #include "RequestLookupJob.hpp"
@@ -134,7 +134,7 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
              << " off: " << offset
              << " fileInfo: " << fileInfo;
 
-    scheduler->Schedule(std::make_unique<FileCache::ReadFileCacheJob>(request, inode, size, offset, GetFileHandle(fileInfo).remoteFile));
+    scheduler->Schedule(std::make_unique<FileCache::FuseReadFileJob>(request, inode, size, offset, GetFileHandle(fileInfo).remoteFile));
 }
 
 void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)

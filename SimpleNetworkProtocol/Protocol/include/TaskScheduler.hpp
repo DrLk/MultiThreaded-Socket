@@ -37,6 +37,8 @@ public:
 
 private:
     TaskQueue _diskQueue;
+    Message _freeDiskPackets;
+
     TaskQueue _mainQueue;
     TaskQueue _readNetworkQueue;
     TaskQueue _writeNetworkQueue;

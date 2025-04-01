@@ -20,6 +20,7 @@ public:
     NativeFile& operator=(const NativeFile&) = delete;
     NativeFile& operator=(NativeFile&&) = default;
 
+    [[nodiscard]] int GetHandle() const;
     void Open() override;
     void Create() override;
     [[nodiscard]] bool IsOpened() const override;

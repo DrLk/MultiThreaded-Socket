@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "FileCache/Range.hpp" 
+#include "PiecesStatus.hpp"
 
 namespace FastTransport::Containers {
     template <class T>
@@ -63,6 +64,8 @@ public:
     std::pair<off_t, Data> ExtractBlock(size_t index);
     static constexpr ssize_t BlockSize = static_cast<const size_t>(1000 * 1300U);
 
+    PiecesStatus& GetPiecesStatus();
+
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set
     std::filesystem::path _name;
@@ -72,6 +75,7 @@ private:
     mutable std::uint64_t _nlookup = 0;
 
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
+    PiecesStatus _piecesStatus;
 };
 
 } // namespace FastTransport::FileSystem

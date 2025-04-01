@@ -1,19 +1,23 @@
 #pragma once
 
-#include "CacheTreeJob.hpp"
+#include "DiskJob.hpp"
+#include <fuse3/fuse_lowlevel.h>
+
+namespace FastTransport::FileSystem {
+class NativeFile;
+} // namespace FastTransport::FileSystem
 
 namespace FastTransport::FileCache {
 
-class ReadFileCacheJob : public TaskQueue::CacheTreeJob {
+class ReadFileCacheJob : public TaskQueue::DiskJob {
 public:
-    ReadFileCacheJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile);
-    void ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree) override;
+    ReadFileCacheJob(fuse_req_t request,std::shared_ptr<FileSystem::NativeFile>& file, size_t size, off_t offset);
+    Data ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Data&& free) override;
 
 private:
     fuse_req_t _request;
-    fuse_ino_t _inode;
+    std::shared_ptr<FileSystem::NativeFile> _file;
     size_t _size;
     off_t _offset;
-    FileSystem::RemoteFileHandle* _remoteFile;
 };
 } // namespace FastTransport::FileCache
