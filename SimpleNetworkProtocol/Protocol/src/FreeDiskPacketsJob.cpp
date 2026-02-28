@@ -1,4 +1,5 @@
 #include "FreeDiskPacketsJob.hpp"
+#include "IPacket.hpp"
 
 namespace FastTransport::TaskQueue {
     FreeDiskPacketsJob::FreeDiskPacketsJob(Data&& data)

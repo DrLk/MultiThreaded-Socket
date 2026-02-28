@@ -19,7 +19,7 @@ namespace {
         auto type = std::filesystem::status(path).type();
 
         std::error_code error;
-        uintmax_t size = std::filesystem::file_size(path, error);
+        const uintmax_t size = std::filesystem::file_size(path, error);
         return parent.AddChild(path.filename(), type, size);
     }
 } // namespace
@@ -47,12 +47,16 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     writer << name;
 
     const std::string path = parent.GetFullPath() / name;
-    const Leaf& fileRef = file ? file.value().get() : AddLeaf(path, parent);
-
-    if (fileRef.IsDeleted()) {
-        writer << ENOENT;
-        return {};
+    if (!file)
+    {
+        auto type = std::filesystem::status(path).type();
+        if (type == std::filesystem::file_type::not_found) {
+            writer << ENOENT;
+            return {};
+        }
     }
+
+    const Leaf& fileRef = file ? file.value().get() : AddLeaf(path, parent);
 
     struct stat stbuf { };
     const int error = stat(path.c_str(), &stbuf);
@@ -65,7 +69,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
         writer << GetINode(fileRef);
         writer << stbuf.st_mode;
         writer << stbuf.st_nlink;
-        writer << stbuf.st_size;
+        writer << fileRef.GetSize();
         writer << stbuf.st_uid;
         writer << stbuf.st_gid;
         writer << stbuf.st_mtim;

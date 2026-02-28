@@ -35,7 +35,11 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskSch
     reader >> stbuf.st_gid;
     reader >> stbuf.st_mtim;
 
-    fuse_reply_attr(request, &stbuf, 1.0);
+    error = fuse_reply_attr(request, &stbuf, 1.0);
+
+    TRACER() << "Reply with attributes"
+             << " request: " << request
+             << " error: " << error;
 
     return reader.GetPackets();
 }
