@@ -230,7 +230,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
             .msg_iov = std::addressof(*iovBegin),
             .msg_iovlen = UDPMaxSegments,
             .msg_control = std::addressof(*controlBegin),
-            .msg_controllen = UDPMaxSegments,
+            .msg_controllen = ControlMessageSpace,
             .msg_flags = 0,
         };
 

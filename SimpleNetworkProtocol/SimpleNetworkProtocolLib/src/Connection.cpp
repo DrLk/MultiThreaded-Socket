@@ -373,6 +373,9 @@ IPacket::List Connection::CleanFreeSendPackets()
 
 IPacket::Ptr Connection::GetFreeSendPacket()
 {
+    if (_freeInternalSendPackets.empty()) {
+        return nullptr;
+    }
     IPacket::Ptr packet = std::move(_freeInternalSendPackets.back());
     _freeInternalSendPackets.pop_back();
     return packet;

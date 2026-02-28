@@ -66,6 +66,9 @@ ConnectionState SendingSynState::SendPackets(IConnectionInternal& connection)
     TRACER() << "SendingSynState::SendPackets";
 
     IPacket::Ptr synPacket = connection.GetFreeSendPacket();
+    if (!synPacket) {
+        return ConnectionState::SendingSynState;
+    }
 
     synPacket->SetPacketType(PacketType::Syn);
     synPacket->SetSrcConnectionID(connection.GetConnectionKey().GetID());
@@ -108,6 +111,9 @@ ConnectionState SendingSynAckState::SendPackets(IConnectionInternal& connection)
     TRACER() << "SendingSynAckState::SendPackets";
 
     IPacket::Ptr synPacket = connection.GetFreeSendPacket();
+    if (!synPacket) {
+        return ConnectionState::SendingSynAckState;
+    }
 
     synPacket->SetPacketType(PacketType::SynAck);
     synPacket->SetDstConnectionID(connection.GetDestinationID());
@@ -180,6 +186,9 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
     // TODO: maybe error after std::move second loop
     while (!acks.empty()) {
         IPacket::Ptr packet = connection.GetFreeSendPacket();
+        if (!packet) {
+            break;
+        }
 
         packet->SetPacketType(PacketType::Sack);
         packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());

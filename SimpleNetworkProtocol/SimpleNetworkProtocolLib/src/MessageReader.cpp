@@ -43,8 +43,11 @@ MessageReader& MessageReader::operator>>(IPacket::List& packets) // NOLINT(fuchs
     operator>>(size);
     auto start = _packet;
     start++;
-    auto end = start;;
+    auto end = start;
     for (std::size_t i = 0; i < size; i++) {
+        if (end == _packets.end()) {
+            break;
+        }
         end++;
     }
     packets.splice(_packets, start, end);
