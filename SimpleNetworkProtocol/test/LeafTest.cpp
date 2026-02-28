@@ -94,7 +94,7 @@ TEST(LeafTest, LeafSerializationTest)
 
 TEST(LeafTest, LeafGetDataTest)
 {
-    Leaf root = GetTestLeaf();
+    Leaf root("test", std::filesystem::file_type::regular, 1024L * 1024, nullptr);
 
     Protocol::IPacket::List data;
     constexpr size_t PacketSize = 1400;
@@ -105,7 +105,7 @@ TEST(LeafTest, LeafGetDataTest)
     }
 
     constexpr size_t PacketNumber = 200;
-    for (int i = 0; i < PacketNumber; i++) {
+    for (uint i = 0; i < PacketNumber; i++) {
         auto packet = std::make_unique<Protocol::Packet>(1500);
         packet->SetPayload(buffer);
         data.push_back(std::move(packet));
@@ -146,7 +146,7 @@ TEST(LeafTest, LeafGetDataTest)
 
 TEST(LeafTest, LeafAddDataTest)
 {
-    Leaf root = GetTestLeaf();
+    Leaf root("test", std::filesystem::file_type::regular, 1024L * 1024, nullptr);
 
     Protocol::IPacket::List data;
     constexpr size_t PacketSize = 1400;
@@ -182,7 +182,7 @@ TEST(LeafTest, LeafAddDataTest)
 
 TEST(LeafTest, LeafAddDifferentRangeDataTest)
 {
-    Leaf root = GetTestLeaf();
+    Leaf root("test", std::filesystem::file_type::regular, 1024L * 1024, nullptr);
 
     Protocol::IPacket::List data;
     constexpr size_t PacketSize = 1400;
@@ -226,8 +226,7 @@ TEST(LeafTest, LeafAddDifferentRangeDataTest)
 
 TEST(LeafTest, LeafAddDifferentRangeDataTest2)
 {
-    Leaf root = GetTestLeaf();
-
+    Leaf root("test", std::filesystem::file_type::regular, 1024L * 1024, nullptr);
     Protocol::IPacket::List data;
     constexpr size_t PacketSize = 1400;
 
@@ -273,9 +272,8 @@ TEST(LeafTest, LeafAddDifferentRangeDataTest2)
 
 TEST(LeafTest, LeafAddDifferentRangeDataTest3)
 {
-    Leaf root = GetTestLeaf();
-
     constexpr size_t PacketSize = 1400;
+    Leaf root("test", std::filesystem::file_type::regular, 5 * PacketSize, nullptr);
 
     std::array<std::byte, PacketSize> buffer2 {};
     for (auto& byte : buffer2) {
@@ -371,9 +369,9 @@ TEST(LeafTest, LeafAddIntersectionDataTest)
 
 TEST(LeafTest, LeafAddIntersectionDataTest2)
 {
-    Leaf root = GetTestLeaf();
     constexpr auto Offset1MB = static_cast<const size_t>(1024 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(1024 * 1024);
+    Leaf root("test", std::filesystem::file_type::regular, 5 * PacketSize, nullptr);
 
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
@@ -435,9 +433,9 @@ TEST(LeafTest, LeafAddIntersectionDataTest3)
 
 TEST(LeafTest, LeafAddIntersectionDataTest4)
 {
-    Leaf root = GetTestLeaf();
     constexpr auto Offset512KB = static_cast<const size_t>(512 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(512 * 1024);
+    Leaf root("test", std::filesystem::file_type::regular, 5 * PacketSize, nullptr);
 
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
@@ -449,7 +447,7 @@ TEST(LeafTest, LeafAddIntersectionDataTest4)
 
     auto result1 = root.GetData(0, 2 * PacketSize);
     size_t size = 0;
-    for (int index = 0; index < result1->count; index++) {
+    for (uint index = 0; index < result1->count; index++) {
         size += result1->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
@@ -472,9 +470,9 @@ TEST(LeafTest, LeafAddIntersectionDataTest4)
 
 TEST(LeafTest, LeafGetData2MBTest)
 {
-    Leaf root = GetTestLeaf();
     constexpr auto Offset1MB = static_cast<const size_t>(1024 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(1024 * 1024);
+    Leaf root("test", std::filesystem::file_type::regular, 5 * PacketSize, nullptr);
 
     constexpr char Value1 = 1;
     auto data = GetTestData(PacketSize, Value1);
@@ -482,7 +480,7 @@ TEST(LeafTest, LeafGetData2MBTest)
 
     auto result1 = root.GetData(Offset1MB, 2 * PacketSize);
     size_t size = 0;
-    for (int index = 0; index < result1->count; index++) {
+    for (uint index = 0; index < result1->count; index++) {
         size += result1->buf[index].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
