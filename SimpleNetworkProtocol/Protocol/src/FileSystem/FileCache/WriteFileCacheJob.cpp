@@ -28,7 +28,7 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskSc
     FileSystem::NativeFile::Ptr file = fileTree.GetFileCache().GetFile(fileTree.GetCacheFolder() / leaf.GetCachePath());
     file->Write(_data, _size, _offset);
     assert(_size <= Leaf::BlockSize);
-    leaf.GetPiecesStatus().SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
+    leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
     return std::move(_data);
 }
 
