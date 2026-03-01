@@ -217,17 +217,19 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
+    OutgoingPacket::List servicePackets = _sendQueue->GetServicePacketsToSend();
+
     std::size_t size = _inFlightQueue->GetNumberPacketToSend();
     if (size == 0) {
-        NotifySendPacketsEvent();
-        return {};
+        return servicePackets;
     }
-    OutgoingPacket::List packets = _sendQueue->GetPacketsToSend(size);
-    assert(size >= packets.size());
-    size -= packets.size();
-    _inFlightQueue->RevertNumberPacketToSend(size);
-    _statistics.AddSendPackets(packets.size());
-    return packets;
+    OutgoingPacket::List dataPackets = _sendQueue->GetPacketsToSend(size);
+    assert(size >= dataPackets.size());
+    size -= dataPackets.size();
+    _inFlightQueue->RevertNumberPacketToSend(dataPackets.empty() ? size : 0);
+    _statistics.AddSendPackets(dataPackets.size());
+    servicePackets.splice(std::move(dataPackets));
+    return servicePackets;
 }
 
 void Connection::SetInternalFreePackets(IPacket::List&& freeInternalSendPackets, IPacket::List&& freeRecvPackets)

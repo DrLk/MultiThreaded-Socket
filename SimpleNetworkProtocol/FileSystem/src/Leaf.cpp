@@ -230,7 +230,6 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
     while (readed > 0) {
         auto block = _data.find(offset / BlockSize);
         if (block == _data.end()) {
-            buffVector->count = 0;
             return buffVector;
         }
 

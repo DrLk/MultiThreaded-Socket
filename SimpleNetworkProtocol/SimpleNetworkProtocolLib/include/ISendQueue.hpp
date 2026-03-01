@@ -19,5 +19,6 @@ public:
     virtual void SendPackets(IPacket::List&& packets, bool needAck) = 0;
     virtual void ReSendPackets(OutgoingPacket::List&& packets) = 0;
     [[nodiscard]] virtual OutgoingPacket::List GetPacketsToSend(size_t size) = 0;
+    [[nodiscard]] virtual OutgoingPacket::List GetServicePacketsToSend() = 0;
 };
 } // namespace FastTransport::Protocol

@@ -50,12 +50,18 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
     std::unique_ptr<fuse_bufvec> buffer = tree.GetData(_inode, _offset, _size);
 
     if (!buffer || buffer->count == 0) {
+        const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
+        FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
+
+        if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::OnDisk) {
+            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
+            return;
+        }
+
         off_t skipped = _offset > 0 ? Leaf::BlockSize - (_offset % Leaf::BlockSize) : 0;
         if (_offset + skipped > leaf.GetSize()) {
             skipped -= Leaf::BlockSize;
         }
-        FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
-        Protocol::IPacket::List data;
         scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         return;

@@ -22,12 +22,14 @@ public:
 
     // make list of list to get fast 1k packets
     [[nodiscard]] OutgoingPacket::List GetPacketsToSend(size_t size) override;
+    [[nodiscard]] OutgoingPacket::List GetServicePacketsToSend() override;
 
 private:
     static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
     std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
 
     MultiList<OutgoingPacket> _needToSend;
+    MultiList<OutgoingPacket> _serviceNeedToSend;
     std::atomic<SeqNumberType> _nextPacketNumber;
 };
 } // namespace FastTransport::Protocol

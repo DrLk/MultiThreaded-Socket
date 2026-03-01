@@ -96,6 +96,7 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
 
         auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size + 1);
         auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
+        auto windowStart = _stats[_startIndex % Size].GetStart();
         for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
             _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
             startInterval += Interval;
@@ -103,6 +104,8 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
 
         _startIndex = newStartIndex;
 
+        auto slotStart = windowStart + (diff / Interval) * Interval;
+        _stats[newEndIndex % Size] = SampleStats(0, 0, slotStart, slotStart + Interval, 0ms);
         _stats[newEndIndex % Size].Merge(stats);
     }
 }
