@@ -4,12 +4,14 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "ConnectionAddr.hpp"
 #include "FastTransportProtocol.hpp"
@@ -116,6 +118,20 @@ void TestConnection2()
     using FastTransport::TaskQueue::MessageTypeReadJob;
     using FastTransport::TaskQueue::TaskScheduler;
 
+    // Write a 100MB file to /tmp/100MB.bin
+    {
+        constexpr size_t FileSize = 100ULL * 1024 * 1024;
+        std::ofstream file("/tmp/100MB.bin", std::ios::binary | std::ios::trunc);
+        if (!file) {
+            throw std::runtime_error("Failed to create /tmp/100MB.bin");
+        }
+        const std::vector<char> chunk(1024 * 1024, 0x42);
+        for (size_t i = 0; i < FileSize / chunk.size(); ++i) {
+            file.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+        }
+        LOGGER() << "Written " << FileSize << " bytes to /tmp/100MB.bin";
+    }
+
     std::jthread recvThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", 11200));
 
@@ -155,7 +171,7 @@ void TestConnection2()
         srcConnection->AddFreeRecvPackets(std::move(recvPackets));
         srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        std::filesystem::path cacheFolder = "/tmp/cache";
+        const std::filesystem::path cacheFolder = "/tmp/cache";
         if (!std::filesystem::exists(cacheFolder)) {
             if (!std::filesystem::create_directory(cacheFolder)) {
                 throw std::runtime_error("Failed to create cache folder");
@@ -170,8 +186,46 @@ void TestConnection2()
         sourceTaskScheduler.Wait(stop);
     });
 
+    // Read the file through the FUSE mount once the filesystem is ready
+    std::jthread readThread([](std::stop_token /*stop*/) {
+        // Wait for the FUSE filesystem to mount and the network connection to establish
+        std::this_thread::sleep_for(5s);
+
+        constexpr size_t FileSize = 100ULL * 1024 * 1024;
+        std::ifstream src("/tmp/100MB.bin", std::ios::binary);
+        std::ifstream mnt("/mnt/test/100MB.bin", std::ios::binary);
+        if (!src) {
+            LOGGER() << "Read test FAILED: cannot open /tmp/100MB.bin";
+            return;
+        }
+        if (!mnt) {
+            LOGGER() << "Read test FAILED: cannot open /mnt/test/100MB.bin";
+            return;
+        }
+
+        std::vector<char> srcBuf(1024 * 1024);
+        std::vector<char> mntBuf(1024 * 1024);
+        size_t totalRead = 0;
+        bool match = true;
+        while (src.read(srcBuf.data(), static_cast<std::streamsize>(srcBuf.size()))
+            && mnt.read(mntBuf.data(), static_cast<std::streamsize>(mntBuf.size()))) {
+            totalRead += static_cast<size_t>(src.gcount());
+            if (srcBuf != mntBuf) {
+                match = false;
+                break;
+            }
+        }
+
+        if (match && totalRead == FileSize) {
+            LOGGER() << "Read test OK: " << totalRead << " bytes match";
+        } else {
+            LOGGER() << "Read test FAILED: read " << totalRead << " bytes, match=" << match;
+        }
+    });
+
     recvThread.join();
     sendThread.join();
+    readThread.join();
 }
 
 void TestFileSystem()
