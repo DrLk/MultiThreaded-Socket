@@ -320,6 +320,18 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
     return { offset, std::move(extractedData) };
 }
 
+size_t Leaf::GetFirstBlockIndex() const
+{
+    if (_data.empty()) {
+        return SIZE_MAX;
+    }
+    size_t minIndex = SIZE_MAX;
+    for (const auto& [index, ranges] : _data) {
+        minIndex = std::min(minIndex, index);
+    }
+    return minIndex;
+}
+
 std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()
 {
     return _piecesStatus;

@@ -7,7 +7,6 @@
 #include "Leaf.hpp"
 #include "Logger.hpp"
 #include "NativeFile.hpp"
-#include "FileCache/EvictLeafBlockJob.hpp"
 #include "PieceStatus.hpp"
 #include "ReadFileCacheJob.hpp"
 #include "RequestReadFileJob.hpp"
@@ -68,18 +67,6 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
     }
 
     fuse_reply_data(_request, buffer.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
-
-    const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
-    auto piecesStatus = leaf.GetPiecesStatus();
-    if (piecesStatus->GetStatus(blockIndex) == FileSystem::PieceStatus::InCache) {
-        auto [evictOffset, data] = leaf.ExtractBlock(blockIndex);
-        if (!data.empty()) {
-            const size_t blockStart = blockIndex * static_cast<size_t>(Leaf::BlockSize);
-            const size_t size = std::min(static_cast<size_t>(Leaf::BlockSize), leaf.GetSize() - blockStart);
-            FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
-            scheduler.Schedule(std::make_unique<EvictLeafBlockJob>(std::move(data), evictOffset, size, blockIndex, piecesStatus, file));
-        }
-    }
 }
 
 } // namespace FastTransport::FileCache

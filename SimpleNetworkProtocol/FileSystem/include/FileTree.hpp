@@ -51,7 +51,10 @@ public:
     std::unique_ptr<fuse_bufvec> GetData(fuse_ino_t inode, off_t offset, size_t size);
     FileTree::Data AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data);
 
-    FreeData GetFreeData(size_t index);
+    FreeData GetFreeData();
+    bool NeedsEviction() const;
+
+    static constexpr int MaxCachePackets = 10000;
 
     FileCache::FileCache& GetFileCache();
 
@@ -60,6 +63,7 @@ private:
     std::filesystem::path _cacheFolder;
 
     std::unordered_map<fuse_ino_t, int> _cache;
+    int _totalCachedPackets = 0;
     FileCachePtr _fileCache;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
