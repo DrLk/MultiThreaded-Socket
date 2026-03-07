@@ -410,9 +410,9 @@ TEST(LeafTest, LeafAddIntersectionDataTest2)
 
 TEST(LeafTest, LeafAddIntersectionDataTest3)
 {
-    Leaf root = GetTestLeaf();
     constexpr auto Offset512KB = static_cast<const size_t>(512 * 1024);
     constexpr auto PacketSize = static_cast<const size_t>(512 * 1024);
+    Leaf root("test", std::filesystem::file_type::regular, 2 * PacketSize, nullptr);
 
     constexpr char Value0 = 0;
     auto data = GetTestData(PacketSize, Value0);
