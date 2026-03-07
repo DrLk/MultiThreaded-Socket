@@ -85,7 +85,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
     operator<<(inode);
     operator<<(off);
     operator<<(namelen);
-    operator<<(mode & S_IFMT >> 12U);
+    operator<<((mode & S_IFMT) >> 12U);
     write(name.data(), name.size());
     std::string zero(entlen_padded - entlen, '\0');
     write(zero.data(), zero.size());
@@ -133,7 +133,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
     const uint32_t atimensec = 0;
     const uint32_t mtimensec = 0;
     const uint32_t ctimensec = 0;
-    const auto mode = static_cast<std::uint32_t>(stbuf->st_mode & S_IFMT >> 12U);
+    const auto mode = static_cast<std::uint32_t>(stbuf->st_mode);
     const uint32_t nlink = stbuf->st_nlink;
     const uint32_t uid = stbuf->st_uid;
     const uint32_t gid = stbuf->st_gid;
@@ -168,7 +168,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
     operator<<(stbuf->st_ino);
     operator<<(off);
     operator<<(namelen);
-    operator<<(stbuf->st_mode & S_IFMT >> 12U);
+    operator<<((stbuf->st_mode & S_IFMT) >> 12U);
     write(name.data(), name.size());
     std::string zero(entlen_padded - entlen, '\0');
     write(zero.data(), zero.size());
