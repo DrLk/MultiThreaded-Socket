@@ -5,6 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <stop_token>
@@ -44,9 +45,13 @@ void CreateTestFile()
 {
     std::ofstream file(TestFilePath, std::ios::binary | std::ios::trunc);
     ASSERT_TRUE(file) << "Failed to create test file: " << TestFilePath;
-    const std::vector<char> chunk(1024UL * 1024UL, 0x42);
-    for (size_t i = 0; i < TestFileSize / chunk.size(); ++i) {
-        file.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+    constexpr size_t ChunkSize = 1024UL * 1024UL;
+    std::vector<char> chunk(ChunkSize);
+    for (size_t i = 0; i < TestFileSize / ChunkSize; ++i) {
+        for (size_t j = 0; j < ChunkSize; ++j) {
+            chunk[j] = static_cast<char>((i * ChunkSize + j) % 256);
+        }
+        file.write(chunk.data(), static_cast<std::streamsize>(ChunkSize));
     }
 }
 
@@ -75,12 +80,14 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
     std::atomic<bool> testResult { false };
     std::stop_source stopSource;
 
-    // Server thread: serves files from /tmp
+    // Server thread: serves files from /tmp, accepts incoming connections
     std::jthread serverThread([](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr("127.0.0.1", ServerPort));
-        const ConnectionAddr dstAddr("127.0.0.1", ClientPort);
 
-        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+        const IConnection::Ptr srcConnection = src.Accept(stop);
+        if (srcConnection == nullptr) {
+            return;
+        }
 
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
         IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
@@ -95,14 +102,12 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
     std::this_thread::sleep_for(500ms);
 
-    // Client thread: accepts, mounts FUSE at MountPoint
+    // Client thread: connects to server and mounts FUSE at MountPoint
     std::jthread clientThread([](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort));
+        const ConnectionAddr serverAddr("127.0.0.1", ServerPort);
 
-        const IConnection::Ptr dstConnection = dst.Accept(stop);
-        if (dstConnection == nullptr) {
-            return;
-        }
+        const IConnection::Ptr dstConnection = dst.Connect(serverAddr);
 
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
         IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
@@ -115,7 +120,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
         RemoteFileSystem filesystem(MountPoint);
         RemoteFileSystem::scheduler = &scheduler;
-        filesystem.Start(); // blocks until unmounted
+        filesystem.Start(stop); // blocks until unmounted or stop requested
 
         scheduler.Wait(stop);
     });
@@ -134,18 +139,31 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
             return;
         }
 
-        std::vector<char> srcBuf(1024 * 1024);
-        std::vector<char> mntBuf(1024UL * 1024UL);
+        constexpr size_t ChunkSize = 1024UL * 1024UL;
+        std::vector<char> srcBuf(ChunkSize);
+        std::vector<char> mntBuf(ChunkSize);
         size_t totalRead = 0;
         bool match = true;
 
-        while (src.read(srcBuf.data(), static_cast<std::streamsize>(srcBuf.size()))
-            && mnt.read(mntBuf.data(), static_cast<std::streamsize>(mntBuf.size()))) {
-            totalRead += static_cast<size_t>(src.gcount());
-            if (srcBuf != mntBuf) {
+        while (totalRead < TestFileSize) {
+            const size_t remaining = TestFileSize - totalRead;
+            const auto toRead = static_cast<std::streamsize>(std::min(ChunkSize, remaining));
+
+            if (!src.read(srcBuf.data(), toRead) || src.gcount() != toRead) {
                 match = false;
                 break;
             }
+            if (!mnt.read(mntBuf.data(), toRead) || mnt.gcount() != toRead) {
+                match = false;
+                break;
+            }
+
+            if (std::memcmp(srcBuf.data(), mntBuf.data(), static_cast<size_t>(toRead)) != 0) {
+                match = false;
+                break;
+            }
+
+            totalRead += static_cast<size_t>(toRead);
         }
 
         testResult = match && totalRead == TestFileSize;
@@ -166,6 +184,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
     serverThread.request_stop();
     clientThread.request_stop();
+    readThread.join();
 
     EXPECT_TRUE(testResult) << "File read via FUSE did not match original ("
                             << TestFileSize << " bytes expected)";

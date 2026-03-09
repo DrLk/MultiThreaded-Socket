@@ -13,6 +13,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
@@ -69,7 +70,7 @@ FileSystem::FileSystem(std::string_view mountpoint)
 {
 }
 
-void FileSystem::Start()
+void FileSystem::Start(std::stop_token stop)
 {
     _fuseOperations = {
         .init = FuseInit,
@@ -111,9 +112,14 @@ void FileSystem::Start()
 
     fuse_daemonize(1);
 
+    const std::stop_callback onStop(stop, [session]() {
+        fuse_session_exit(session);
+        fuse_session_unmount(session);
+    });
+
     /* Block until ctrl+c or fusermount -u */
     const int result = fuse_session_loop(session);
-    if (result != 0) {
+    if (result != 0 && !stop.stop_requested()) {
         throw std::runtime_error("Failed to fuse_session_loop");
     }
 }

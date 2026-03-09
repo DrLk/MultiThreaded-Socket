@@ -52,6 +52,8 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
 
     auto freePackets = fileTree.AddData(inode, offset + skipped, readed, std::move(data));
     auto buffVector = fileTree.GetData(inode, offset, replySize);
+    TRACER() << "reply replySize=" << replySize << " buffCount=" << buffVector->count
+             << " offset=" << offset << " skipped=" << skipped << " readed=" << readed;
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
     while (fileTree.NeedsEviction()) {
         auto [evictInode, evictOffset, evictSize, evictData] = fileTree.GetFreeData();

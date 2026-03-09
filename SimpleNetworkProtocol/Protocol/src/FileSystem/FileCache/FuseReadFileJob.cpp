@@ -50,18 +50,32 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
 
     if (!buffer || buffer->count == 0) {
         const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
-        FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
 
         if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::OnDisk) {
+            FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
             scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
             return;
         }
 
-        off_t skipped = _offset > 0 ? Leaf::BlockSize - (_offset % Leaf::BlockSize) : 0;
-        if (_offset + skipped > leaf.GetSize()) {
-            skipped -= Leaf::BlockSize;
+        off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
+        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
+        return;
+    }
+
+    size_t totalBytes = 0;
+    for (size_t i = 0; i < buffer->count; ++i) {
+        totalBytes += buffer->buf[i].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+
+    if (totalBytes < _size) {
+        // Partial data: FUSE read spans two cache blocks and the next block is not in cache.
+        const auto skipped = static_cast<off_t>(totalBytes);
+        const size_t nextBlockIndex = static_cast<size_t>(_offset + skipped) / static_cast<size_t>(Leaf::BlockSize);
+        if (leaf.GetPiecesStatus()->GetStatus(nextBlockIndex) == FileSystem::PieceStatus::OnDisk) {
+            FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
+            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
+            return;
         }
-        scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         return;
     }

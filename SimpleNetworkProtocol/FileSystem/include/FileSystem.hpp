@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <stop_token>
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,7 +21,7 @@ class FileSystem {
 
 public:
     explicit FileSystem(std::string_view mountpoint);
-    void Start();
+    void Start(std::stop_token stop);
 
 protected:
     // NOLINTBEGIN

@@ -153,7 +153,7 @@ void TestConnection2()
         using FastTransport::TaskQueue::RemoteFileSystem;
         RemoteFileSystem filesystem("/mnt/test");
         RemoteFileSystem::scheduler = &destinationTaskScheduler;
-        filesystem.Start();
+        filesystem.Start(stop);
 
         destinationTaskScheduler.Wait(stop);
     });
@@ -228,16 +228,6 @@ void TestConnection2()
     readThread.join();
 }
 
-void TestFileSystem()
-{
-    using NativeFile = FastTransport::FileSystem::NativeFile;
-    using FastTransport::TaskQueue::RemoteFileSystem;
-
-    RemoteFileSystem filesystem("/mnt/test");
-    filesystem.Start();
-    const NativeFile file("/mnt/test/test.txt");
-}
-
 void TestReadV()
 {
     auto file = open("/tmp/test1", O_RDONLY | O_CLOEXEC); // NOLINT(hicpp-vararg, cppcoreguidelines-pro-type-vararg)
@@ -262,7 +252,6 @@ int main(int argc, char** argv)
 {
 #ifdef __linux__
     TestConnection2();
-    TestFileSystem();
     TestReadV();
 #endif
 #ifdef WIN32
