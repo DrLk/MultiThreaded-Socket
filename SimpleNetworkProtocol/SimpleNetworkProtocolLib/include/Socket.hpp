@@ -26,6 +26,8 @@
 
 #include "ConnectionAddr.hpp"
 #ifdef __linux__
+#include <vector>
+#include <sys/uio.h>
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
 #endif
@@ -120,6 +122,13 @@ private:
     int _socket { INVALID_SOCKET };
 #endif
     ConnectionAddr _address;
+
+#ifdef __linux__
+    mutable std::vector<iovec> _recvIov;
+    mutable std::vector<char> _recvControl;
+    mutable std::vector<sockaddr_storage> _recvAddresses;
+    mutable std::vector<mmsghdr> _recvMessages;
+#endif
 };
 
 } // namespace FastTransport::Protocol

@@ -97,28 +97,39 @@ void FileSystem::Start(std::stop_token stop)
     fuse_opt_add_arg(&args, "-oauto_unmount");
 
     fuse_session* session = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), &_tree);
+    fuse_opt_free_args(&args);
 
     if (session == nullptr) {
         throw std::runtime_error("Failed to fuse_session_new");
     }
 
     if (fuse_set_signal_handlers(session) != 0) {
+        fuse_session_destroy(session);
         throw std::runtime_error("Failed to fuse_set_signal_handlers");
     }
 
     if (fuse_session_mount(session, _mountpoint.c_str()) != 0) {
+        fuse_remove_signal_handlers(session);
+        fuse_session_destroy(session);
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
     fuse_daemonize(1);
 
-    const std::stop_callback onStop(stop, [session]() {
-        fuse_session_exit(session);
-        fuse_session_unmount(session);
-    });
+    int result = 0;
+    {
+        const std::stop_callback onStop(stop, [session]() {
+            fuse_session_exit(session);
+            fuse_session_unmount(session);
+        });
 
-    /* Block until ctrl+c or fusermount -u */
-    const int result = fuse_session_loop(session);
+        /* Block until ctrl+c or fusermount -u */
+        result = fuse_session_loop(session);
+    } // onStop destructor deregisters the callback before session is destroyed
+
+    fuse_remove_signal_handlers(session);
+    fuse_session_destroy(session);
+
     if (result != 0 && !stop.stop_requested()) {
         throw std::runtime_error("Failed to fuse_session_loop");
     }

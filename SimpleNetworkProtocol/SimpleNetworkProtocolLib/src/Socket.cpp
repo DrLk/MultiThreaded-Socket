@@ -87,6 +87,12 @@ void Socket::Init()
     if (bind(_socket, reinterpret_cast<const sockaddr*>(&_address.GetAddr()), sizeof(sockaddr)) != 0) { // NOLINT
         throw std::runtime_error("Socket: failed to bind");
     }
+
+    constexpr size_t MaxRecvMessages = UDPMaxSegments;
+    _recvIov.resize(MaxRecvMessages * UDPMaxSegments);
+    _recvControl.resize(ControlMessageSpace * MaxRecvMessages);
+    _recvAddresses.resize(MaxRecvMessages);
+    _recvMessages.resize(MaxRecvMessages);
 }
 
 int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr) const
@@ -202,54 +208,37 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
 [[nodiscard]] IPacket::List Socket::RecvMsg(IPacket::List& packets, size_t index) const
 {
     IPacket::List freePackets;
-    auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 64));
-    std::vector<iovec> iov(packets.size());
-    std::vector<char> control(ControlMessageSpace * packets.size());
-    std::vector<sockaddr_storage> addresses(packets.size());
-    auto iovBegin = iov.begin();
-    auto controlBegin = control.begin();
-    auto addressBegin = addresses.begin();
-    auto messageRange = packetChunks | std::views::transform([&iovBegin, &controlBegin, &addressBegin](const auto& packetChunk) {
-        auto iovRange = packetChunk | std::views::transform([](const IPacket::Ptr& packet) {
-            return iovec {
-                .iov_base = packet->GetElement().data(),
-                .iov_len = packet->GetElement().size(),
-            };
-        });
+    const size_t messagesSize = std::min(packets.size() / UDPMaxSegments, _recvMessages.size());
 
-        const auto& [_, iovEnd] = std::ranges::copy(iovRange.begin(), iovRange.end(), iovBegin);
-        auto iovSize = iovEnd - iovBegin;
-        if (iovSize != UDPMaxSegments) {
-            assert(iovSize < UDPMaxSegments);
-            return mmsghdr { .msg_hdr = msghdr {} };
+    if (messagesSize == 0) {
+        freePackets.splice(std::move(packets));
+        return freePackets;
+    }
+
+    auto packetIt = packets.begin();
+    for (size_t i = 0; i < messagesSize; i++) {
+        auto iovSpan = std::span(_recvIov).subspan(i * UDPMaxSegments, UDPMaxSegments);
+        auto ctrlSpan = std::span(_recvControl).subspan(i * ControlMessageSpace, ControlMessageSpace);
+        for (size_t j = 0; j < UDPMaxSegments; j++, ++packetIt) {
+            iovSpan[j].iov_base = (*packetIt)->GetElement().data();
+            iovSpan[j].iov_len = (*packetIt)->GetElement().size();
         }
-
-        const msghdr message {
-            .msg_name = std::addressof(*addressBegin),
+        _recvMessages[i].msg_hdr = msghdr {
+            .msg_name = &_recvAddresses[i],
             .msg_namelen = sizeof(sockaddr),
-            .msg_iov = std::addressof(*iovBegin),
+            .msg_iov = iovSpan.data(),
             .msg_iovlen = UDPMaxSegments,
-            .msg_control = std::addressof(*controlBegin),
+            .msg_control = ctrlSpan.data(),
             .msg_controllen = ControlMessageSpace,
             .msg_flags = 0,
         };
+    }
 
-        controlBegin += UDPMaxSegments * ControlMessageSpace;
-        iovBegin += UDPMaxSegments;
-        addressBegin += UDPMaxSegments;
-
-        return mmsghdr { .msg_hdr = message };
-    });
-
-    std::vector<mmsghdr> messages;
-    messages.reserve(10); // TODO: preallocate memory
-    std::ranges::copy(messageRange.begin(), messageRange.end(), std::back_inserter(messages));
     timespec time {
         .tv_sec = 1,
     };
 
-    auto messagesSize = (messages.back().msg_hdr.msg_iovlen != 0U) ? messages.size() : messages.size() - 1;
-    const int result = recvmmsg(_socket, messages.data(), messagesSize, MSG_WAITFORONE, &time);
+    const int result = recvmmsg(_socket, _recvMessages.data(), messagesSize, MSG_WAITFORONE, &time);
     if (result < 0) {
         assert(false);
         freePackets.splice(std::move(packets));
@@ -257,7 +246,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
     }
 
     auto packetIterator = packets.begin();
-    for (const mmsghdr& message : messages | std::views::take(result)) {
+    for (const mmsghdr& message : _recvMessages | std::views::take(result)) {
         if (((static_cast<std::size_t>(message.msg_hdr.msg_flags)) & (static_cast<std::size_t>(MSG_CTRUNC) | MSG_TRUNC)) != 0) {
             throw std::runtime_error("Not implemented");
         }
@@ -265,20 +254,16 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
         const size_t packetNumber = (message.msg_len + GsoSize - 1) / GsoSize;
 
         for (size_t i = 0; i < packetNumber; i++) {
-
             ConnectionAddr srcAddress(*static_cast<sockaddr_storage*>(message.msg_hdr.msg_name));
             srcAddress.SetPort(srcAddress.GetPort() - index);
             (*packetIterator)->SetAddr(srcAddress);
-
             packetIterator++;
         }
 
         // TODO: Can splice several packets at once
         for (size_t i = packetNumber; i < message.msg_hdr.msg_iovlen; i++) {
-            {
-                freePackets.push_back(std::move(*packetIterator));
-                packetIterator = packets.erase(packetIterator);
-            }
+            freePackets.push_back(std::move(*packetIterator));
+            packetIterator = packets.erase(packetIterator);
         }
     }
 
