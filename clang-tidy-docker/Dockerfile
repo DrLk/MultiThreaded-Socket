@@ -1,17 +1,17 @@
-FROM ubuntu:24.04
+FROM ubuntu:25.10
 
 LABEL org.opencontainers.image.source https://github.com/DrLk/MultiThreaded-Socket
 
 RUN apt-get update
 RUN apt-get upgrade -y && apt-get clean
 
-RUN apt-get install -y wget software-properties-common g++-13 clang-tidy-18 clang-format-18 cmake make libssl-dev ninja-build libssl-dev libfuse3-dev python3 linux-headers-generic git time && apt-get clean
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 10
-RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 10
-RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 10
-RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 10
-RUN update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 10
-RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 10
+RUN apt-get install -y wget software-properties-common g++-15 clang-tidy-21 clang-format-21 cmake make libssl-dev ninja-build libssl-dev libfuse3-dev python3 linux-headers-generic git time && apt-get clean
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 10
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 10
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 10
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 10
+RUN update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 10
+RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 10
 
 
 WORKDIR /build
