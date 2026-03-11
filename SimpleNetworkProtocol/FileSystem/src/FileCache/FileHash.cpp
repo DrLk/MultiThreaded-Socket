@@ -1,5 +1,7 @@
 #include "FileHash.hpp"
 
+#include <array>
+#include <cstdint>
 #include <filesystem>
 
 namespace FastTransport::FileSystem::FileCache {

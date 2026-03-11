@@ -263,7 +263,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
             if (index == 0) {
 
                 auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = std::next((*packet)->GetPayload().data(), static_cast<std::ptrdiff_t>(start));
+                buffer.mem = (*packet)->GetPayload().subspan(start).data();
                 buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
                 buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
                 buffer.pos = 0;

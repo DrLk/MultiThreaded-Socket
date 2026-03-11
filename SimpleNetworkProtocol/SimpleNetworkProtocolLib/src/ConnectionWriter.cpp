@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <functional>
+#include <span>
 #include <stop_token>
 #include <thread>
 #include <utility>
@@ -73,15 +73,12 @@ ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)
         return *this;
     }
 
-    const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-
-    while (size > 0) {
-        auto writeSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(std::next(GetPacket().GetPayload().data(), _offset), bytes, writeSize);
+    auto src = std::span(static_cast<const std::byte*>(data), size);
+    while (!src.empty()) {
+        auto writeSize = std::min(src.size(), GetPacket().GetPayload().size() - _offset);
+        std::memcpy(GetPacket().GetPayload().subspan(_offset).data(), src.data(), writeSize);
         _offset += writeSize;
-
-        size -= writeSize;
-        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(writeSize));
+        src = src.subspan(writeSize);
 
         if (_offset == GetPacket().GetPayload().size()) {
             const IPacket::Ptr& nextPacket = GetNextPacket(_stop);

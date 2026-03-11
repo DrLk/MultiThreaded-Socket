@@ -1,5 +1,8 @@
 #include "FileCache.hpp"
 
+#include <filesystem>
+#include <memory>
+
 #include "NativeFile.hpp"
 
 namespace FastTransport::FileSystem::FileCache {

@@ -20,19 +20,17 @@ MessageReader::MessageReader(IPacket::List&& packets)
 
 MessageReader& MessageReader::read(void* data, std::size_t size)
 {
-    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    while (size > 0) {
+    auto dest = std::span(static_cast<std::byte*>(data), size);
+    while (!dest.empty()) {
         auto& packet = GetPacket();
         if (_offset == packet.GetPayload().size()) {
             packet = GetNextPacket();
         }
 
-        auto readSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
-        std::memcpy(bytes, std::next(packet.GetPayload().data(), _offset), readSize);
-        _offset += static_cast<std::ptrdiff_t>(readSize);
-
-        size -= readSize;
-        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(readSize));
+        auto readSize = std::min(dest.size(), packet.GetPayload().size() - _offset);
+        std::memcpy(dest.data(), packet.GetPayload().subspan(_offset).data(), readSize);
+        _offset += readSize;
+        dest = dest.subspan(readSize);
     }
     return *this;
 }

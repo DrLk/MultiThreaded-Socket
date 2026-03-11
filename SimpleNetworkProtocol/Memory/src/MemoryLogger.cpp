@@ -1,5 +1,8 @@
 #include "MemoryLogger.hpp"
 
+#include <cstddef>
+#include <memory_resource>
+
 #include "Logger.hpp"
 
 namespace FastTransport::Memory {

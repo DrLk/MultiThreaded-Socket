@@ -1,8 +1,14 @@
 #include "FileTree.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <climits>
+#include <cstddef>
 #include <filesystem>
+#include <fuse3/fuse_lowlevel.h>
 #include <memory>
+#include <sys/types.h>
+#include <utility>
 
 #include "FileCache/FileCache.hpp"
 #include "Leaf.hpp"

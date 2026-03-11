@@ -1,5 +1,9 @@
 #include "LocalPoolAllocator.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <utility>
+
 #include "ThreadSafeAllocator.hpp"
 
 namespace FastTransport::Memory {

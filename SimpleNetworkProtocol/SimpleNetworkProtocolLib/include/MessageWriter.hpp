@@ -46,7 +46,7 @@ private:
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
     std::uint32_t _writedPacketNumber { 1 };
-    std::ptrdiff_t _offset { sizeof(_writedPacketNumber) };
+    std::size_t _offset { sizeof(_writedPacketNumber) };
 };
 
 template <trivial T>

@@ -21,7 +21,7 @@ public:
 private:
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { 0 };
+    std::size_t _offset { 0 };
 
     IPacket& GetPacket();
     IPacket& GetNextPacket();
