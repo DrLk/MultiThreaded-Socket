@@ -1,0 +1,39 @@
+name: Clang Tidy Diff
+
+on:
+    pull_request
+
+jobs:
+    clang-tidy-diff-job:
+        runs-on: ubuntu-22.04
+        container:
+            image: ghcr.io/drlk/clang-tidy-image:v16
+            credentials:
+                username: drlk
+                password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+              with:
+                submodules: true
+                fetch-depth: 0
+
+            - name: Build (generate compile_commands.json)
+              shell: bash
+              run: |
+                cd ./SimpleNetworkProtocol/build
+                export CC=clang
+                export CXX=clang++
+                time cmake -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+                time cmake --build . -- -j12
+
+            - name: clang-tidy-diff
+              shell: bash
+              run: |
+                cd ./SimpleNetworkProtocol
+                git diff origin/${{ github.base_ref }}...HEAD | \
+                  python3 /usr/bin/clang-tidy-diff-21.py \
+                    -p1 \
+                    -path build \
+                    -clang-tidy-binary clang-tidy \
+                    -use-color
