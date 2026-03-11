@@ -13,7 +13,7 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
     , _offset(offset)
     , _data(std::move(data))
 {
-    assert(_data.size() > 0);
+    assert(!_data.empty());
 }
 
 WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
@@ -25,7 +25,7 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskSc
              << " data.size=" << _data.size();
 
     Leaf& leaf = GetLeaf(_inode, fileTree);
-    FileSystem::NativeFile::Ptr file = fileTree.GetFileCache().GetFile(fileTree.GetCacheFolder() / leaf.GetCachePath());
+    const FileSystem::NativeFile::Ptr file = fileTree.GetFileCache().GetFile(fileTree.GetCacheFolder() / leaf.GetCachePath());
     file->Write(_data, _size, _offset);
     assert(_size <= Leaf::BlockSize);
     leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);

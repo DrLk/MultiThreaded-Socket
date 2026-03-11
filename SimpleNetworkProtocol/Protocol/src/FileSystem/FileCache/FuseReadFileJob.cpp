@@ -52,12 +52,12 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
 
         if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::OnDisk) {
-            FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
+            const FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
             scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
             return;
         }
 
-        off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
+        const off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         return;
     }
@@ -72,7 +72,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         const auto skipped = static_cast<off_t>(totalBytes);
         const size_t nextBlockIndex = static_cast<size_t>(_offset + skipped) / static_cast<size_t>(Leaf::BlockSize);
         if (leaf.GetPiecesStatus()->GetStatus(nextBlockIndex) == FileSystem::PieceStatus::OnDisk) {
-            FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
+            const FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
             scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
             return;
         }

@@ -50,7 +50,7 @@ void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_i
              << " request: " << req
              << " inode: " << inode;
 
-    FastTransport::FileSystem::RemoteFileHandle* remoteFile = fileInfo != nullptr ? GetFileHandle(fileInfo).remoteFile : nullptr;
+    const FastTransport::FileSystem::RemoteFileHandle* const remoteFile = fileInfo != nullptr ? GetFileHandle(fileInfo).remoteFile : nullptr;
     scheduler->Schedule(std::make_unique<RequestGetAttrJob>(req, inode, remoteFile));
 }
 
@@ -91,7 +91,7 @@ void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uin
              << " inode: " << inode
              << " nlookup: " << nlookup;
 
-    fuse_forget_data forget = { inode, nlookup };
+    fuse_forget_data forget = { .ino = inode, .nlookup = nlookup };
     scheduler->Schedule(std::make_unique<RequestForgetMultiJob>(request, std::span(&forget, 1)));
 }
 

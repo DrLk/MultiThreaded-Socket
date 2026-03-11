@@ -84,7 +84,7 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
         return;
     }
 
-    auto neededStats = std::find_if(_stats.begin(), _stats.end(), [&stats](const SampleStats& stat) {
+    auto neededStats = std::ranges::find_if(_stats, [&stats](const SampleStats& stat) {
         return stat.GetStart() <= stats.GetStart() && stat.GetEnd() >= stats.GetEnd();
     });
 

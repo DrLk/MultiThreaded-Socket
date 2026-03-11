@@ -37,7 +37,7 @@ namespace FastTransport::FileSystem {
 
 TEST(LeafCacheTest, GetFirstBlockIndexEmptyLeaf)
 {
-    Leaf root("test", std::filesystem::file_type::regular, 1400, nullptr);
+    const Leaf root("test", std::filesystem::file_type::regular, 1400, nullptr);
     EXPECT_EQ(root.GetFirstBlockIndex(), SIZE_MAX);
 }
 
@@ -69,7 +69,7 @@ TEST(LeafCacheTest, GetFirstBlockIndexReturnsMinimum)
 
 TEST(FileTreeCacheTest, NeedsEvictionFalseInitially)
 {
-    FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
+    const FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     EXPECT_FALSE(tree.NeedsEviction());
 }
 
@@ -126,7 +126,7 @@ TEST(FileTreeCacheTest, GetFreeDataDecrementsUntilUnderLimit)
 
     while (tree.NeedsEviction()) {
         auto freeData = tree.GetFreeData();
-        if (freeData.data.size() == 0) {
+        if (freeData.data.empty()) {
             break;
         }
     }
@@ -158,7 +158,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsCorrectSizeForFullBlock)
     auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     auto data = MakePackets(100, 0);
-    tree.AddData(inode, 0, 100 * 1400, std::move(data));
+    tree.AddData(inode, 0, 100ULL * 1400, std::move(data));
 
     auto freeData = tree.GetFreeData();
     ASSERT_GT(freeData.data.size(), 0);

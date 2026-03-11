@@ -43,12 +43,12 @@ TEST(MessageWriter, Payload)
     EXPECT_EQ(packetsSize, 1);
 
     std::array<int, 3> values {};
-    std::memcpy(values.data(), payload.data() + 4, sizeof(values));
+    std::memcpy(values.data(), std::next(payload.data(), 4), sizeof(values));
     for (auto& value : values) {
         EXPECT_EQ(value, 957);
     }
 
-    std::memcpy(values.data(), payload.data() + 4 + 12, sizeof(values));
+    std::memcpy(values.data(), std::next(payload.data(), 4 + 12), sizeof(values));
     for (auto& value : values) {
         EXPECT_EQ(value, 958);
     }

@@ -11,19 +11,19 @@
 namespace FastTransport::Protocol {
 
 ConnectionContext::ConnectionContext()
-    : _intSettings(Settings::Max)
+    : _intSettings(static_cast<size_t>(Settings::Max))
 {
-    _intSettings[Settings::MaxSpeed] = std::numeric_limits<size_t>::max();
-    _intSettings[Settings::MinSpeed] = std::numeric_limits<size_t>::min();
+    _intSettings[static_cast<size_t>(Settings::MaxSpeed)] = std::numeric_limits<size_t>::max();
+    _intSettings[static_cast<size_t>(Settings::MinSpeed)] = std::numeric_limits<size_t>::min();
 }
 void ConnectionContext::SetInt(Settings key, size_t value)
 {
-    _intSettings[key].store(value, std::memory_order_relaxed);
+    _intSettings[static_cast<size_t>(key)].store(value, std::memory_order_relaxed);
     NotifyIntSubscribers(key, value);
 }
 size_t ConnectionContext::GetInt(Settings key) const
 {
-    return _intSettings[key];
+    return _intSettings[static_cast<size_t>(key)];
 }
 
 ConnectionContext::Subscriber::Subscriber(const std::shared_ptr<ConnectionContext>& context)

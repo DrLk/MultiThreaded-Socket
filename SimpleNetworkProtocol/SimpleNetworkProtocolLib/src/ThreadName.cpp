@@ -42,13 +42,13 @@ void SetThreadName(std::string_view name)
     assert(name.size() < 16); // posix limitation
 #ifdef WIN32
     SetThreadDescription(GetCurrentThread(), DecodeStringFrom(name).c_str());
-#elif defined(__APPLE__)
-    pthread_setname_np(name.data());
-#elif defined(FREEBSD)
-    pthread_set_name_np(pthread_self(), name.data());
+#elifdef __APPLE__
+    pthread_setname_np(std::string(name).c_str());
+#elifdef FREEBSD
+    pthread_set_name_np(pthread_self(), std::string(name).c_str());
 #else
 
-    pthread_setname_np(pthread_self(), name.data());
+    pthread_setname_np(pthread_self(), std::string(name).c_str());
 
 #endif
 }

@@ -22,7 +22,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
-    FileSystem::RemoteFileHandle* remoteFile = nullptr;
+    const FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
     reader >> inode;
     reader >> size;

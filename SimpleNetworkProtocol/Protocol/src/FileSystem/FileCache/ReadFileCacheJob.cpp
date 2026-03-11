@@ -8,15 +8,15 @@
 
 namespace FastTransport::FileCache {
 
-ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr& file, size_t size, off_t offset)
+ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset)
     : _request(request)
-    , _file(file)
+    , _file(std::move(file))
     , _size(size)
     , _offset(offset)
 {
 }
 
-TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Protocol::IPacket::List&& free)
+TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Protocol::IPacket::List&& free) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     Data packets = _file->Read(free, _size, _offset);
     scheduler.Schedule(std::make_unique<FuseReplyJob>(_request, std::move(packets)));

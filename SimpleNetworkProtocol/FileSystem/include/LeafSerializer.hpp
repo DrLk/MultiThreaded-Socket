@@ -37,7 +37,7 @@ public:
 
         std::uint64_t size = 0;
         stream >> size;
-        for (int i = 0; i < size; i++) {
+        for (std::uint64_t i = 0; i < size; i++) {
             Leaf childLeaf = Deserialize(stream, &leaf);
             leaf.AddChild(std::move(childLeaf));
         }

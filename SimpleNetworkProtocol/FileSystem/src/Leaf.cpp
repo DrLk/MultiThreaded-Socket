@@ -94,7 +94,7 @@ void Leaf::Rescan()
             }
 
             if (std::filesystem::is_regular_file(path)) {
-                uintmax_t size = std::filesystem::file_size(path);
+                const uintmax_t size = std::filesystem::file_size(path);
                 AddChild(path.filename(), std::filesystem::file_type::regular, size);
 
             } else if (std::filesystem::is_directory(path)) {
@@ -197,9 +197,9 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
         assert(node.value().GetOffset() + node.value().GetSize() > offset);
 
-        size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
+        const size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
         if (node.value().GetPackets().size() > 1) {
-            size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
+            const size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
             auto skipData = data.TryGenerate((skipSize + blockSize - 1) / blockSize);
 
             node.value().GetPackets().splice(std::move(data));
@@ -222,7 +222,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
     buffVector->off = 0;
     buffVector->idx = 0;
 
-    if (static_cast<size_t>(offset) >= _size) {
+    if (std::cmp_greater_equal(offset, _size)) {
         return buffVector;
     }
     size_t readed = std::min(size, _size - static_cast<size_t>(offset));
@@ -263,7 +263,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
             if (index == 0) {
 
                 auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().data() + start;
+                buffer.mem = std::next((*packet)->GetPayload().data(), static_cast<std::ptrdiff_t>(start));
                 buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
                 buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
                 buffer.pos = 0;
@@ -308,7 +308,7 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 
     std::set<FileCache::Range>& ranges = block->second;
 
-    off_t offset = ranges.begin()->GetOffset();
+    const off_t offset = ranges.begin()->GetOffset();
     for (auto it = ranges.begin(); it != ranges.end();) {
         auto extractedIt = it;
         it++;

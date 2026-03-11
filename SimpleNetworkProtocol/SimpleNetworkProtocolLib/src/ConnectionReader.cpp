@@ -42,11 +42,11 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
     auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     while (size > 0) {
         auto readSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(bytes, GetPacket().GetPayload().data() + _offset, readSize);
+        std::memcpy(bytes, std::next(GetPacket().GetPayload().data(), _offset), readSize);
         _offset += readSize;
 
         size -= readSize;
-        bytes += readSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(readSize));
     }
     return *this;
 }

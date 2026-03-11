@@ -10,7 +10,7 @@
 
 namespace FastTransport::TaskQueue {
 
-RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, FileSystem::RemoteFileHandle* remoteFile)
+RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, const FileSystem::RemoteFileHandle* remoteFile)
     : _request(request)
     , _inode(inode)
     , _remoteFile(remoteFile)

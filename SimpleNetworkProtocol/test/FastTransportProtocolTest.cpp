@@ -205,7 +205,7 @@ TEST(FastTransportProtocolTest, PayloadTest)
             pong = srcConnection->Recv(stop, std::move(pong));
             if (!pong.empty()) {
                 auto payload = pong.front()->GetPayload();
-                EXPECT_TRUE(std::equal(data.begin(), data.end(), payload.begin(), payload.end()));
+                EXPECT_TRUE(std::ranges::equal(data, payload));
                 break;
             }
 
@@ -235,7 +235,7 @@ TEST(FastTransportProtocolTest, PayloadTest)
             ping = dstConnection->Recv(stop, std::move(ping));
             if (!ping.empty()) {
                 const auto& payload = ping.front()->GetPayload();
-                EXPECT_TRUE(std::equal(data.begin(), data.end(), payload.begin(), payload.end()));
+                EXPECT_TRUE(std::ranges::equal(data, payload));
 
                 auto pong = UDPQueue::CreateBuffers(1);
                 ping.front()->SetPayload(payload);

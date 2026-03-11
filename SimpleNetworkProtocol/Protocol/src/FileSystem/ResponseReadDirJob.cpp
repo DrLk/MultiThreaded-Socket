@@ -4,6 +4,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 #include <sys/stat.h>
+#include <utility>
 
 #include "DirectoryEntryWriter.hpp"
 #include "Logger.hpp"
@@ -22,7 +23,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_to
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
-    FileSystem::RemoteFileHandle* remoteFile = nullptr;
+    const FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
     reader >> inode;
     reader >> size;
@@ -56,7 +57,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_to
     for (off_t i = 2; i <= offset && child != children.end(); ++i, ++child) {
     }
 
-    for (off_t i = 0; i < size && child != children.end(); ++i, ++child) {
+    for (off_t i = 0; std::cmp_less(i, size) && child != children.end(); ++i, ++child) {
         direcotoryWriter.AddDirectoryEntry(child->first, GetINode(child->second), 0, i + 2);
     }
 

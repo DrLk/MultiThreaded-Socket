@@ -77,11 +77,11 @@ ConnectionWriter& ConnectionWriter::write(const void* data, std::size_t size)
 
     while (size > 0) {
         auto writeSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(GetPacket().GetPayload().data() + _offset, bytes, writeSize);
+        std::memcpy(std::next(GetPacket().GetPayload().data(), _offset), bytes, writeSize);
         _offset += writeSize;
 
         size -= writeSize;
-        bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(writeSize));
 
         if (_offset == GetPacket().GetPayload().size()) {
             const IPacket::Ptr& nextPacket = GetNextPacket(_stop);

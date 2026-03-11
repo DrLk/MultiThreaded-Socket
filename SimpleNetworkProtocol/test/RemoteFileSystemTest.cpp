@@ -63,7 +63,7 @@ void PrepareDirectories()
 
 void Unmount()
 {
-    std::string cmd = std::string("fusermount3 -u ") + MountPoint + " 2>/dev/null";
+    const std::string cmd = std::string("fusermount3 -u ") + MountPoint + " 2>/dev/null";
     std::system(cmd.c_str()); // NOLINT(cert-env33-c, concurrency-mt-unsafe)
 }
 
@@ -130,7 +130,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         std::this_thread::sleep_for(5s);
 
         std::ifstream src(TestFilePath, std::ios::binary);
-        std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
+        const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
         std::ifstream mnt(mntFile, std::ios::binary);
 
         if (!src || !mnt) {

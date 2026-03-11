@@ -28,11 +28,11 @@ MessageReader& MessageReader::read(void* data, std::size_t size)
         }
 
         auto readSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
-        std::memcpy(bytes, packet.GetPayload().data() + _offset, readSize);
+        std::memcpy(bytes, std::next(packet.GetPayload().data(), _offset), readSize);
         _offset += static_cast<std::ptrdiff_t>(readSize);
 
         size -= readSize;
-        bytes += readSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(readSize));
     }
     return *this;
 }

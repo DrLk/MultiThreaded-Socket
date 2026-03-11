@@ -125,7 +125,7 @@ void TestConnection2()
         if (!file) {
             throw std::runtime_error("Failed to create /tmp/100MB.bin");
         }
-        const std::vector<char> chunk(1024 * 1024, 0x42);
+        const std::vector<char> chunk(1024ULL * 1024, 0x42);
         for (size_t i = 0; i < FileSize / chunk.size(); ++i) {
             file.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
         }
@@ -203,8 +203,8 @@ void TestConnection2()
             return;
         }
 
-        std::vector<char> srcBuf(1024 * 1024);
-        std::vector<char> mntBuf(1024 * 1024);
+        std::vector<char> srcBuf(1024ULL * 1024);
+        std::vector<char> mntBuf(1024ULL * 1024);
         size_t totalRead = 0;
         bool match = true;
         while (src.read(srcBuf.data(), static_cast<std::streamsize>(srcBuf.size()))
@@ -249,7 +249,7 @@ void TestReadV()
 } // namespace
 
 int main(int argc, char** argv)
-{
+try {
 #ifdef __linux__
     TestConnection2();
     TestReadV();
@@ -291,4 +291,7 @@ int main(int argc, char** argv)
     }
 
     return 0;
+} catch (const std::exception& e) {
+    std::cerr << e.what() << '\n';
+    return 1;
 }

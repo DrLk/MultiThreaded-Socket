@@ -19,10 +19,9 @@ void* LocalPoolAllocator::Allocate(std::size_t size, std::size_t alignment)
     auto& backetSize = _backetSize[{ size, alignment }];
     auto free = _pool.find({ size, alignment });
     if (free != _pool.end()) {
-        void* allocation = free->second;
-        _pool.erase(free);
+        auto node = _pool.extract(free);
         backetSize--;
-        return allocation;
+        return node.mapped();
     }
 
     auto nodes = _globalAllocator->Allocate2(size, alignment);
@@ -38,11 +37,9 @@ void* LocalPoolAllocator::Allocate(std::size_t size, std::size_t alignment)
     }
 
     if (free != _pool.end()) {
-
-        void* allocation = free->second;
-        _pool.erase(free);
+        auto node = _pool.extract(free);
         backetSize--;
-        return allocation;
+        return node.mapped();
     }
 
     return _globalAllocator->Allocate(size, alignment);

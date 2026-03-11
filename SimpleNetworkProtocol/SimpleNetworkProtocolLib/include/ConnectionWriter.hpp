@@ -60,7 +60,7 @@ public:
     PacketReader& operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
     {
         auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
-        std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
+        std::memcpy(std::next(GetPacket().GetPayload().data(), _offset), &trivial, readSize);
         _offset += readSize; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 
         const std::ptrdiff_t size = sizeof(trivial) - readSize;

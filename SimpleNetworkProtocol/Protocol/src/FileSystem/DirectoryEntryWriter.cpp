@@ -218,11 +218,11 @@ DirectoryEntryWriter& DirectoryEntryWriter::write(const void* data, std::size_t 
         }
 
         auto writeSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
-        std::memcpy(packet.GetPayload().data() + _offset, bytes, writeSize);
+        std::memcpy(std::next(packet.GetPayload().data(), _offset), bytes, writeSize);
         _offset += writeSize;
 
         size -= writeSize;
-        bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        bytes = std::next(bytes, static_cast<std::ptrdiff_t>(writeSize));
     }
 
     return *this;

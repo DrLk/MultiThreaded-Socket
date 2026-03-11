@@ -48,7 +48,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
     reader >> data;
 
     const size_t readed = data.empty() ? 0 : ((data.size() - 1) * data.front()->GetPayload().size()) + data.back()->GetPayload().size();
-    size_t replySize = std::min(readed + skipped, size);
+    const size_t replySize = std::min(readed + skipped, size);
 
     auto freePackets = fileTree.AddData(inode, offset + skipped, readed, std::move(data));
     auto buffVector = fileTree.GetData(inode, offset, replySize);
@@ -57,7 +57,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
     fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
     while (fileTree.NeedsEviction()) {
         auto [evictInode, evictOffset, evictSize, evictData] = fileTree.GetFreeData();
-        if (evictData.size() == 0) {
+        if (evictData.empty()) {
             break;
         }
         scheduler.Schedule(std::make_unique<FileCache::WriteFileCacheJob>(evictInode, evictSize, evictOffset, std::move(evictData)));

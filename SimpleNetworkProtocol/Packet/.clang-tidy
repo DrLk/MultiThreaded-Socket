@@ -13,7 +13,9 @@ Checks:               '*,
                       -readability-convert-member-functions-to-static,
                       -bugprone-easily-swappable-parameters,
                       -google-readability-todo,
-                      -misc-include-cleaner'
+                      -misc-include-cleaner,
+                      -portability-avoid-pragma-once,
+                      -cert-dcl58-cpp'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes

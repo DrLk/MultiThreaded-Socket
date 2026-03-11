@@ -142,7 +142,7 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
             ctrl.resize(packets.size());
 
             std::vector<mmsghdr> messages;
-            messages.reserve(packets.size() / UDPMaxSegments + 1);
+            messages.reserve((packets.size() / UDPMaxSegments) + 1);
             auto iovBegin = iov.begin();
             auto ctrlBegin = ctrl.begin();
             auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 65000 / GsoSize));

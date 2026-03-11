@@ -108,7 +108,7 @@ public:
     void SetAcks(std::span<const SeqNumberType> acks)
     {
         Header(_start, _size).SetPayloadSize(acks.size() * sizeof(SeqNumberType));
-        std::copy(acks.begin(), acks.end(), reinterpret_cast<SeqNumberType*>(_start + HeaderSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::ranges::copy(acks, reinterpret_cast<SeqNumberType*>(std::next(_start, HeaderSize))); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
 
     [[nodiscard]] bool IsValid() const

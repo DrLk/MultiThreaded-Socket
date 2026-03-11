@@ -11,7 +11,7 @@ CacheTreeJob::Leaf& CacheTreeJob::GetLeaf(fuse_ino_t inode, FileTree& fileTree)
 
 void CacheTreeJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job)
 {
-    auto* pointer = dynamic_cast<CacheTreeJob*>(job.release());
+    auto* pointer = dynamic_cast<CacheTreeJob*>(std::move(job).release());
     std::unique_ptr<CacheTreeJob> cacheTreeJob(pointer);
     scheduler.ScheduleCacheTreeJob(std::move(cacheTreeJob));
 }

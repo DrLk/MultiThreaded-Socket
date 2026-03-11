@@ -22,7 +22,7 @@ NativeFile::NativeFile(std::filesystem::path name)
 
 NativeFile::~NativeFile()
 {
-    Close();
+    NativeFile::Close();
 }
 
 int NativeFile::GetHandle() const
