@@ -30,10 +30,9 @@ jobs:
             - name: clang-tidy-diff
               shell: bash
               run: |
-                cd ./SimpleNetworkProtocol
                 git diff origin/${{ github.base_ref }}...HEAD | \
                   python3 /usr/bin/clang-tidy-diff-21.py \
                     -p1 \
-                    -path build \
+                    -path SimpleNetworkProtocol/build \
                     -clang-tidy-binary clang-tidy \
                     -use-color

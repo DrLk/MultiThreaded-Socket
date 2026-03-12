@@ -115,10 +115,13 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
+        // filesystem declared before scheduler so that ~scheduler (joins worker
+        // threads, completing all pending fuse_reply_* calls) runs before
+        // ~filesystem (calls fuse_session_destroy).
+        RemoteFileSystem filesystem(MountPoint);
         TaskScheduler scheduler(*dstConnection, fileTree);
         scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
-        RemoteFileSystem filesystem(MountPoint);
         RemoteFileSystem::scheduler = &scheduler;
         filesystem.Start(stop); // blocks until unmounted or stop requested
 

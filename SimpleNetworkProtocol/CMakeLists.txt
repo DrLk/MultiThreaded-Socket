@@ -43,6 +43,7 @@ endif()
 # Unit Tests
 ##############
 option(ENABLE_TESTS "Enable Unit Tests" ON)
+option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
 
 if(ENABLE_TESTS)
   add_subdirectory(external/googletest EXCLUDE_FROM_ALL SYSTEM)
@@ -65,10 +66,15 @@ if(ENABLE_TESTS)
   if(LINUX)
   target_link_libraries(SimpleNetworkProtocolTest PRIVATE FileSystem)
 endif()
-  target_link_options(SimpleNetworkProtocolTest
-      PRIVATE
-      -static-libgcc
-      -static-libstdc++)
+  if(ENABLE_TSAN)
+    target_compile_options(SimpleNetworkProtocolTest PRIVATE -fsanitize=thread)
+    target_link_options(SimpleNetworkProtocolTest PRIVATE -fsanitize=thread)
+  else()
+    target_link_options(SimpleNetworkProtocolTest
+        PRIVATE
+        -static-libgcc
+        -static-libstdc++)
+  endif()
 
   target_compile_definitions(SimpleNetworkProtocolTest PRIVATE
       UNIT_TESTING=1

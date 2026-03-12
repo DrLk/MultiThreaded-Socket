@@ -45,12 +45,17 @@ private:
 
     OutgoingPacket::List Send(std::stop_token stop, OutgoingPacket::List& packets);
 
-    UDPQueue _udpQueue;
-
     std::atomic_bool _readySend { true };
     using Mutex = FastTransport::Thread::SpinLock;
     mutable Mutex _mutex;
     std::condition_variable_any _condition;
+
+    // _udpQueue must be declared after _condition so it is destroyed first:
+    // its internal threads call _condition.notify_all() via OnOutgoingPackets(),
+    // so they must stop before _condition is destroyed.
+    // _sendContextThread/_recvContextThread must be destroyed before _udpQueue
+    // because SendThread/RecvThread use _udpQueue.
+    UDPQueue _udpQueue;
 
     std::jthread _sendContextThread;
     std::jthread _recvContextThread;

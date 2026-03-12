@@ -21,6 +21,7 @@ class FileSystem {
 
 public:
     explicit FileSystem(std::string_view mountpoint);
+    ~FileSystem();
     void Start(std::stop_token stop);
 
 protected:
@@ -69,6 +70,7 @@ private:
     fuse_lowlevel_ops _fuseOperations;
     FileTree _tree;
     std::string _mountpoint;
+    fuse_session* _session = nullptr;
 };
 
 } // namespace FastTransport::FileSystem
