@@ -21,6 +21,7 @@ jobs:
             - name: Build (generate compile_commands.json)
               shell: bash
               run: |
+                git config --global --add safe.directory "$GITHUB_WORKSPACE"
                 cd ./SimpleNetworkProtocol/build
                 export CC=clang
                 export CXX=clang++
@@ -30,6 +31,7 @@ jobs:
             - name: clang-tidy-diff
               shell: bash
               run: |
+                git config --global --add safe.directory "$GITHUB_WORKSPACE"
                 git diff origin/${{ github.base_ref }}...HEAD | \
                   python3 /usr/bin/clang-tidy-diff-21.py \
                     -p1 \
