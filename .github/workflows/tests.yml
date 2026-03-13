@@ -6,28 +6,32 @@ on:
 jobs:
     test-job:
         runs-on: ubuntu-22.04
-        container:
-            image: ghcr.io/drlk/clang-tidy-image:v16
-            credentials:
-                username: drlk
-                password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
-            options: --privileged --device /dev/fuse
         steps:
             - name: Checkout
               uses: actions/checkout@v3
               with:
                 submodules: true
 
-            - name: Load fuse module
-              run: modprobe fuse || true
-
-            - name: Build
+            - name: Install and load FUSE
               run: |
-                cd ./SimpleNetworkProtocol/build
-                time cmake -G "Ninja" ..
-                time cmake --build . -- -j$(nproc)
+                sudo apt-get update
+                sudo apt-get install -y fuse
+                sudo modprobe fuse
 
-            - name: Run tests
+            - name: Login to container registry
+              uses: docker/login-action@v3
+              with:
+                registry: ghcr.io
+                username: drlk
+                password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+
+            - name: Build and Run tests
               run: |
-                cd ./SimpleNetworkProtocol/build
-                ./SimpleNetworkProtocolTest
+                docker run --rm \
+                  --privileged \
+                  --device /dev/fuse \
+                  --security-opt apparmor:unconfined \
+                  -v ${{ github.workspace }}:/workspace \
+                  -w /workspace \
+                  ghcr.io/drlk/clang-tidy-image:v16 \
+                  bash -c "cd SimpleNetworkProtocol/build && cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
