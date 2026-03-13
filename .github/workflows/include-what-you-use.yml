@@ -10,7 +10,7 @@ on:
 jobs:
     # The job that will use the container image you just pushed to ghcr.io
     clang-tidy-job:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
         container:
             image: ghcr.io/drlk/clang-tidy-image:v16
             credentials:
