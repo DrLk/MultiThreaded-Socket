@@ -11,11 +11,15 @@ jobs:
             credentials:
                 username: drlk
                 password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+            options: --privileged --device /dev/fuse
         steps:
             - name: Checkout
               uses: actions/checkout@v3
               with:
                 submodules: true
+
+            - name: Load fuse module
+              run: modprobe fuse || true
 
             - name: Build
               run: |
