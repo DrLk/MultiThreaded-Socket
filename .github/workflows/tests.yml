@@ -31,6 +31,7 @@ jobs:
                   --privileged \
                   --device /dev/fuse \
                   --security-opt apparmor:unconfined \
+                  --entrypoint "" \
                   -v ${{ github.workspace }}:/workspace \
                   -w /workspace \
                   ghcr.io/drlk/clang-tidy-image:v16 \
