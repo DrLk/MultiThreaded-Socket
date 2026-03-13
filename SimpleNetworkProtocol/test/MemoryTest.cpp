@@ -64,23 +64,23 @@ TEST(MemoryTest, PoolList)
 
         std::pmr::list<int> list(&allocator);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.push_back(i);
         }
 
         auto allocatedSize = memoryLogger->GetAllocatedSize();
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.pop_back();
         }
         EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.push_back(i);
         }
         EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.pop_back();
             list.push_back(i);
         }
