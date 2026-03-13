@@ -24,10 +24,9 @@ protected:
 
 public:
     virtual void ExecuteCachedTree(ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree) = 0;
-
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
 private:
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 };
 
 } // namespace FastTransport::TaskQueue

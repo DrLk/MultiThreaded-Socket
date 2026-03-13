@@ -35,6 +35,9 @@ public:
     IConnection::Ptr Accept(std::stop_token stop);
     IConnection::Ptr Connect(const ConnectionAddr& dstAddr);
 
+    void OnSendPacket() override;
+    void OnOutgoingPackets() override;
+
 private:
     IPacket::List _freeRecvPackets;
     IPacket::List _freeSendPackets;
@@ -78,7 +81,5 @@ private:
 
     static ConnectionID GenerateID();
 
-    void OnSendPacket() override;
-    void OnOutgoingPackets() override;
 };
 } // namespace FastTransport::Protocol

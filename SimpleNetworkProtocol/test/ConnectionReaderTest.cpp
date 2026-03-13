@@ -15,6 +15,7 @@
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
+namespace {
 class MockConnection : public IConnection {
 public:
     MockConnection() = default;
@@ -39,6 +40,7 @@ public:
     MOCK_METHOD(void, Close, ());
     MOCK_METHOD(bool, IsClosed, (), (const, override));
 };
+} // namespace
 
 TEST(ConnectionReader, Payload)
 {

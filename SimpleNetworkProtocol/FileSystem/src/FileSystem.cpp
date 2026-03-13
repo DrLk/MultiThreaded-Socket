@@ -9,10 +9,10 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
-#include <poll.h>
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
+#include <poll.h>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
@@ -128,7 +128,7 @@ void FileSystem::Start(std::stop_token stop)
         // Custom loop with poll() timeout so fuse_session_exit() is checked
         // periodically without needing to interrupt a blocking read() from
         // another thread (which would be a data race on the FUSE fd).
-        while (!fuse_session_exited(_session)) {
+        while (fuse_session_exited(_session) == 0) {
             struct pollfd pfd = { .fd = fuse_session_fd(_session), .events = POLLIN, .revents = 0 };
             const int ret = poll(&pfd, 1, 100 /*ms*/);
             if (ret < 0) {
@@ -142,8 +142,9 @@ void FileSystem::Start(std::stop_token stop)
                 continue; // timeout — recheck fuse_session_exited()
             }
 
-            struct fuse_buf buf = {};
+            fuse_buf buf { .flags = static_cast<fuse_buf_flags>(0) };
             const int res = fuse_session_receive_buf(_session, &buf);
+            const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
             if (res == 0) {
                 break; // unmounted cleanly
             }
@@ -154,7 +155,6 @@ void FileSystem::Start(std::stop_token stop)
                 break;
             }
             fuse_session_process_buf(_session, &buf);
-            free(buf.mem); // NOLINT(cppcoreguidelines-no-malloc)
         }
     } // onStop destructor deregisters the callback
 

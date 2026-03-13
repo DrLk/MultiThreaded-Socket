@@ -74,7 +74,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
 
     namelen = name.size();
     entlen = FUSE_NAME_OFFSET + namelen;
-    entlen_padded = (((entlen) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entlen_padded = ((entlen + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {
         GetPacket().SetPayloadSize(_offset);
@@ -96,7 +96,7 @@ size_t DirectoryEntryWriter::GetEntryPlusSize(std::string_view name)
 {
     constexpr size_t FUSE_NAME_OFFSET_DIRENTPLUS = offsetof(struct fuse_direntplus, dirent.name);
     size_t entryPlusSize = FUSE_NAME_OFFSET_DIRENTPLUS + name.size();
-    entryPlusSize = (((entryPlusSize) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entryPlusSize = ((entryPlusSize + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
     return entryPlusSize;
 }
 
@@ -109,7 +109,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
 
     namelen = name.size();
     entlen = FUSE_NAME_OFFSET_DIRENTPLUS + namelen;
-    entlen_padded = (((entlen) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entlen_padded = ((entlen + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {
         GetPacket().SetPayloadSize(_offset);

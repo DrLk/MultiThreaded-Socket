@@ -4,12 +4,13 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <stop_token>
+#include <sys/wait.h>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 #include "ConnectionAddr.hpp"
@@ -49,7 +50,7 @@ void CreateTestFile()
     std::vector<char> chunk(ChunkSize);
     for (size_t i = 0; i < TestFileSize / ChunkSize; ++i) {
         for (size_t j = 0; j < ChunkSize; ++j) {
-            chunk[j] = static_cast<char>((i * ChunkSize + j) % 256);
+            chunk[j] = static_cast<char>(((i * ChunkSize) + j) % 256);
         }
         file.write(chunk.data(), static_cast<std::streamsize>(ChunkSize));
     }
@@ -63,8 +64,18 @@ void PrepareDirectories()
 
 void Unmount()
 {
-    const std::string cmd = std::string("fusermount3 -u ") + MountPoint + " 2>/dev/null";
-    std::system(cmd.c_str()); // NOLINT(cert-env33-c, concurrency-mt-unsafe)
+    const pid_t pid = fork();
+    if (pid == 0) {
+        std::string prog = "fusermount3";
+        std::string arg1 = "-u";
+        std::string arg2 = MountPoint;
+        std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
+        execvp(args[0], args.data());
+        _exit(1);
+    }
+    if (pid > 0) {
+        waitpid(pid, nullptr, 0);
+    }
 }
 
 } // namespace

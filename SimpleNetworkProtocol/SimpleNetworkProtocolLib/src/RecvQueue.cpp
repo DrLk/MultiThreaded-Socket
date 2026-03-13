@@ -21,7 +21,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
 {
     const SeqNumberType packetNumber = packet->GetSeqNumber();
 
-    if (packetNumber == (std::numeric_limits<SeqNumberType>::max)()) {
+    if (packetNumber == ~SeqNumberType {}) {
         throw std::runtime_error("Wrong packet number");
     }
 
@@ -43,7 +43,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
         _selectiveAcks.push_back(packetNumber);
     }
 
-    auto& queuePacket = _queue[(packetNumber) % QueueSize];
+    auto& queuePacket = _queue[packetNumber % QueueSize];
     if (queuePacket) {
         return { RecvQueueStatus::Duplicated, std::move(packet) };
     }

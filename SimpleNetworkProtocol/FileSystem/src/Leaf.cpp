@@ -216,7 +216,7 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 {
     int index = 0;
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * ((size + 1299) / 1300 + 1));
+    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (((size + 1299) / 1300) + 1));
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     buffVector->count = 0;
     buffVector->off = 0;

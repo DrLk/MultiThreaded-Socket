@@ -21,6 +21,10 @@ class FileSystem {
 
 public:
     explicit FileSystem(std::string_view mountpoint);
+    FileSystem(const FileSystem&) = delete;
+    FileSystem(FileSystem&&) = delete;
+    FileSystem& operator=(const FileSystem&) = delete;
+    FileSystem& operator=(FileSystem&&) = delete;
     ~FileSystem();
     void Start(std::stop_token stop);
 
