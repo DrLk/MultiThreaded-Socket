@@ -1,6 +1,7 @@
 #include "FileSystem.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
@@ -142,7 +143,7 @@ void FileSystem::Start(std::stop_token stop)
                 continue; // timeout — recheck fuse_session_exited()
             }
 
-            fuse_buf buf { .flags = static_cast<fuse_buf_flags>(0) };
+            fuse_buf buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
             const int res = fuse_session_receive_buf(_session, &buf);
             const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
             if (res == 0) {

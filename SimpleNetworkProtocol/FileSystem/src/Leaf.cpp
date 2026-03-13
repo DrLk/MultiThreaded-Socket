@@ -1,5 +1,6 @@
 #include "Leaf.hpp"
 
+#include <bit>
 #include <cstdint>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -265,7 +266,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
                 auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
                 buffer.mem = (*packet)->GetPayload().subspan(start).data();
                 buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
-                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
                 buffer.pos = 0;
                 buffer.fd = 0;
                 buffVector->count = 1;
@@ -279,7 +280,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
                 auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
                 buffer.mem = (*packet)->GetPayload().data();
                 buffer.size = std::min((*packet)->GetPayload().size(), readed);
-                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
                 buffer.pos = 0;
                 buffer.fd = 0;
 

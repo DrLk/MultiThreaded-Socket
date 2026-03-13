@@ -1,4 +1,7 @@
 #include "FileCache/FuseReplyJob.hpp"
+
+#include <bit>
+
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[FuseReplyJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -28,7 +31,7 @@ void FuseReplyJob::PrepareBuffer()
     for (auto& packet : _packets) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         auto& buf = _buffer->buf[idx++];
-        buf = fuse_buf{ .flags = static_cast<fuse_buf_flags>(0) };
+        buf = fuse_buf{ .flags = std::bit_cast<fuse_buf_flags>(0) };
         buf.mem = packet->GetPayload().data();
         buf.size = packet->GetPayload().size();
     }
