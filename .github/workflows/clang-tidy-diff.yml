@@ -26,7 +26,6 @@ jobs:
                 export CC=clang
                 export CXX=clang++
                 time cmake -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-                time cmake --build . -- -j12
 
             - name: clang-tidy
               shell: bash
