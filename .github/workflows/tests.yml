@@ -29,10 +29,14 @@ jobs:
               run: |
                 docker run --rm \
                   --privileged \
+                  --sysctl net.core.rmem_max=83886080 \
+                  --sysctl net.core.rmem_default=83886080 \
+                  --sysctl net.core.wmem_max=83886080 \
+                  --sysctl net.core.wmem_default=83886080 \
                   --device /dev/fuse \
                   --security-opt apparmor:unconfined \
                   --entrypoint "" \
                   -v ${{ github.workspace }}:/workspace \
                   -w /workspace \
                   ghcr.io/drlk/clang-tidy-image:v16 \
-                  bash -c "apt-get install -y fuse3 && sysctl -p /workspace/SimpleNetworkProtocol/sysctl.conf && cd SimpleNetworkProtocol/build && cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
+                  bash -c "apt-get install -y fuse3 && cd SimpleNetworkProtocol/build && cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
