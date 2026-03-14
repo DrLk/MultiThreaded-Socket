@@ -2,7 +2,6 @@ name: Clang Tidy Diff
 
 on:
     push
-    pull_request
 
 jobs:
     clang-tidy-diff-job:
