@@ -1,6 +1,6 @@
 #include "Socket.hpp"
-#include <Tracy.hpp>
 #include <gtest/gtest.h>
+#include <Tracy.hpp>
 
 #include <chrono>
 #include <compare>
