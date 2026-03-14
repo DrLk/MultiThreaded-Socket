@@ -15,7 +15,7 @@ jobs:
             - name: Install and load FUSE
               run: |
                 sudo apt-get update
-                sudo apt-get install -y fuse
+                sudo apt-get install -y fuse3
                 sudo modprobe fuse
 
             - name: Login to container registry
@@ -35,4 +35,4 @@ jobs:
                   -v ${{ github.workspace }}:/workspace \
                   -w /workspace \
                   ghcr.io/drlk/clang-tidy-image:v16 \
-                  bash -c "apt-get install -y fuse && cd SimpleNetworkProtocol/build && cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
+                  bash -c "apt-get install -y fuse3 && sysctl -p /workspace/SimpleNetworkProtocol/sysctl.conf && cd SimpleNetworkProtocol/build && cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
