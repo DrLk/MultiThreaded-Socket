@@ -1,7 +1,7 @@
 #pragma once
 
-#include <list>
 #include <utility>
+#include <vector>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
@@ -29,7 +29,7 @@ public:
     virtual void ProccessUnorderedPackets() = 0;
     virtual LockedList<IPacket::Ptr>& GetUserData() = 0;
 
-    [[nodiscard]] virtual std::list<SeqNumberType> GetSelectiveAcks() = 0;
+    [[nodiscard]] virtual std::vector<SeqNumberType> GetSelectiveAcks() = 0;
     [[nodiscard]] virtual SeqNumberType GetLastAck() const = 0;
 };
 

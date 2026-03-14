@@ -108,10 +108,11 @@ public:
 
 private:
     std::list<std::list<T>> _lists;
+    size_t _size = 0;
 
     static constexpr int Size = 10;
 
-    void SpliceInternalList(std::list<T>& list, std::list<T>::const_iterator begin, std::list<T>::const_iterator end);
+    size_t SpliceInternalList(std::list<T>& list, std::list<T>::const_iterator begin, std::list<T>::const_iterator end);
 };
 
 template <class T>
@@ -342,6 +343,7 @@ const T* MultiList<T>::ConstIterator::operator->() // NOLINT(fuchsia-overloaded-
 template <class T>
 MultiList<T>::MultiList(MultiList&& that) noexcept
     : _lists(std::move(that._lists))
+    , _size(std::exchange(that._size, 0))
 {
 }
 
@@ -349,6 +351,7 @@ template <class T>
 MultiList<T>& MultiList<T>::operator=(MultiList&& that) noexcept
 {
     _lists = std::move(that._lists);
+    _size = std::exchange(that._size, 0);
     return *this;
 }
 
@@ -361,6 +364,7 @@ MultiList<T> MultiList<T>::TryGenerate(std::size_t size)
         auto& front = _lists.front();
         auto frontSize = front.size();
         if (frontSize > size) {
+            const size_t taken = size;
             list._lists.emplace_back(0);
 
             auto iterator = front.begin();
@@ -368,9 +372,13 @@ MultiList<T> MultiList<T>::TryGenerate(std::size_t size)
                 iterator++;
             }
             list._lists.back().splice(list._lists.back().end(), front, front.begin(), iterator);
+            list._size += taken;
+            _size -= taken;
             break;
         }
 
+        list._size += frontSize;
+        _size -= frontSize;
         list._lists.push_back(std::move(front));
         _lists.pop_front();
 
@@ -394,6 +402,7 @@ void MultiList<T>::push_back(T&& element)
         _lists.emplace_back(0);
         _lists.back().push_back(std::move(element));
     }
+    _size++;
 }
 
 template <class T>
@@ -409,20 +418,29 @@ void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalu
         }
     }
     _lists.splice(_lists.end(), std::move(that._lists));
+    _size += that._size;
+    that._size = 0;
 }
 
 template <class T>
-void MultiList<T>::SpliceInternalList(std::list<T>& list, std::list<T>::const_iterator begin, std::list<T>::const_iterator end)
+size_t MultiList<T>::SpliceInternalList(std::list<T>& list, std::list<T>::const_iterator begin, std::list<T>::const_iterator end)
 {
     std::list<T> items;
     items.splice(items.end(), list, begin, end);
     assert(!items.empty());
+    const size_t count = items.size();
     _lists.push_back(std::move(items));
+    return count;
 }
 
 template <class T>
 void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
 {
+    size_t moved = 0;
+    for (auto it = begin; it != end; ++it) {
+        moved++;
+    }
+
     if (begin._it1 == end._it1) {
         if (begin._it2 == begin._it1->begin() && end._it2 == begin._it1->end()) {
             _lists.splice(_lists.end(), that._lists, begin._it1);
@@ -432,6 +450,8 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
 
             SpliceInternalList(*begin._it1, begin._it2, end._it2);
         }
+        _size += moved;
+        that._size -= moved;
         return;
     }
 
@@ -451,20 +471,28 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
 
         if (begin._it1 == that.end()._it1) {
             assert(!_lists.begin()->empty());
+            _size += moved;
+            that._size -= moved;
             return;
         }
 
         if (begin._it1->begin() == end._it2) {
+            _size += moved;
+            that._size -= moved;
             return;
         }
 
         SpliceInternalList(*begin._it1, begin._it1->begin(), end._it2);
+        _size += moved;
+        that._size -= moved;
         return;
     }
 
     {
         if (end._it1 == that._lists.end()) {
             _lists.splice(_lists.end(), that._lists, begin._it1, end._it1);
+            _size += moved;
+            that._size -= moved;
             return;
         }
 
@@ -475,6 +503,8 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
             SpliceInternalList(*end._it1, end._it1->begin(), end._it2);
         }
     }
+    _size += moved;
+    that._size -= moved;
 }
 
 template <class T>
@@ -499,6 +529,7 @@ template <class T>
 void MultiList<T>::pop_back()
 {
     _lists.back().pop_back();
+    _size--;
 
     if (_lists.back().empty()) {
         _lists.pop_back();
@@ -508,12 +539,7 @@ void MultiList<T>::pop_back()
 template <class T>
 [[nodiscard]] std::size_t MultiList<T>::size() const noexcept
 {
-    std::size_t size = 0;
-    for (const auto& it1 : _lists) {
-        size += it1.size();
-    }
-
-    return size;
+    return _size;
 }
 
 template <class T>
@@ -555,6 +581,7 @@ MultiList<T>::ConstIterator MultiList<T>::cend() const
 template <class T>
 MultiList<T>::Iterator MultiList<T>::erase(const Iterator& that)
 {
+    _size--;
     Iterator newIterator = that;
     newIterator._it2 = newIterator._it1->erase(newIterator._it2);
     if (newIterator._it2 == newIterator._it1->end()) {
@@ -576,6 +603,7 @@ template <class T>
 void MultiList<T>::swap(MultiList& that) noexcept
 {
     _lists.swap(that._lists);
+    std::swap(_size, that._size);
 }
 
 } // namespace FastTransport::Containers

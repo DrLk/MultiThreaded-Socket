@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <utility>
 #include <vector>
 
@@ -23,7 +22,7 @@ public:
     void ProccessUnorderedPackets() override;
     LockedList<IPacket::Ptr>& GetUserData() override;
 
-    [[nodiscard]] std::list<SeqNumberType> GetSelectiveAcks() override;
+    [[nodiscard]] std::vector<SeqNumberType> GetSelectiveAcks() override;
     [[nodiscard]] SeqNumberType GetLastAck() const override;
 
 private:
@@ -31,7 +30,7 @@ private:
     std::vector<IPacket::Ptr> _queue;
     LockedList<IPacket::Ptr> _data;
     Thread::SpinLock _selectiveAcksMutex;
-    std::list<SeqNumberType> _selectiveAcks;
+    std::vector<SeqNumberType> _selectiveAcks;
     SeqNumberType _beginFullRecievedAck { 1 };
 };
 

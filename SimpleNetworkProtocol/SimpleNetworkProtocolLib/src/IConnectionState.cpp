@@ -1,7 +1,6 @@
 #include "IConnectionState.hpp"
 
 #include <chrono>
-#include <list>
 #include <span>
 #include <stdexcept>
 #include <tuple>
@@ -181,10 +180,11 @@ ConnectionState WaitingSynAckState::OnTimeOut(IConnectionInternal& connection)
 
 ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 {
-    std::list<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
+    std::vector<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     auto lastAck = connection.GetRecvQueue().GetLastAck();
     // TODO: maybe error after std::move second loop
-    while (!acks.empty()) {
+    size_t acksOffset = 0;
+    while (acksOffset < acks.size()) {
         IPacket::Ptr packet = connection.GetFreeSendPacket();
         if (!packet) {
             break;
@@ -199,17 +199,11 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
         std::vector<SeqNumberType> packetAcks;
         packetAcks.reserve(MaxAcksSize);
 
-        for (auto ack = acks.begin(); ack != acks.end();) {
-            if (packetAcks.size() > MaxAcksSize) {
-                break;
+        while (acksOffset < acks.size() && packetAcks.size() <= MaxAcksSize) {
+            if (acks[acksOffset] >= lastAck) {
+                packetAcks.push_back(acks[acksOffset]);
             }
-
-            if (*ack >= lastAck) 
-            {
-                packetAcks.push_back(*ack);
-            }
-
-            ack = acks.erase(ack);
+            acksOffset++;
         }
 
         packet->SetAcks(packetAcks);
@@ -228,15 +222,15 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 
     IPacket::List userData = connection.GetSendUserData();
 
-    for (auto& packet : userData) {
-        packet->SetPacketType(PacketType::Data);
-        packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
-        packet->SetDstConnectionID(connection.GetDestinationID());
-        packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
+    if (!userData.empty()) {
+        for (auto& packet : userData) {
+            packet->SetPacketType(PacketType::Data);
+            packet->SetSrcConnectionID(connection.GetConnectionKey().GetID());
+            packet->SetDstConnectionID(connection.GetDestinationID());
+            packet->SetAddr(connection.GetConnectionKey().GetDestinaionAddr());
+        }
 
-        IPacket::List dataPackets;
-        dataPackets.push_back(std::move(packet));
-        connection.SendDataPackets(std::move(dataPackets));
+        connection.SendDataPackets(std::move(userData));
     }
 
     return ConnectionState::DataState;
