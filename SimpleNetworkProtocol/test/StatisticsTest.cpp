@@ -12,7 +12,8 @@
 namespace FastTransport::Protocol {
 
 namespace {
-    struct NullConnectionEvents : ConnectionEvents {
+    class NullConnectionEvents : public ConnectionEvents {
+    public:
         void OnSendPacket() override { }
     };
 } // namespace
