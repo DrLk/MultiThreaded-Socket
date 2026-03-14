@@ -46,6 +46,13 @@ public:
     struct HashFunction {
         size_t operator()(const ConnectionAddr& key) const // NOLINT(fuchsia-overloaded-operator)
         {
+            const sockaddr_storage& storage = key.GetAddr();
+            if (storage.ss_family == AF_INET) {
+                const auto* addr = reinterpret_cast<const sockaddr_in*>(&storage); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                size_t h = static_cast<size_t>(addr->sin_addr.s_addr);
+                h ^= static_cast<size_t>(addr->sin_port) << 16U;
+                return h;
+            }
             return key.GetPort();
         }
     };

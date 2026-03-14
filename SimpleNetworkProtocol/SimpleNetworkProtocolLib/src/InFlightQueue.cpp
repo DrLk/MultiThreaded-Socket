@@ -72,12 +72,8 @@ void InFlightQueue::SetLastAck(SeqNumberType lastAck)
 
 void InFlightQueue::AddAcks(std::span<SeqNumberType> acks)
 {
-    std::unordered_set<SeqNumberType> receivedAcks(acks.begin(), acks.end());
-
-    {
-        const std::scoped_lock lock(_receivedAcksMutex);
-        _receivedAcks.merge(std::move(receivedAcks));
-    }
+    const std::scoped_lock lock(_receivedAcksMutex);
+    _receivedAcks.insert(acks.begin(), acks.end());
 }
 
 IPacket::List InFlightQueue::ProcessAcks()
