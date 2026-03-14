@@ -1,5 +1,6 @@
 #include "SendQueue.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <limits>
 #include <utility>
@@ -11,8 +12,7 @@
 namespace FastTransport::Protocol {
 
 SendQueue::SendQueue()
-    : _resendPackets(OutgoingComparator)
-    , _nextPacketNumber(0)
+    : _nextPacketNumber(0)
 {
 }
 
@@ -34,7 +34,8 @@ void SendQueue::SendPackets(IPacket::List&& packets, bool needAck) // NOLINT(cpp
 void SendQueue::ReSendPackets(OutgoingPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     for (auto& packet : packets) {
-        _resendPackets.insert(std::move(packet));
+        _resendPackets.push_back(std::move(packet));
+        std::ranges::push_heap(_resendPackets, OutgoingComparator {});
     }
 }
 
@@ -42,8 +43,11 @@ OutgoingPacket::List SendQueue::GetPacketsToSend(size_t size)
 {
     OutgoingPacket::List result;
 
-    for (auto it = _resendPackets.begin(); it != _resendPackets.end() && size > 0; size--) {
-        result.push_back(std::move(_resendPackets.extract(it++).value()));
+    while (!_resendPackets.empty() && size > 0) {
+        std::ranges::pop_heap(_resendPackets, OutgoingComparator {});
+        result.push_back(std::move(_resendPackets.back()));
+        _resendPackets.pop_back();
+        size--;
     }
 
     if (size != 0U) {
@@ -60,8 +64,9 @@ OutgoingPacket::List SendQueue::GetServicePacketsToSend()
     return result;
 }
 
-bool SendQueue::OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right)
+bool SendQueue::OutgoingComparator::operator()(const OutgoingPacket& left, const OutgoingPacket& right) const // NOLINT(fuchsia-overloaded-operator)
 {
-    return left.GetPacket()->GetSeqNumber() < right.GetPacket()->GetSeqNumber();
-};
+    // Reversed for min-heap: smallest seq number at the top
+    return left.GetPacket()->GetSeqNumber() > right.GetPacket()->GetSeqNumber();
+}
 } // namespace FastTransport::Protocol
