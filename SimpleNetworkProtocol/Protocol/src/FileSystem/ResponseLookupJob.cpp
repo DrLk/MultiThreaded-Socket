@@ -47,8 +47,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
     writer << name;
 
     const std::string path = parent.GetFullPath() / name;
-    if (!file)
-    {
+    if (!file) {
         auto type = std::filesystem::status(path).type();
         if (type == std::filesystem::file_type::not_found) {
             writer << ENOENT;
@@ -58,7 +57,7 @@ ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_tok
 
     const Leaf& fileRef = file ? file.value().get() : AddLeaf(path, parent);
 
-    struct stat stbuf { };
+    struct stat stbuf {};
     const int error = stat(path.c_str(), &stbuf);
 
     writer << error;

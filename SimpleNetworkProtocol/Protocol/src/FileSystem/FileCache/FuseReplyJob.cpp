@@ -31,7 +31,7 @@ void FuseReplyJob::PrepareBuffer()
     for (auto& packet : _packets) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         auto& buf = _buffer->buf[idx++];
-        buf = fuse_buf{ .flags = std::bit_cast<fuse_buf_flags>(0) };
+        buf = fuse_buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
         buf.mem = packet->GetPayload().data();
         buf.size = packet->GetPayload().size();
     }
@@ -45,4 +45,4 @@ FuseReplyJob::Message FuseReplyJob::ExecuteResponse(TaskQueue::ITaskScheduler& /
     return std::move(_packets);
 }
 
-} // namespace FastTransport::FileCache 
+} // namespace FastTransport::FileCache

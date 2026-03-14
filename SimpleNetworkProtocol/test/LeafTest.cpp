@@ -123,19 +123,19 @@ TEST(LeafTest, LeafGetDataTest)
     EXPECT_EQ(buffer3->count, 1);
     span = std::span<std::byte>(static_cast<std::byte*>(buffer3->buf[0].mem), buffer3->buf[0].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(std::next(buffer.begin()), buffer.end()));
-                                                                                      //
+    //
     auto buffer4 = root.GetData(0, 1399);
     EXPECT_EQ(buffer4->count, 1);
     span = std::span<std::byte>(static_cast<std::byte*>(buffer4->buf[0].mem), buffer4->buf[0].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer.begin(), std::prev(buffer.end())));
-                                                                                      //
+    //
     auto buffer5 = root.GetData(1, 2798);
     EXPECT_EQ(buffer5->count, 2);
     span = std::span<std::byte>(static_cast<std::byte*>(buffer5->buf[0].mem), buffer5->buf[0].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(std::next(buffer.begin()), buffer.end()));
     span = std::span<std::byte>(static_cast<std::byte*>(buffer5->buf[1].mem), buffer5->buf[1].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_THAT(span, ::testing::ElementsAreArray(buffer.begin(), std::prev(buffer.end())));
-                                                                                      //
+    //
     auto buffer6 = root.GetData(1401, 2798);
     EXPECT_EQ(buffer6->count, 2);
     span = std::span<std::byte>(static_cast<std::byte*>(buffer6->buf[0].mem), buffer6->buf[0].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)

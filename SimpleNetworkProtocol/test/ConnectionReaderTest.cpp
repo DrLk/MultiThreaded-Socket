@@ -16,30 +16,30 @@
 
 namespace FastTransport::Protocol {
 namespace {
-class MockConnection : public IConnection {
-public:
-    MockConnection() = default;
+    class MockConnection : public IConnection {
+    public:
+        MockConnection() = default;
 
-    MockConnection(const MockConnection&) = delete;
-    MockConnection(MockConnection&&) = delete;
-    MockConnection& operator=(const MockConnection&) = delete;
-    MockConnection& operator=(MockConnection&&) = delete;
-    ~MockConnection() override = default;
+        MockConnection(const MockConnection&) = delete;
+        MockConnection(MockConnection&&) = delete;
+        MockConnection& operator=(const MockConnection&) = delete;
+        MockConnection& operator=(MockConnection&&) = delete;
+        ~MockConnection() override = default;
 
-    MOCK_METHOD(bool, IsConnected, (), (const, override));
-    MOCK_METHOD(IStatistics&, GetStatistics, (), (const, override));
-    MOCK_METHOD(ConnectionContext&, GetContext, ());
+        MOCK_METHOD(bool, IsConnected, (), (const, override));
+        MOCK_METHOD(IStatistics&, GetStatistics, (), (const, override));
+        MOCK_METHOD(ConnectionContext&, GetContext, ());
 
-    MOCK_METHOD(IPacket::List, GetFreeSendPackets, (std::stop_token));
-    MOCK_METHOD(void, Send, (IPacket::List&&));
-    MOCK_METHOD(IPacket::List, Send2, (std::stop_token, IPacket::List&&));
-    MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));
-    MOCK_METHOD(IPacket::List, Recv, (std::size_t, std::stop_token, IPacket::List&&));
-    MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
-    MOCK_METHOD(void, AddFreeSendPackets, (IPacket::List&&));
-    MOCK_METHOD(void, Close, ());
-    MOCK_METHOD(bool, IsClosed, (), (const, override));
-};
+        MOCK_METHOD(IPacket::List, GetFreeSendPackets, (std::stop_token));
+        MOCK_METHOD(void, Send, (IPacket::List&&));
+        MOCK_METHOD(IPacket::List, Send2, (std::stop_token, IPacket::List&&));
+        MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));
+        MOCK_METHOD(IPacket::List, Recv, (std::size_t, std::stop_token, IPacket::List&&));
+        MOCK_METHOD(void, AddFreeRecvPackets, (IPacket::List&&));
+        MOCK_METHOD(void, AddFreeSendPackets, (IPacket::List&&));
+        MOCK_METHOD(void, Close, ());
+        MOCK_METHOD(bool, IsClosed, (), (const, override));
+    };
 } // namespace
 
 TEST(ConnectionReader, Payload)

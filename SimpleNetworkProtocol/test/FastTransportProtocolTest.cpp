@@ -39,7 +39,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
 
             connectionCount++;
         }
-
     });
 
     auto recvReady = recvTask.get_future();
@@ -65,7 +64,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
                 break;
             }
         }
-
     });
 
     auto sendReady1 = sendTask1.get_future();
@@ -90,7 +88,6 @@ TEST(FastTransportProtocolTest, ConnectDestinationFirst) // NOLINT(readability-f
                 break;
             }
         }
-
     });
 
     auto sendReady2 = sendTask2.get_future();

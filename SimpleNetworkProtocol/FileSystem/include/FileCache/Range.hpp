@@ -41,7 +41,6 @@ private:
     size_t _size;
     Data _data;
     std::atomic<int> _counter { 1 };
-
 };
 
 } // namespace FastTransport::FileSystem::FileCache

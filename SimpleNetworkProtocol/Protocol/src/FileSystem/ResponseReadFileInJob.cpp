@@ -43,7 +43,6 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
         return {};
     }
 
-
     Message data;
     reader >> data;
 

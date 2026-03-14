@@ -29,7 +29,7 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     writer << request;
 
     int error = 0;
-    struct stat stbuf { };
+    struct stat stbuf {};
 
     if (inode == FUSE_ROOT_ID) {
         writer << error;

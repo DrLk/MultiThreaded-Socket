@@ -22,7 +22,7 @@ public:
     };
 
     explicit ConnectionAddr(const sockaddr_storage& addr)
-        : _storage(addr) {};
+        : _storage(addr) { };
 
     ConnectionAddr(std::string_view addr, uint16_t port)
     {

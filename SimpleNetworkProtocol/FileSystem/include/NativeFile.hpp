@@ -32,7 +32,7 @@ public:
 
 private:
     std::filesystem::path _name;
-    int _file {-1};
+    int _file { -1 };
 };
 
 } // namespace FastTransport::FileSystem

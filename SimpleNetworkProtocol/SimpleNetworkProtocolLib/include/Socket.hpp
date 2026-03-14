@@ -26,10 +26,10 @@
 
 #include "ConnectionAddr.hpp"
 #ifdef __linux__
-#include <sys/uio.h> // NOLINT(llvm-include-order)
-#include <vector>
 #include "IPacket.hpp"
 #include "OutgoingPacket.hpp"
+#include <sys/uio.h> // NOLINT(llvm-include-order)
+#include <vector>
 #endif
 
 namespace FastTransport::Protocol {

@@ -21,7 +21,7 @@ RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, siz
 {
 }
 
-FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*/, Writer& writer)
+FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
     TRACER() << "Execute"
              << "request: " << _request
@@ -30,7 +30,6 @@ FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token  /*stop*
              << " offset: " << _offset
              << " skipped: " << _skipped
              << " remoteFile: " << _remoteFile;
-
 
     writer << MessageType::RequestRead;
     writer << _request;
