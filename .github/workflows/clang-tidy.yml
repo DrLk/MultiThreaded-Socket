@@ -4,7 +4,9 @@ name: Clang Tidy
 # Here, this action will be enabled on all pushes.
 # Modify this to fit your needs.
 on:
-    pull_request
+    workflow_run:
+        workflows: ["Clang Format"]
+        types: [completed]
 
 # Jobs section
 jobs:

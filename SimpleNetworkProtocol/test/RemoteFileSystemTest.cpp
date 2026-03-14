@@ -36,11 +36,13 @@ namespace {
 
 constexpr uint16_t ServerPort = 31100;
 constexpr uint16_t ClientPort = 31200;
-constexpr size_t TestFileSize = 10ULL * 1024 * 1024; // 10 MB → 7+ blocks
+constexpr size_t TestFileSize = 100ULL * 1024 * 1024; // 100 MB
 constexpr const char* TestFilePath = "/tmp/rfs_test_file.bin";
 constexpr const char* TestFileName = "rfs_test_file.bin";
 constexpr const char* MountPoint = "/tmp/mnt_rfs_test";
 constexpr const char* CacheDir = "/tmp/rfs_test_cache";
+constexpr const char* CopyFilePath = "/tmp/rfs_test_copy.bin";
+constexpr const char* Copy2FilePath = "/tmp/rfs_test_copy2.bin";
 
 void CreateTestFile()
 {
@@ -76,6 +78,46 @@ void Unmount()
     if (pid > 0) {
         waitpid(pid, nullptr, 0);
     }
+}
+
+bool CompareFiles(const std::string& path1, const std::string& path2, size_t totalSize)
+{
+    constexpr size_t ChunkSize = 1024UL * 1024UL;
+    std::ifstream file1(path1, std::ios::binary);
+    std::ifstream file2(path2, std::ios::binary);
+    if (!file1 || !file2) {
+        return false;
+    }
+    std::vector<char> buf1(ChunkSize);
+    std::vector<char> buf2(ChunkSize);
+    size_t totalRead = 0;
+    while (totalRead < totalSize) {
+        const size_t remaining = totalSize - totalRead;
+        const auto toRead = static_cast<std::streamsize>(std::min(ChunkSize, remaining));
+        if (!file1.read(buf1.data(), toRead) || file1.gcount() != toRead) {
+            return false;
+        }
+        if (!file2.read(buf2.data(), toRead) || file2.gcount() != toRead) {
+            return false;
+        }
+        if (std::memcmp(buf1.data(), buf2.data(), static_cast<size_t>(toRead)) != 0) {
+            return false;
+        }
+        totalRead += static_cast<size_t>(toRead);
+    }
+    return totalRead == totalSize;
+}
+
+bool CopyFileViaMount(const std::string& src, const std::string& dst, const char* label)
+{
+    std::error_code error;
+    std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, error);
+    if (error) {
+        std::cerr << "[test] " << label << " failed: " << error.message() << "\n";
+        return false;
+    }
+    std::cerr << "[test] " << label << " succeeded, size=" << std::filesystem::file_size(dst) << "\n";
+    return true;
 }
 
 } // namespace
@@ -143,50 +185,47 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
     std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
         std::this_thread::sleep_for(5s);
 
-        std::ifstream src(TestFilePath, std::ios::binary);
         const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
-        std::ifstream mnt(mntFile, std::ios::binary);
 
-        if (!src || !mnt) {
+        // First: direct read comparison
+        if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
+            std::cerr << "[test] first comparison failed\n";
+            testResult = false;
             stopSource.request_stop();
             Unmount();
             return;
         }
 
-        constexpr size_t ChunkSize = 1024UL * 1024UL;
-        std::vector<char> srcBuf(ChunkSize);
-        std::vector<char> mntBuf(ChunkSize);
-        size_t totalRead = 0;
-        bool match = true;
-
-        while (totalRead < TestFileSize) {
-            const size_t remaining = TestFileSize - totalRead;
-            const auto toRead = static_cast<std::streamsize>(std::min(ChunkSize, remaining));
-
-            if (!src.read(srcBuf.data(), toRead) || src.gcount() != toRead) {
-                match = false;
-                break;
-            }
-            if (!mnt.read(mntBuf.data(), toRead) || mnt.gcount() != toRead) {
-                match = false;
-                break;
-            }
-
-            if (std::memcmp(srcBuf.data(), mntBuf.data(), static_cast<size_t>(toRead)) != 0) {
-                match = false;
-                break;
-            }
-
-            totalRead += static_cast<size_t>(toRead);
+        // Second: copy via FUSE and verify
+        if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
+            testResult = false;
+            stopSource.request_stop();
+            Unmount();
+            return;
+        }
+        if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
+            std::cerr << "[test] copy comparison failed\n";
+            testResult = false;
+            Unmount();
+            return;
         }
 
-        testResult = match && totalRead == TestFileSize;
+        // Third: copy again to verify re-reading works
+        if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
+            testResult = false;
+            stopSource.request_stop();
+            Unmount();
+            return;
+        }
+        const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
+        std::cerr << "[test] copy2 comparison: copy2Match=" << result << "\n";
+        testResult = result;
         stopSource.request_stop();
         Unmount();
     });
 
-    // Wait for readThread to signal done (max 30s)
-    auto deadline = std::chrono::steady_clock::now() + 30s;
+    // Wait for readThread to signal done (max 300s)
+    auto deadline = std::chrono::steady_clock::now() + 300s;
     while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(100ms);
     }

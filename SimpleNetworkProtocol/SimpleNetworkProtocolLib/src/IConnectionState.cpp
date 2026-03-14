@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Connection.hpp"
+#include "ConnectionEvents.hpp"
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
@@ -23,10 +24,10 @@ using namespace std::literals::chrono_literals;
 
 namespace FastTransport::Protocol {
 
-std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID)
+std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID, ConnectionEvents& subscriber)
 {
     if (packet->GetPacketType() == PacketType::Syn) {
-        Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID); // NOLINT
+        const Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID, subscriber);
         auto freePackets = connection->OnRecvPackets(std::move(packet));
         return { connection, std::move(freePackets) };
     }

@@ -3,12 +3,18 @@
 
 #include "Connection.hpp"
 #include "ConnectionAddr.hpp"
+#include "ConnectionEvents.hpp"
 #include "HeaderTypes.hpp"
 #include "UDPQueue.hpp"
 
 namespace FastTransport::Protocol {
 
 namespace {
+    class NullConnectionEvents : public ConnectionEvents {
+    public:
+        void OnSendPacket() override { }
+    };
+
     constexpr auto TestTimeout = 10s;
 
     std::unordered_map<ConnectionState, std::unique_ptr<IConnectionState>> GetStates()
@@ -50,7 +56,8 @@ TEST(ConnectionStateTest, ConnectionState)
     const ConnectionAddr destinationAddress;
     const ConnectionID sourceID = 1;
     auto sourceState = ConnectionState::SendingSynState;
-    Connection connection(sourceState, destinationAddress, sourceID);
+    NullConnectionEvents events;
+    Connection connection(sourceState, destinationAddress, sourceID, events);
     connection.SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
     sourceState = states[sourceState]->SendPackets(connection);
     EXPECT_EQ(sourceState, ConnectionState::WaitingSynAckState);
@@ -60,7 +67,7 @@ TEST(ConnectionStateTest, ConnectionState)
     EXPECT_EQ(packets.front().GetPacket()->GetPacketType(), PacketType::Syn);
 
     const ConnectionID destinationID = 1;
-    auto [destinationConnection, freePackets] = ListenState::Listen(std::move(packets.front().GetPacket()), destinationID);
+    auto [destinationConnection, freePackets] = ListenState::Listen(std::move(packets.front().GetPacket()), destinationID, events);
     EXPECT_EQ(destinationConnection != nullptr, true);
     destinationConnection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
     auto destinationState = ConnectionState::SendingSynAckState;
@@ -83,7 +90,8 @@ TEST(ConnectionStateTest, ConnectionStateDropSynPacket)
     const ConnectionAddr destinationAddress;
     const ConnectionID sourceID = 1;
     auto sourceState = ConnectionState::SendingSynState;
-    Connection connection(sourceState, destinationAddress, sourceID);
+    NullConnectionEvents events2;
+    Connection connection(sourceState, destinationAddress, sourceID, events2);
     connection.SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
     sourceState = states[sourceState]->SendPackets(connection);
     EXPECT_EQ(sourceState, ConnectionState::WaitingSynAckState);
@@ -109,7 +117,7 @@ TEST(ConnectionStateTest, ConnectionStateDropSynPacket)
     }
 
     const ConnectionID destinationID = 1;
-    auto [destinationConnection, freePackets] = ListenState::Listen(std::move(packets.front().GetPacket()), destinationID);
+    auto [destinationConnection, freePackets] = ListenState::Listen(std::move(packets.front().GetPacket()), destinationID, events2);
     EXPECT_EQ(destinationConnection != nullptr, true);
     destinationConnection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
     auto destinationState = ConnectionState::SendingSynAckState;

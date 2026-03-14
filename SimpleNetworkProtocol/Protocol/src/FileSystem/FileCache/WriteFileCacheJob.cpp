@@ -1,6 +1,7 @@
 #include "WriteFileCacheJob.hpp"
 
 #include "FileCache/FileCache.hpp"
+#include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "NativeFile.hpp"
 
@@ -16,7 +17,7 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
     assert(!_data.empty());
 }
 
-WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
+WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& fileTree)
 {
     TRACER() << "Execute"
              << " inode=" << _inode
@@ -29,7 +30,8 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskSc
     file->Write(_data, _size, _offset);
     assert(_size <= Leaf::BlockSize);
     leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
-    return std::move(_data);
+    scheduler.ReturnFreeDiskPackets(std::move(_data));
+    return {};
 }
 
 } // namespace FastTransport::FileCache
