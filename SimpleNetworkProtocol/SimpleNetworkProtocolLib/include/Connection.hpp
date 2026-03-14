@@ -41,7 +41,7 @@ class Connection final : public IConnectionInternal {
 public:
     using Ptr = std::shared_ptr<Connection>;
 
-    Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID);
+    Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID, ConnectionEvents& subscriber);
     Connection(const Connection& that) = delete;
     Connection(Connection&& that) = delete;
     Connection& operator=(const Connection& that) = delete;
@@ -105,7 +105,6 @@ public:
     IPacket::Ptr GetFreeSendPacket() override;
     void AddFreeUserSendPackets(IPacket::List&& freePackets) override;
 
-    void Subscribe(ConnectionEvents& subscriber);
     void NotifySendPacketsEvent() const override;
 
 private:

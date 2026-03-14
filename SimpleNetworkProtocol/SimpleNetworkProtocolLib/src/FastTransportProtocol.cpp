@@ -64,8 +64,7 @@ IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
 
 IConnection::Ptr FastTransportContext::Connect(const ConnectionAddr& dstAddr)
 {
-    const Connection::Ptr& connection = std::make_shared<Connection>(ConnectionState::SendingSynState, dstAddr, GenerateID());
-    connection->Subscribe(*this);
+    const Connection::Ptr& connection = std::make_shared<Connection>(ConnectionState::SendingSynState, dstAddr, GenerateID(), *this);
     connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
     {
@@ -110,9 +109,8 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         if (connectionIt != _connections.end()) {
             foundConnection = connectionIt->second;
         } else {
-            auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
+            auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID(), *this);
             if (connection != nullptr) {
-                connection->Subscribe(*this);
                 connection->SetInternalFreePackets(UDPQueue::CreateBuffers(10000), UDPQueue::CreateBuffers(10000));
 
                 {

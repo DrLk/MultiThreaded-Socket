@@ -37,9 +37,11 @@ public:
     void ProcessInflightPackets(IConnectionInternal& connection) override;
 };
 
+class ConnectionEvents;
+
 class ListenState {
 public:
-    static std::pair<std::shared_ptr<Connection>, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID);
+    static std::pair<std::shared_ptr<Connection>, IPacket::List> Listen(IPacket::Ptr&& packet, ConnectionID myID, ConnectionEvents& subscriber);
 };
 
 class SendingSynState final : public BasicConnectionState {

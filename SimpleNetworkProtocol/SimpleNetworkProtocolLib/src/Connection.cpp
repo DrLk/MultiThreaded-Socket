@@ -33,7 +33,7 @@ class ConnectionAddr;
 
 namespace FastTransport::Protocol {
 
-Connection::Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID)
+Connection::Connection(ConnectionState state, const ConnectionAddr& addr, ConnectionID myID, ConnectionEvents& subscriber)
     : _context(std::make_shared<ConnectionContext>())
     , _key(addr, myID)
     , _lastPacketReceive(clock::now())
@@ -44,6 +44,7 @@ Connection::Connection(ConnectionState state, const ConnectionAddr& addr, Connec
     , _cleanRecvBuffers(false)
     , _cleanSendBuffers(false)
     , _connectionState(state)
+    , _eventSubscribers({ subscriber })
 {
 
     _states.emplace(ConnectionState::ClosedState, std::make_unique<ClosedState>());
@@ -394,11 +395,6 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
         _freeUserSendPackets.NotifyAll();
     }
-}
-
-void Connection::Subscribe(ConnectionEvents& subscriber)
-{
-    _eventSubscribers.emplace_back(subscriber);
 }
 
 void Connection::NotifySendPacketsEvent() const

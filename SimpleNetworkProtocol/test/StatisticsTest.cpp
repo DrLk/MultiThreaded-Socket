@@ -4,16 +4,25 @@
 
 #include "Connection.hpp"
 #include "ConnectionAddr.hpp"
+#include "ConnectionEvents.hpp"
 #include "ConnectionState.hpp"
 #include "IStatistics.hpp"
 #include "Packet.hpp"
 
 namespace FastTransport::Protocol {
+
+namespace {
+    struct NullConnectionEvents : ConnectionEvents {
+        void OnSendPacket() override { }
+    };
+} // namespace
+
 TEST(StatisticaTest, BasicStatisticaTest)
 {
     static constexpr auto TestTimeout = 10s;
 
-    Connection connection(ConnectionState::DataState, ConnectionAddr("127.0.0.1", 10000), 1);
+    NullConnectionEvents events;
+    Connection connection(ConnectionState::DataState, ConnectionAddr("127.0.0.1", 10000), 1, events);
     const IStatistics& statistics = connection.GetStatistics();
 
     auto now = std::chrono::steady_clock::now();
