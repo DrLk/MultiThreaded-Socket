@@ -312,13 +312,19 @@ IPacket::List FastTransportContext::GetConnectionsFreeRecvPackets()
 
 void FastTransportContext::OnSendPacket()
 {
-    _readySend = true;
+    {
+        const std::scoped_lock lock(_mutex);
+        _readySend = true;
+    }
     _condition.notify_all();
 }
 
 void FastTransportContext::OnOutgoingPackets()
 {
-    _readySend = true;
+    {
+        const std::scoped_lock lock(_mutex);
+        _readySend = true;
+    }
     _condition.notify_all();
 }
 
