@@ -18,6 +18,9 @@ jobs:
                 sudo apt-get install -y fuse3
                 sudo modprobe fuse
 
+            - name: Configure kernel network parameters
+              run: sudo sysctl -p ${{ github.workspace }}/SimpleNetworkProtocol/sysctl.conf
+
             - name: Login to container registry
               uses: docker/login-action@v3
               with:
@@ -29,10 +32,7 @@ jobs:
               run: |
                 docker run --rm \
                   --privileged \
-                  --sysctl net.core.rmem_max=83886080 \
-                  --sysctl net.core.rmem_default=83886080 \
-                  --sysctl net.core.wmem_max=83886080 \
-                  --sysctl net.core.wmem_default=83886080 \
+                  --network=host \
                   --device /dev/fuse \
                   --security-opt apparmor:unconfined \
                   --entrypoint "" \
