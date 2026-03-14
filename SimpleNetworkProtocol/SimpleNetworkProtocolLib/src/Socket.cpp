@@ -108,7 +108,7 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
     for (const OutgoingPacket& outgoing : packets) {
         auto destination = outgoing.GetPacket()->GetDstAddr();
         destination.SetPort(destination.GetPort() + index);
-        packetsByAddress[destination].push_back(outgoing.GetPacket());
+        packetsByAddress[destination].emplace_back(outgoing.GetPacket());
     }
 
     std::vector<mmsghdr> headers;
@@ -133,7 +133,8 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
         auto ctrlBegin = ctrl.begin();
         auto packetChunks = addrPackets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 65000 / GsoSize));
         for (const auto& packetChunk : packetChunks) {
-            auto iovEnd = std::transform(packetChunk.begin(), packetChunk.end(), iovBegin, [](const IPacket::Ptr& packet) {
+            const size_t packetChunkSize = packetChunk.size();
+            std::ranges::transform(packetChunk, iovBegin, [](const IPacket::Ptr& packet) {
                 const iovec iovec {
                     .iov_base = packet->GetElement().data(),
                     .iov_len = packet->GetElement().size(),
@@ -141,7 +142,6 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
                 return iovec;
             });
 
-            const size_t packetChunkSize = packetChunk.size();
             const struct msghdr message = {
                 .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
                 .msg_namelen = sizeof(sockaddr),
@@ -151,9 +151,8 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
                 .msg_controllen = 0,
             };
 
-            iovBegin += packetChunkSize;
-            assert(iovBegin == iovEnd);
-            ctrlBegin += packetChunkSize;
+            iovBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
+            ctrlBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
             headers.push_back(mmsghdr { .msg_hdr = message });
         }
     }

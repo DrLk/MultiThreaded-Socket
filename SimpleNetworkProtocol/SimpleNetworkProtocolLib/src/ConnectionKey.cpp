@@ -33,9 +33,9 @@ bool ConnectionKey::operator==(const ConnectionKey& that) const // NOLINT(fuchsi
 
 size_t ConnectionKey::HashFunction::operator()(const ConnectionKey& key) const // NOLINT(fuchsia-overloaded-operator)
 {
-    size_t h = ConnectionAddr::HashFunction {}(key.GetDestinaionAddr());
-    h ^= static_cast<size_t>(key.GetID()) * 2654435761ULL + 0x9e3779b9ULL + (h << 6U) + (h >> 2U);
-    return h;
+    size_t hash = ConnectionAddr::HashFunction {}(key.GetDestinaionAddr());
+    hash ^= (static_cast<size_t>(key.GetID()) * 2654435761ULL) + 0x9e3779b9ULL + (hash << 6U) + (hash >> 2U);
+    return hash;
 }
 
 std::ostream& operator<<(std::ostream& stream, const ConnectionKey& key) // NOLINT(fuchsia-overloaded-operator)
