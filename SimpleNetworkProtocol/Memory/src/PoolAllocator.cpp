@@ -1,6 +1,9 @@
 #include "PoolAllocator.hpp"
 
 #include <cassert>
+#include <cstddef>
+#include <memory>
+#include <memory_resource>
 
 #include "ThreadSafeAllocator.hpp"
 

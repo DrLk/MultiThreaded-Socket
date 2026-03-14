@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <functional>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "ConnectionAddr.hpp"
@@ -173,7 +174,7 @@ namespace {
 
         auto now = std::chrono::steady_clock::now();
         size_t recvSize = 0;
-        while (recvSize < PacketNumber) {
+        while (std::cmp_less(recvSize, PacketNumber)) {
             if (now + TestTimeout < std::chrono::steady_clock::now()) {
                 break;
             }

@@ -1,6 +1,13 @@
 #include "CachedFile.hpp"
+
+#include <filesystem>
+#include <stdexcept>
+#include <sys/types.h>
+#include <utility>
+
 #include <sys/stat.h>
 
+#include "File.hpp"
 #include "Range.hpp"
 
 namespace FastTransport::FileSystem::FileCache {

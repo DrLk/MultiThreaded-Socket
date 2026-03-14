@@ -12,9 +12,9 @@
 namespace FastTransport::TaskQueue {
 
 class ITaskQueue {
+public:
     virtual std::future<void> Async(std::move_only_function<void(std::stop_token)>&& function) = 0;
 
-public:
     ITaskQueue() = default;
     ITaskQueue(const ITaskQueue&) = delete;
     ITaskQueue(ITaskQueue&&) = delete;

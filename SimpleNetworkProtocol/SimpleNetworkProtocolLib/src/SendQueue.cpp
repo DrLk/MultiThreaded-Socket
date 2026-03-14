@@ -25,7 +25,7 @@ void SendQueue::SendPackets(IPacket::List&& packets, bool needAck) // NOLINT(cpp
             packet->SetSeqNumber(++_nextPacketNumber);
             _needToSend.push_back(OutgoingPacket(std::move(packet), needAck));
         } else {
-            packet->SetSeqNumber((std::numeric_limits<SeqNumberType>::max)());
+            packet->SetSeqNumber(~SeqNumberType {});
             _serviceNeedToSend.push_back(OutgoingPacket(std::move(packet), needAck));
         }
     }

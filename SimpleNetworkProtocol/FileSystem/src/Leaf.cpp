@@ -1,5 +1,6 @@
 #include "Leaf.hpp"
 
+#include <bit>
 #include <cstdint>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -94,7 +95,7 @@ void Leaf::Rescan()
             }
 
             if (std::filesystem::is_regular_file(path)) {
-                uintmax_t size = std::filesystem::file_size(path);
+                const uintmax_t size = std::filesystem::file_size(path);
                 AddChild(path.filename(), std::filesystem::file_type::regular, size);
 
             } else if (std::filesystem::is_directory(path)) {
@@ -197,9 +198,9 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
         assert(node.value().GetOffset() + node.value().GetSize() > offset);
 
-        size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
+        const size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
         if (node.value().GetPackets().size() > 1) {
-            size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
+            const size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
             auto skipData = data.TryGenerate((skipSize + blockSize - 1) / blockSize);
 
             node.value().GetPackets().splice(std::move(data));
@@ -216,13 +217,13 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
 {
     int index = 0;
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * ((size + 1299) / 1300));
+    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (((size + 1299) / 1300) + 1));
     std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     buffVector->count = 0;
     buffVector->off = 0;
     buffVector->idx = 0;
 
-    if (static_cast<size_t>(offset) >= _size) {
+    if (std::cmp_greater_equal(offset, _size)) {
         return buffVector;
     }
     size_t readed = std::min(size, _size - static_cast<size_t>(offset));
@@ -263,9 +264,9 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
             if (index == 0) {
 
                 auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().data() + start;
+                buffer.mem = (*packet)->GetPayload().subspan(start).data();
                 buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
-                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
                 buffer.pos = 0;
                 buffer.fd = 0;
                 buffVector->count = 1;
@@ -279,7 +280,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
                 auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
                 buffer.mem = (*packet)->GetPayload().data();
                 buffer.size = std::min((*packet)->GetPayload().size(), readed);
-                buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
                 buffer.pos = 0;
                 buffer.fd = 0;
 
@@ -308,7 +309,7 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 
     std::set<FileCache::Range>& ranges = block->second;
 
-    off_t offset = ranges.begin()->GetOffset();
+    const off_t offset = ranges.begin()->GetOffset();
     for (auto it = ranges.begin(); it != ranges.end();) {
         auto extractedIt = it;
         it++;
@@ -318,6 +319,18 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 
     _data.erase(block);
     return { offset, std::move(extractedData) };
+}
+
+size_t Leaf::GetFirstBlockIndex() const
+{
+    if (_data.empty()) {
+        return SIZE_MAX;
+    }
+    size_t minIndex = SIZE_MAX;
+    for (const auto& [index, ranges] : _data) {
+        minIndex = std::min(minIndex, index);
+    }
+    return minIndex;
 }
 
 std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()

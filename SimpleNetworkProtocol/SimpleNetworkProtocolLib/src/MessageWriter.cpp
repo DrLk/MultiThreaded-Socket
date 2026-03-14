@@ -58,21 +58,17 @@ MessageWriter& MessageWriter::operator<<(const std::filesystem::path& path) // N
 
 MessageWriter& MessageWriter::write(const void* data, std::size_t size)
 {
-    const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-
-    while (size > 0) {
+    auto src = std::span(static_cast<const std::byte*>(data), size);
+    while (!src.empty()) {
         auto& packet = GetPacket();
-        auto payload = packet.GetPayload();
-        if (_offset == payload.size()) {
+        if (_offset == packet.GetPayload().size()) {
             packet = GetNextPacket();
         }
 
-        auto writeSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
-        std::memcpy(packet.GetPayload().data() + _offset, bytes, writeSize);
+        auto writeSize = std::min(src.size(), packet.GetPayload().size() - _offset);
+        std::memcpy(packet.GetPayload().subspan(_offset).data(), src.data(), writeSize);
         _offset += writeSize;
-
-        size -= writeSize;
-        bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        src = src.subspan(writeSize);
     }
 
     return *this;

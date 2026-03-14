@@ -15,7 +15,7 @@ ResponseInFuseNetworkJob::Message ResponseReleaseInJob::ExecuteResponse(ITaskSch
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     int error = 0;
-    FileHandle* handle = nullptr;
+    FileHandle* handle = nullptr; // NOLINT(misc-const-correctness)
     reader >> request;
     reader >> error;
     reader >> handle;

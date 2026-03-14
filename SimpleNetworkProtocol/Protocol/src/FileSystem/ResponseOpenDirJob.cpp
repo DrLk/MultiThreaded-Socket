@@ -20,7 +20,7 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
-    fuse_file_info* fileInfo = nullptr;
+    const fuse_file_info* fileInfo = nullptr;
     int flags = 0;
     reader >> request;
     reader >> inode;

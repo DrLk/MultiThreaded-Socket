@@ -15,8 +15,8 @@ public:
 private:
     fuse_req_t _request;
     Message _packets;
-    std::unique_ptr<char[]> _bufferMem;
-    fuse_bufvec* _buffer;
+    std::vector<char> _bufferMem;
+    fuse_bufvec* _buffer = nullptr;
 
     void PrepareBuffer();
 };

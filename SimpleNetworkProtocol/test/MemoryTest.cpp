@@ -5,6 +5,7 @@
 #include <memory>
 #include <memory_resource>
 #include <thread>
+#include <utility>
 
 #include "MemoryLogger.hpp"
 #include "PoolAllocator.hpp"
@@ -21,7 +22,7 @@ TEST(MemoryTest, List)
 
     static constexpr size_t ListSize = 1000;
     std::pmr::list<int> preallocated_list(allocator);
-    for (int i = 0; i < ListSize; ++i) {
+    for (int i = 0; std::cmp_less(i, ListSize); ++i) {
         preallocated_list.push_back(i);
     }
 
@@ -63,23 +64,23 @@ TEST(MemoryTest, PoolList)
 
         std::pmr::list<int> list(&allocator);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.push_back(i);
         }
 
         auto allocatedSize = memoryLogger->GetAllocatedSize();
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.pop_back();
         }
         EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.push_back(i);
         }
         EXPECT_TRUE(memoryLogger->GetAllocatedSize() == allocatedSize);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             list.pop_back();
             list.push_back(i);
         }

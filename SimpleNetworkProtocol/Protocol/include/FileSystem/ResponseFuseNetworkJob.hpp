@@ -27,13 +27,13 @@ public:
     void InitReader(Reader&& reader);
     Reader& GetReader();
     Message GetFreeReadPackets();
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
 protected:
     Leaf& GetLeaf(fuse_ino_t inode, FileTree& fileTree);
     fuse_ino_t GetINode(const Leaf& leaf);
 
 private:
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
     Reader _reader;
 };

@@ -74,7 +74,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
 
     namelen = name.size();
     entlen = FUSE_NAME_OFFSET + namelen;
-    entlen_padded = (((entlen) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entlen_padded = ((entlen + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {
         GetPacket().SetPayloadSize(_offset);
@@ -85,7 +85,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
     operator<<(inode);
     operator<<(off);
     operator<<(namelen);
-    operator<<(mode & S_IFMT >> 12U);
+    operator<<((mode & S_IFMT) >> 12U);
     write(name.data(), name.size());
     std::string zero(entlen_padded - entlen, '\0');
     write(zero.data(), zero.size());
@@ -96,7 +96,7 @@ size_t DirectoryEntryWriter::GetEntryPlusSize(std::string_view name)
 {
     constexpr size_t FUSE_NAME_OFFSET_DIRENTPLUS = offsetof(struct fuse_direntplus, dirent.name);
     size_t entryPlusSize = FUSE_NAME_OFFSET_DIRENTPLUS + name.size();
-    entryPlusSize = (((entryPlusSize) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entryPlusSize = ((entryPlusSize + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
     return entryPlusSize;
 }
 
@@ -109,7 +109,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
 
     namelen = name.size();
     entlen = FUSE_NAME_OFFSET_DIRENTPLUS + namelen;
-    entlen_padded = (((entlen) + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+    entlen_padded = ((entlen + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {
         GetPacket().SetPayloadSize(_offset);
@@ -133,7 +133,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
     const uint32_t atimensec = 0;
     const uint32_t mtimensec = 0;
     const uint32_t ctimensec = 0;
-    const auto mode = static_cast<std::uint32_t>(stbuf->st_mode & S_IFMT >> 12U);
+    const auto mode = static_cast<std::uint32_t>(stbuf->st_mode);
     const uint32_t nlink = stbuf->st_nlink;
     const uint32_t uid = stbuf->st_uid;
     const uint32_t gid = stbuf->st_gid;
@@ -168,7 +168,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
     operator<<(stbuf->st_ino);
     operator<<(off);
     operator<<(namelen);
-    operator<<(stbuf->st_mode & S_IFMT >> 12U);
+    operator<<((stbuf->st_mode & S_IFMT) >> 12U);
     write(name.data(), name.size());
     std::string zero(entlen_padded - entlen, '\0');
     write(zero.data(), zero.size());
@@ -208,21 +208,17 @@ IPacket& DirectoryEntryWriter::GetNextPacket()
 
 DirectoryEntryWriter& DirectoryEntryWriter::write(const void* data, std::size_t size)
 {
-    const auto* bytes = reinterpret_cast<const std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-
-    while (size > 0) {
+    auto src = std::span(static_cast<const std::byte*>(data), size);
+    while (!src.empty()) {
         auto& packet = GetPacket();
-        auto payload = packet.GetPayload();
-        if (_offset == payload.size()) {
+        if (_offset == packet.GetPayload().size()) {
             packet = GetNextPacket();
         }
 
-        auto writeSize = std::min<std::uint32_t>(size, packet.GetPayload().size() - _offset);
-        std::memcpy(packet.GetPayload().data() + _offset, bytes, writeSize);
+        auto writeSize = std::min(src.size(), packet.GetPayload().size() - _offset);
+        std::memcpy(packet.GetPayload().subspan(_offset).data(), src.data(), writeSize);
         _offset += writeSize;
-
-        size -= writeSize;
-        bytes += writeSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        src = src.subspan(writeSize);
     }
 
     return *this;

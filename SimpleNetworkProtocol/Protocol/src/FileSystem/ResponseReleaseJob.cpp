@@ -19,7 +19,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
     int file = 0;
-    FileSystem::FileHandle* handle = nullptr;
+    const FileSystem::FileHandle* handle = nullptr;
     reader >> request;
     reader >> inode;
     reader >> file;

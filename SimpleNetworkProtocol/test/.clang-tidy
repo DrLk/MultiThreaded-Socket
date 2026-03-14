@@ -14,7 +14,12 @@ Checks:               '*,
                       -bugprone-easily-swappable-parameters,
                       -google-readability-todo,
                       -misc-include-cleaner,
-                      -performance-enum-size'
+                      -performance-enum-size,
+                      -portability-avoid-pragma-once,
+                      -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+                      -cert-dcl58-cpp,
+                      -llvm-prefer-static-over-anonymous-namespace,
+                      -boost-use-ranges'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes

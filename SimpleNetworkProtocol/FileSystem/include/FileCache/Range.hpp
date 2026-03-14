@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "MultiList.hpp"
 #include "IPacket.hpp"
+#include "MultiList.hpp"
 
 namespace FastTransport::Protocol {
 class IPacket;

@@ -42,10 +42,9 @@ TEST(TimeRangedStatsTest, AddPacket)
 
     const std::vector<SampleStats>& samples = stats.GetSamplesStats();
 
-    auto sample = std::find_if(
-        samples.begin(), samples.end(), [now](const SampleStats& sample) {
-            return sample.GetStart() <= now && sample.GetEnd() >= now;
-        });
+    auto sample = std::ranges::find_if(samples, [now](const SampleStats& sample) {
+        return sample.GetStart() <= now && sample.GetEnd() >= now;
+    });
 
     EXPECT_EQ(sample->GetAllPackets(), 1);
     EXPECT_EQ(sample->GetLostPackets(), 0);
@@ -67,10 +66,9 @@ TEST(TimeRangedStatsTest, AddPacket2)
 
     const std::vector<SampleStats>& samples = stats.GetSamplesStats();
 
-    auto sample = std::find_if(
-        samples.begin(), samples.end(), [now](const SampleStats& sample) {
-            return sample.GetStart() <= now && sample.GetEnd() >= now;
-        });
+    auto sample = std::ranges::find_if(samples, [now](const SampleStats& sample) {
+        return sample.GetStart() <= now && sample.GetEnd() >= now;
+    });
 
     EXPECT_EQ(sample->GetAllPackets(), 1);
     EXPECT_EQ(sample->GetLostPackets(), 0);
@@ -170,7 +168,7 @@ TEST(TimeRangedStatsTest, UpdateStats2)
             return accumulator + sample.GetAllPackets();
         });
 
-    auto sample = std::find_if(samples.begin(), samples.end(),
+    auto sample = std::ranges::find_if(samples,
         [](const SampleStats& sample) {
             return sample.GetAllPackets() == packetCount;
         });

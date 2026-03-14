@@ -22,73 +22,86 @@ public:
         if (size() < HeaderSize) {
             return false;
         }
-
-        return *reinterpret_cast<MagicNumber*>(data()) == Magic_Number; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        MagicNumber magic {};
+        std::memcpy(&magic, data(), sizeof(magic));
+        return magic == Magic_Number;
     }
 
     [[nodiscard]] PacketType GetPacketType() const
     {
-        return *reinterpret_cast<PacketType*>(data() + sizeof(MagicNumber)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        PacketType result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber)).data(), sizeof(result));
+        return result;
     }
 
     [[nodiscard]] ConnectionID GetSrcConnectionID() const
     {
-        return *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        ConnectionID result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber) + sizeof(PacketType)).data(), sizeof(result));
+        return result;
     }
 
     [[nodiscard]] ConnectionID GetDstConnectionID() const
     {
-        return *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        ConnectionID result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)).data(), sizeof(result));
+        return result;
     }
 
     [[nodiscard]] SeqNumberType GetSeqNumber() const
     {
-        return *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        SeqNumberType result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID)).data(), sizeof(result));
+        return result;
     }
 
     [[nodiscard]] SeqNumberType GetAckNumber() const
     {
-        return *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        SeqNumberType result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)).data(), sizeof(result));
+        return result;
     }
 
     [[nodiscard]] PayloadSizeType GetPayloadSize() const
     {
-        return *reinterpret_cast<PayloadSizeType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        PayloadSizeType result {};
+        std::memcpy(&result, subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)).data(), sizeof(result));
+        return result;
     }
 
     void SetMagic()
     {
-        *reinterpret_cast<MagicNumber*>(data()) = Magic_Number; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(data(), &Magic_Number, sizeof(Magic_Number));
     }
 
     void SetPacketType(PacketType type)
     {
-        *reinterpret_cast<PacketType*>(data() + sizeof(MagicNumber)) = type; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber)).data(), &type, sizeof(type));
     }
 
     void SetSrcConnectionID(ConnectionID connectionId)
     {
-        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType)) = connectionId; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber) + sizeof(PacketType)).data(), &connectionId, sizeof(connectionId));
     }
 
     void SetDstConnectionID(ConnectionID connectionId)
     {
-        *reinterpret_cast<ConnectionID*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)) = connectionId; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID)).data(), &connectionId, sizeof(connectionId));
     }
 
     void SetSeqNumber(SeqNumberType seq)
     {
-        *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID)) = seq; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID)).data(), &seq, sizeof(seq));
     }
 
     void SetAckNumber(SeqNumberType ack)
     {
-        *reinterpret_cast<SeqNumberType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)) = ack; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType)).data(), &ack, sizeof(ack));
     }
 
     void SetPayloadSize(PayloadSizeType payloadSize)
     {
-        *reinterpret_cast<PayloadSizeType*>(data() + sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)) = payloadSize; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(subspan(sizeof(MagicNumber) + sizeof(PacketType) + sizeof(ConnectionID) + sizeof(ConnectionID) + sizeof(SeqNumberType) + sizeof(SeqNumberType)).data(), &payloadSize, sizeof(payloadSize));
     }
 };
 
@@ -102,13 +115,13 @@ public:
 
     [[nodiscard]] std::span<SeqNumberType> GetAcks() const
     {
-        return { reinterpret_cast<SeqNumberType*>(_start + HeaderSize), Header(_start, _size).GetPayloadSize() / sizeof(SeqNumberType) }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        return { reinterpret_cast<SeqNumberType*>(std::next(_start, HeaderSize)), Header(_start, _size).GetPayloadSize() / sizeof(SeqNumberType) }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
 
     void SetAcks(std::span<const SeqNumberType> acks)
     {
         Header(_start, _size).SetPayloadSize(acks.size() * sizeof(SeqNumberType));
-        std::copy(acks.begin(), acks.end(), reinterpret_cast<SeqNumberType*>(_start + HeaderSize)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::ranges::copy(acks, reinterpret_cast<SeqNumberType*>(std::next(_start, HeaderSize))); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
 
     [[nodiscard]] bool IsValid() const
@@ -132,13 +145,13 @@ public:
 
     [[nodiscard]] std::span<PayloadType> GetPayload() const
     {
-        return { reinterpret_cast<PayloadType*>(_start + HeaderSize), Header(_start, HeaderSize).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        return { reinterpret_cast<PayloadType*>(std::next(_start, HeaderSize)), Header(_start, HeaderSize).GetPayloadSize() }; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
 
     void SetPayload(std::span<const PayloadType> payload)
     {
         Header(_start, _size).SetPayloadSize(payload.size());
-        std::memcpy(_start + HeaderSize, payload.data(), payload.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        std::memcpy(std::next(_start, HeaderSize), payload.data(), payload.size());
     }
 
     void SetPayloadSize(std::size_t size)

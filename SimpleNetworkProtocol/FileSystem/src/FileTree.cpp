@@ -1,8 +1,14 @@
 #include "FileTree.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <climits>
+#include <cstddef>
 #include <filesystem>
+#include <fuse3/fuse_lowlevel.h>
 #include <memory>
+#include <sys/types.h>
+#include <utility>
 
 #include "FileCache/FileCache.hpp"
 #include "Leaf.hpp"
@@ -64,35 +70,51 @@ std::unique_ptr<fuse_bufvec> FileTree::GetData(fuse_ino_t inode, off_t offset, s
 
 FileTree::Data FileTree::AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data)
 {
-    int packetsNumber = static_cast<int>(data.size());
+    const int packetsNumber = static_cast<int>(data.size());
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     auto freePackets = leaf.AddData(offset, size, std::move(data));
+    const int added = packetsNumber - static_cast<int>(freePackets.size());
     auto entry = _cache.find(inode);
     if (entry != _cache.end()) {
-        entry->second += packetsNumber - static_cast<int>(freePackets.size());
+        entry->second += added;
     } else {
-        _cache.insert({ inode, packetsNumber - freePackets.size() });
+        _cache.insert({ inode, added });
     }
+    _totalCachedPackets += added;
 
     return freePackets;
 }
 
-FreeData FileTree::GetFreeData(size_t index)
+FreeData FileTree::GetFreeData()
 {
     if (_cache.empty()) {
         return {};
     }
 
     auto entry = _cache.begin();
-    fuse_ino_t inode = entry->first;
+    const fuse_ino_t inode = entry->first;
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
-    auto [offset, data] = leaf.ExtractBlock(index);
-    entry->second -= static_cast<int>(data.size());
+    const size_t blockIndex = leaf.GetFirstBlockIndex();
+    if (blockIndex == SIZE_MAX) {
+        return {};
+    }
+    auto [offset, data] = leaf.ExtractBlock(blockIndex);
+    const int extracted = static_cast<int>(data.size());
+    entry->second -= extracted;
     assert(entry->second >= 0);
     if (entry->second == 0) {
         _cache.erase(entry);
     }
-    return { .inode = inode, .offset = offset, .data = std::move(data) };
+    _totalCachedPackets -= extracted;
+
+    const size_t blockStart = blockIndex * static_cast<size_t>(Leaf::BlockSize);
+    const size_t size = static_cast<size_t>(std::min(Leaf::BlockSize, static_cast<ssize_t>(leaf.GetSize()) - static_cast<ssize_t>(blockStart)));
+    return { .inode = inode, .offset = offset, .size = size, .data = std::move(data) };
+}
+
+bool FileTree::NeedsEviction() const
+{
+    return _totalCachedPackets > MaxCachePackets;
 }
 
 FileCache::FileCache& FileTree::GetFileCache()

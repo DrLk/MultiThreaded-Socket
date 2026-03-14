@@ -27,10 +27,11 @@ public:
     ConnectionAddr(std::string_view addr, uint16_t port)
     {
         std::memset(&_storage, 0, sizeof(_storage));
-        if (inet_pton(AF_INET, addr.data(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        const std::string addrStr(addr);
+        if (inet_pton(AF_INET, addrStr.c_str(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET;
             (reinterpret_cast<sockaddr_in*>(&_storage))->sin_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        } else if (inet_pton(AF_INET6, addr.data(), &(reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        } else if (inet_pton(AF_INET6, addrStr.c_str(), &(reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET6;
             (reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         }

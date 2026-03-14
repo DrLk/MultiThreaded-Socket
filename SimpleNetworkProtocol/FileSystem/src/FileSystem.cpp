@@ -1,6 +1,7 @@
 #include "FileSystem.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
@@ -12,7 +13,9 @@
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
+#include <poll.h>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
@@ -69,7 +72,7 @@ FileSystem::FileSystem(std::string_view mountpoint)
 {
 }
 
-void FileSystem::Start()
+void FileSystem::Start(std::stop_token stop)
 {
     _fuseOperations = {
         .init = FuseInit,
@@ -95,26 +98,84 @@ void FileSystem::Start()
     fuse_opt_add_arg(&args, _mountpoint.c_str());
     fuse_opt_add_arg(&args, "-oauto_unmount");
 
-    fuse_session* session = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), &_tree);
+    _session = fuse_session_new(&args, &_fuseOperations, sizeof(_fuseOperations), &_tree);
+    fuse_opt_free_args(&args);
 
-    if (session == nullptr) {
+    if (_session == nullptr) {
         throw std::runtime_error("Failed to fuse_session_new");
     }
 
-    if (fuse_set_signal_handlers(session) != 0) {
+    if (fuse_set_signal_handlers(_session) != 0) {
+        fuse_session_destroy(_session);
+        _session = nullptr;
         throw std::runtime_error("Failed to fuse_set_signal_handlers");
     }
 
-    if (fuse_session_mount(session, _mountpoint.c_str()) != 0) {
+    if (fuse_session_mount(_session, _mountpoint.c_str()) != 0) {
+        fuse_remove_signal_handlers(_session);
+        fuse_session_destroy(_session);
+        _session = nullptr;
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
     fuse_daemonize(1);
 
-    /* Block until ctrl+c or fusermount -u */
-    const int result = fuse_session_loop(session);
-    if (result != 0) {
+    int result = 0;
+    {
+        const std::stop_callback onStop(stop, [this]() {
+            fuse_session_exit(_session);
+        });
+
+        // Custom loop with poll() timeout so fuse_session_exit() is checked
+        // periodically without needing to interrupt a blocking read() from
+        // another thread (which would be a data race on the FUSE fd).
+        while (fuse_session_exited(_session) == 0) {
+            struct pollfd pfd = { .fd = fuse_session_fd(_session), .events = POLLIN, .revents = 0 };
+            const int ret = poll(&pfd, 1, 100 /*ms*/);
+            if (ret < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                result = -errno;
+                break;
+            }
+            if (ret == 0) {
+                continue; // timeout — recheck fuse_session_exited()
+            }
+
+            fuse_buf buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
+            const int res = fuse_session_receive_buf(_session, &buf);
+            const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
+            if (res == 0) {
+                break; // unmounted cleanly
+            }
+            if (res < 0) {
+                if (res != -EINTR && res != -EAGAIN) {
+                    result = res;
+                }
+                break;
+            }
+            fuse_session_process_buf(_session, &buf);
+        }
+    } // onStop destructor deregisters the callback
+
+    // Remove signal handlers now that the poll loop has exited.
+    // fuse_session_unmount() and fuse_session_destroy() are deferred to
+    // ~FileSystem() so that async fuse_reply_* calls in worker threads
+    // (TaskScheduler queues) complete before the session is freed.
+    // The -oauto_unmount option ensures the mount is cleaned up when the
+    // FUSE fd is closed inside fuse_session_destroy().
+    fuse_remove_signal_handlers(_session);
+
+    if (result != 0 && !stop.stop_requested()) {
         throw std::runtime_error("Failed to fuse_session_loop");
+    }
+}
+
+FileSystem::~FileSystem()
+{
+    if (_session != nullptr) {
+        fuse_session_destroy(_session);
     }
 }
 // NOLINTBEGIN

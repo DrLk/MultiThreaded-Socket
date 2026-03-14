@@ -12,7 +12,7 @@ public:
     [[nodiscard]] const std::array<uint8_t, 32>& GetHash() const;
 
 private:
-    std::array<uint8_t, 32> _hash;
+    std::array<uint8_t, 32> _hash {};
 };
 
 } // namespace FastTransport::FileSystem::FileCache

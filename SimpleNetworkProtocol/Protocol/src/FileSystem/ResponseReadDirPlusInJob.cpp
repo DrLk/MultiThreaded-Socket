@@ -1,5 +1,6 @@
 #include "ResponseReadDirPlusInJob.hpp"
 
+#include <bit>
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
@@ -32,7 +33,7 @@ ResponseInFuseNetworkJob::Message ResponseReadDirPlusInJob::ExecuteResponse(ITas
         auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         buffer.mem = packet->GetPayload().data();
         buffer.size = packet->GetPayload().size();
-        buffer.flags = static_cast<fuse_buf_flags>(0); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        buffer.flags = std::bit_cast<fuse_buf_flags>(0);
         buffer.pos = 0;
     }
     buffVector->count = data.size();

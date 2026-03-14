@@ -1,5 +1,8 @@
 #include "MemoryLogger.hpp"
 
+#include <cstddef>
+#include <memory_resource>
+
 #include "Logger.hpp"
 
 namespace FastTransport::Memory {
@@ -29,7 +32,6 @@ void MemoryLogger::do_deallocate(void* memory, std::size_t bytes, std::size_t al
 
 bool MemoryLogger::do_is_equal(const std::pmr::memory_resource& other) const noexcept
 {
-    LOGGER() << "is_equal";
     return _resource->is_equal(other);
 }
 } // namespace FastTransport::Memory

@@ -230,7 +230,7 @@ private:
             return 0;
         }
 
-        return allPackets.value() - lostPackets.value() * LostRatio;
+        return allPackets.value() - (lostPackets.value() * LostRatio);
     }
 };
 

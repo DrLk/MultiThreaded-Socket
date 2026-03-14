@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <stop_token>
 #include <utility>
@@ -39,14 +38,12 @@ ConnectionReader& ConnectionReader::read(void* data, std::size_t size)
         }
     }
 
-    auto* bytes = reinterpret_cast<std::byte*>(data); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    while (size > 0) {
-        auto readSize = std::min<std::uint32_t>(size, GetPacket().GetPayload().size() - _offset);
-        std::memcpy(bytes, GetPacket().GetPayload().data() + _offset, readSize);
+    auto dest = std::span(static_cast<std::byte*>(data), size);
+    while (!dest.empty()) {
+        auto readSize = std::min(dest.size(), GetPacket().GetPayload().size() - _offset);
+        std::memcpy(dest.data(), GetPacket().GetPayload().subspan(_offset).data(), readSize);
         _offset += readSize;
-
-        size -= readSize;
-        bytes += readSize; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        dest = dest.subspan(readSize);
     }
     return *this;
 }

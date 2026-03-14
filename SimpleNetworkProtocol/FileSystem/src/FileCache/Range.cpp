@@ -1,5 +1,9 @@
 #include "Range.hpp"
 
+#include <cstddef>
+#include <sys/types.h>
+#include <utility>
+
 namespace FastTransport::FileSystem::FileCache {
 
 Range::Range(off_t offset, size_t size, Data&& data)

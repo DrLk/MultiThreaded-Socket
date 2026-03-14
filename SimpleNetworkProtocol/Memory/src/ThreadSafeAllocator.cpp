@@ -1,6 +1,9 @@
 #include "ThreadSafeAllocator.hpp"
 
+#include <cstddef>
+#include <memory_resource>
 #include <mutex>
+#include <utility>
 
 namespace FastTransport::Memory {
 

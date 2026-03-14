@@ -9,7 +9,7 @@
 
 namespace FastTransport::Protocol {
 
-enum Settings {
+enum class Settings {
     MaxSpeed = 0,
     MinSpeed = 1,
     Max = 2

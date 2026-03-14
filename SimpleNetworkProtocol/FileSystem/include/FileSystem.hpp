@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <stop_token>
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,7 +21,12 @@ class FileSystem {
 
 public:
     explicit FileSystem(std::string_view mountpoint);
-    void Start();
+    FileSystem(const FileSystem&) = delete;
+    FileSystem(FileSystem&&) = delete;
+    FileSystem& operator=(const FileSystem&) = delete;
+    FileSystem& operator=(FileSystem&&) = delete;
+    ~FileSystem();
+    void Start(std::stop_token stop);
 
 protected:
     // NOLINTBEGIN
@@ -68,6 +74,7 @@ private:
     fuse_lowlevel_ops _fuseOperations;
     FileTree _tree;
     std::string _mountpoint;
+    fuse_session* _session = nullptr;
 };
 
 } // namespace FastTransport::FileSystem

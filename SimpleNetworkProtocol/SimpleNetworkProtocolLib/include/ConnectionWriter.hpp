@@ -42,7 +42,7 @@ private:
     Containers::LockedList<IPacket::Ptr> _packetsToSend;
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { 0 };
+    std::size_t _offset { 0 };
     std::stop_token _stop;
     bool _error = false;
     std::jthread _sendThread;
@@ -60,13 +60,14 @@ public:
     PacketReader& operator>>(T& trivial) // NOLINT(fuchsia-overloaded-operator)
     {
         auto readSize = std::min(sizeof(trivial), GetPacket().GetPayload().size() - _offset);
-        std::memcpy(GetPacket().GetPayload().data() + _offset, &trivial, readSize);
-        _offset += readSize; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+        std::memcpy(GetPacket().GetPayload().subspan(_offset).data(), &trivial, readSize);
+        _offset += readSize;
 
-        const std::ptrdiff_t size = sizeof(trivial) - readSize;
-        if (size) {
+        const size_t size = sizeof(trivial) - readSize;
+        if (size > 0) {
             _packet++;
-            std::memcpy(static_cast<std::byte*>(&trivial) + readSize, GetPacket().GetPayload().data(), size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            auto trivialBytes = std::as_writable_bytes(std::span{&trivial, 1});
+            std::memcpy(trivialBytes.subspan(readSize).data(), GetPacket().GetPayload().data(), size);
             _offset = size;
         }
         return *this;
@@ -80,7 +81,7 @@ private:
 
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
-    std::ptrdiff_t _offset { 0 };
+    std::size_t _offset { 0 };
 };
 
 template <trivial T>

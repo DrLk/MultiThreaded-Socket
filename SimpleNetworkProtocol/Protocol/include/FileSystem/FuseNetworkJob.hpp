@@ -26,9 +26,9 @@ public:
     Reader& GetReader();
     Message GetFreeReadPackets();
     FileHandle& GetFileHandle(fuse_file_info* fileInfo);
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
 private:
-    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
     Reader _reader;
 };

@@ -22,7 +22,7 @@ private:
     IPacket::List _freePackets;
     IPacket::List _packets;
     IPacket::List::Iterator _packet { _packets.end() };
-    std::ptrdiff_t _offset { 0 };
+    std::size_t _offset { 0 };
     std::stop_token _stop;
     bool _error = false;
     std::jthread _sendThread;
