@@ -34,7 +34,6 @@ protected:
     fuse_ino_t GetINode(const Leaf& leaf);
 
 private:
-
     Reader _reader;
 };
 

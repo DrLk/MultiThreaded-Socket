@@ -44,7 +44,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     auto& parent = GetLeaf(inode, fileTree);
     size_t writedSize = 0;
     if (offset < 1) {
-        struct stat stbuf { };
+        struct stat stbuf {};
         memset(&stbuf, 0, sizeof(stbuf));
         stat(parent.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = inode;
@@ -52,7 +52,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     }
 
     if (offset < 2) {
-        struct stat stbuf { };
+        struct stat stbuf {};
         memset(&stbuf, 0, sizeof(stbuf));
         stbuf.st_ino = 1;
         writedSize += direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 1);
@@ -71,7 +71,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
             continue;
         }
 
-        struct stat stbuf { };
+        struct stat stbuf {};
         stat(child->second.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = GetINode(child->second);
         writedSize += direcotoryWriter.AddDirectoryEntryPlus(child->first, &stbuf, inodeIndex);

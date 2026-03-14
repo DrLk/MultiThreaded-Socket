@@ -30,7 +30,7 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
     TRACER() << "Execute"
              << " request: " << request;
 
-    Leaf const& leaf = GetLeaf(inode, fileTree);
+    const Leaf& leaf = GetLeaf(inode, fileTree);
     leaf.AddRef();
 
     writer << MessageType::ResponseOpenDir;

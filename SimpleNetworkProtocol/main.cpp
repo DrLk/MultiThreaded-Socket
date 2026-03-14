@@ -81,7 +81,9 @@ void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::str
     sendThread.join();
 }
 
-void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort) { std::jthread recvThread([srcAddress, srcPort](std::stop_token stop) {
+void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
+{
+    std::jthread recvThread([srcAddress, srcPort](std::stop_token stop) {
         FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
         IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
 

@@ -1,7 +1,7 @@
 name: Clang Tidy Diff
 
 on:
-    pull_request
+    push
 
 jobs:
     clang-tidy-diff-job:
@@ -25,16 +25,23 @@ jobs:
                 cd ./SimpleNetworkProtocol/build
                 export CC=clang
                 export CXX=clang++
-                time cmake -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-                time cmake --build . -- -j12
+                time cmake -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DENABLE_PRECOMPILE_HEADERS=OFF ..
 
-            - name: clang-tidy-diff
+            - name: clang-tidy
               shell: bash
               run: |
                 git config --global --add safe.directory "$GITHUB_WORKSPACE"
-                git diff origin/${{ github.base_ref }}...HEAD | \
-                  python3 /usr/bin/clang-tidy-diff-21.py \
-                    -p1 \
-                    -path SimpleNetworkProtocol/build \
-                    -clang-tidy-binary clang-tidy \
-                    -use-color
+                if [ "${{ github.event_name }}" = "pull_request" ]; then
+                  BASE="origin/${{ github.base_ref }}"
+                else
+                  BASE="origin/master"
+                fi
+                CHANGED_FILES=$(git diff --name-only $BASE...HEAD \
+                  | grep -E '\.(cpp|cxx|cc|c|hpp|hxx|h)$' || true)
+                if [ -z "$CHANGED_FILES" ]; then
+                  echo "No C/C++ files changed."
+                  exit 0
+                fi
+                echo "$CHANGED_FILES"
+                echo "$CHANGED_FILES" | xargs -P$(nproc) -I{} \
+                  clang-tidy -p SimpleNetworkProtocol/build --use-color {}

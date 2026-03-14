@@ -5,12 +5,12 @@
 #include "Job.hpp"
 
 namespace FastTransport::Containers {
-    template <class T>
-    class MultiList;
+template <class T>
+class MultiList;
 } // namespace FastTransport::Containers
   //
 namespace FastTransport::Protocol {
-    class IPacket;
+class IPacket;
 } // namespace FastTransport::Protocol
 
 namespace FastTransport::TaskQueue {

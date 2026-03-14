@@ -26,4 +26,4 @@ private:
     std::list<std::filesystem::path> _lruList;
 };
 
-}  // namespace FastTransport::FileSystem::FileCache
+} // namespace FastTransport::FileSystem::FileCache

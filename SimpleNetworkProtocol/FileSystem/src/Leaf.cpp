@@ -177,8 +177,7 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 
     if (oldData == blocks.begin()) {
         blocks.insert(FileCache::Range(offset, size, std::move(data)));
-        if (oldData->GetOffset() >= offset && oldData->GetOffset() + oldData->GetSize() <= offset +size)
-        {
+        if (oldData->GetOffset() >= offset && oldData->GetOffset() + oldData->GetSize() <= offset + size) {
             auto removedData = blocks.extract(oldData);
             return std::move(removedData.value().GetPackets());
         }
@@ -256,8 +255,7 @@ std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
             while (start >= (*packet)->GetPayload().size()) {
                 start -= (*packet)->GetPayload().size();
                 packet++;
-                if (packet == packets.end())
-                {
+                if (packet == packets.end()) {
                     return buffVector;
                 }
             }

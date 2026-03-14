@@ -20,7 +20,7 @@ SendMessageJob::SendMessageJob(Message&& message)
     TRACER() << "Create";
 }
 
-void SendMessageJob::ExecuteWriteNetwork(std::stop_token  /*stop*/, ITaskScheduler&  /*scheduler*/, Protocol::IConnection& connection)
+void SendMessageJob::ExecuteWriteNetwork(std::stop_token /*stop*/, ITaskScheduler& /*scheduler*/, Protocol::IConnection& connection)
 {
     TRACER() << "Execute";
 

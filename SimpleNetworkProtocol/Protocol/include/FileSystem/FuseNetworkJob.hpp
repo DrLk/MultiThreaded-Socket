@@ -29,7 +29,6 @@ public:
     void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
 
 private:
-
     Reader _reader;
 };
 

@@ -107,6 +107,7 @@ public:
 
     void Subscribe(ConnectionEvents& subscriber);
     void NotifySendPacketsEvent() const override;
+
 private:
     std::shared_ptr<ConnectionContext> _context;
     ConnectionKey _key;

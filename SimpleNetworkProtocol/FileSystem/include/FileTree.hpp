@@ -15,7 +15,6 @@ namespace FileCache {
     class FileCache;
 } // namespace FileCache
 
-
 struct FreeData {
     fuse_ino_t inode;
     off_t offset;

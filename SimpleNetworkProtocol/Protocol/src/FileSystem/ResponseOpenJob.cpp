@@ -28,7 +28,7 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
     TRACER() << "Execute"
              << " request: " << request;
 
-    Leaf const& leaf = GetLeaf(inode, fileTree);
+    const Leaf& leaf = GetLeaf(inode, fileTree);
 
     writer << MessageType::ResponseOpen;
     writer << request;

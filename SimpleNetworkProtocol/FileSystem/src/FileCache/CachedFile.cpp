@@ -12,13 +12,13 @@
 
 namespace FastTransport::FileSystem::FileCache {
 
-CachedFile::CachedFile(std::filesystem::path&  /*path*/)
+CachedFile::CachedFile(std::filesystem::path& /*path*/)
     : File(0, std::filesystem::file_type::regular)
 {
 }
 
 CachedFile::~CachedFile()
-= default;
+    = default;
 
 void CachedFile::Open()
 {
@@ -34,12 +34,12 @@ int CachedFile::Close()
     return 0;
 }
 
-int CachedFile::Stat(struct stat&  /*stat*/)
+int CachedFile::Stat(struct stat& /*stat*/)
 {
     return 0;
 }
 
-CachedFile::IPacket::List CachedFile::Read(Protocol::IPacket::List&  /*packets*/, size_t  /*size*/, off_t  /*offset*/)
+CachedFile::IPacket::List CachedFile::Read(Protocol::IPacket::List& /*packets*/, size_t /*size*/, off_t /*offset*/)
 {
     return {};
 }

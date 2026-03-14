@@ -66,7 +66,7 @@ public:
         const size_t size = sizeof(trivial) - readSize;
         if (size > 0) {
             _packet++;
-            auto trivialBytes = std::as_writable_bytes(std::span{&trivial, 1});
+            auto trivialBytes = std::as_writable_bytes(std::span { &trivial, 1 });
             std::memcpy(trivialBytes.subspan(readSize).data(), GetPacket().GetPayload().data(), size);
             _offset = size;
         }

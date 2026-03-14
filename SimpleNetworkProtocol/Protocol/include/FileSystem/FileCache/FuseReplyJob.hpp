@@ -21,4 +21,4 @@ private:
     void PrepareBuffer();
 };
 
-} // namespace FastTransport::FileCache 
+} // namespace FastTransport::FileCache

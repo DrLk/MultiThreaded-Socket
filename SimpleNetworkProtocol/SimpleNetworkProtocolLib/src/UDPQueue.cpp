@@ -1,6 +1,7 @@
 #include "UDPQueue.hpp"
 
 #include <Tracy.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <stop_token>
@@ -67,7 +68,7 @@ IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
     return result;
 }
 
-OutgoingPacket::List UDPQueue::Send(std::stop_token  /*stop*/, OutgoingPacket::List&& data)
+OutgoingPacket::List UDPQueue::Send(std::stop_token /*stop*/, OutgoingPacket::List&& data)
 {
     if (!data.empty()) {
         _sendQueue.LockedSplice(std::move(data));

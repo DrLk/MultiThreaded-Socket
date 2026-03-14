@@ -30,7 +30,6 @@ private:
     DirectoryEntryWriter& operator<<(const T& trivial); // NOLINT(fuchsia-overloaded-operator)
 };
 
-
 template <trivial T>
 DirectoryEntryWriter& DirectoryEntryWriter::operator<<(const T& trivial) // NOLINT(fuchsia-overloaded-operator)
 {

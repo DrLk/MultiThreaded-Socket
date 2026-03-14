@@ -19,7 +19,6 @@
 #include "SendMessageJob.hpp"
 #include "WriteNetworkJob.hpp"
 
-
 #define TRACER() LOGGER() << "[TaskScheduler] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {

@@ -31,7 +31,7 @@ public:
 
     ~LogHelper()
     {
-        _osyncstream << std::endl; //NOLINT(performance-avoid-endl)
+        _osyncstream << std::endl; // NOLINT(performance-avoid-endl)
     }
 
     LogHelper(const LogHelper&) = delete;

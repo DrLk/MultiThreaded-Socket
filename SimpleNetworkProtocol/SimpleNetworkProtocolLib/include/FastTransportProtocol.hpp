@@ -80,6 +80,5 @@ private:
     IPacket::List GetConnectionsFreeRecvPackets();
 
     static ConnectionID GenerateID();
-
 };
 } // namespace FastTransport::Protocol

@@ -7,23 +7,23 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
 
-#include "FileCache/Range.hpp" 
+#include "FileCache/Range.hpp"
 #include "PiecesStatus.hpp"
 
 namespace FastTransport::Containers {
-    template <class T>
-    class MultiList;
+template <class T>
+class MultiList;
 } // namespace FastTransport::Containers
   //
 namespace FastTransport::Protocol {
-    class IPacket;
+class IPacket;
 } // namespace FastTransport::Protocol
 namespace FastTransport::FileSystem {
-
 
 class File;
 

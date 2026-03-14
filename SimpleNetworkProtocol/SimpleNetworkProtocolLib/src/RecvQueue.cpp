@@ -1,7 +1,6 @@
 #include "RecvQueue.hpp"
 
 #include <limits>
-#include <list>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -77,9 +76,9 @@ LockedList<IPacket::Ptr>& RecvQueue::GetUserData()
     return _data;
 }
 
-std::list<SeqNumberType> RecvQueue::GetSelectiveAcks()
+std::vector<SeqNumberType> RecvQueue::GetSelectiveAcks()
 {
-    std::list<SeqNumberType> selectiveAcks;
+    std::vector<SeqNumberType> selectiveAcks;
 
     {
         const std::scoped_lock lock(_selectiveAcksMutex);

@@ -104,18 +104,12 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
 
 uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) const
 {
-    auto tranform = [index](const OutgoingPacket& packet) {
-        auto destination = packet.GetPacket()->GetDstAddr();
+    std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction> packetsByAddress;
+    for (const OutgoingPacket& outgoing : packets) {
+        auto destination = outgoing.GetPacket()->GetDstAddr();
         destination.SetPort(destination.GetPort() + index);
-        return std::pair<ConnectionAddr, std::reference_wrapper<const IPacket::Ptr>> { destination, packet.GetPacket() };
-    };
-
-    auto insertPacket = [](std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction>& map1, const std::pair<ConnectionAddr, std::reference_wrapper<const IPacket::Ptr>>& value) {
-        auto&& [address, packet] = value;
-        map1[address].push_back(packet);
-        return map1;
-    };
-    auto packetsByAddress = std::transform_reduce(packets.begin(), packets.end(), std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction>(), insertPacket, tranform);
+        packetsByAddress[destination].emplace_back(outgoing.GetPacket());
+    }
 
     std::vector<mmsghdr> headers;
     headers.reserve(packetsByAddress.size());
@@ -127,52 +121,41 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
 
     std::vector<IoCtrl> ioCtrls(packetsByAddress.size());
 
-    headers = std::transform_reduce(
-        packetsByAddress.begin(), packetsByAddress.end(), ioCtrls.begin(), headers,
-        [](std::vector<mmsghdr> list, std::vector<mmsghdr> messages) {
-            list.insert(list.end(), messages.begin(), messages.end());
-            return list;
-        },
-        [](auto& arg, auto& ioctrl) {
-            auto& [address, packets] = arg;
+    size_t ioCtrlIndex = 0;
+    for (auto& [address, addrPackets] : packetsByAddress) {
+        auto& ioctrl = ioCtrls[ioCtrlIndex++];
+        std::vector<iovec>& iov = ioctrl.iov;
+        std::vector<char>& ctrl = ioctrl.ctrls;
+        iov.resize(addrPackets.size());
+        ctrl.resize(addrPackets.size());
 
-            std::vector<iovec>& iov = ioctrl.iov;
-            std::vector<char>& ctrl = ioctrl.ctrls;
-            iov.resize(packets.size());
-            ctrl.resize(packets.size());
-
-            std::vector<mmsghdr> messages;
-            messages.reserve((packets.size() / UDPMaxSegments) + 1);
-            auto iovBegin = iov.begin();
-            auto ctrlBegin = ctrl.begin();
-            auto packetChunks = packets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 65000 / GsoSize));
-            for (const auto& packetChunk : packetChunks) {
-
-                auto iovEnd = std::transform(packetChunk.begin(), packetChunk.end(), iovBegin, [](const IPacket::Ptr& packet) {
-                    const iovec iovec {
-                        .iov_base = packet->GetElement().data(),
-                        .iov_len = packet->GetElement().size(),
-                    };
-                    return iovec;
-                });
-
-                const size_t packetChunkSize = packetChunk.size();
-                const struct msghdr message = {
-                    .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
-                    .msg_namelen = sizeof(sockaddr),
-                    .msg_iov = std::addressof(*iovBegin),
-                    .msg_iovlen = packetChunkSize,
-                    .msg_control = std::addressof(*ctrlBegin),
-                    .msg_controllen = 0,
+        auto iovBegin = iov.begin();
+        auto ctrlBegin = ctrl.begin();
+        auto packetChunks = addrPackets | std::views::chunk(std::min<size_t>(UDPMaxSegments, 65000 / GsoSize));
+        for (const auto& packetChunk : packetChunks) {
+            const size_t packetChunkSize = packetChunk.size();
+            std::ranges::transform(packetChunk, iovBegin, [](const IPacket::Ptr& packet) {
+                const iovec iovec {
+                    .iov_base = packet->GetElement().data(),
+                    .iov_len = packet->GetElement().size(),
                 };
+                return iovec;
+            });
 
-                iovBegin += packetChunkSize;
-                assert(iovBegin == iovEnd);
-                ctrlBegin += packetChunkSize;
-                messages.push_back(mmsghdr { .msg_hdr = message });
-            }
-            return messages;
-        });
+            const struct msghdr message = {
+                .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
+                .msg_namelen = sizeof(sockaddr),
+                .msg_iov = std::addressof(*iovBegin),
+                .msg_iovlen = packetChunkSize,
+                .msg_control = std::addressof(*ctrlBegin),
+                .msg_controllen = 0,
+            };
+
+            iovBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
+            ctrlBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
+            headers.push_back(mmsghdr { .msg_hdr = message });
+        }
+    }
 
     std::size_t messageIndex = 0;
     while (messageIndex < headers.size()) {

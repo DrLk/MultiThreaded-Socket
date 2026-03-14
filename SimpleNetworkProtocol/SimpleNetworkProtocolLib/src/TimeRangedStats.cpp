@@ -80,33 +80,30 @@ void TimeRangedStats::UpdateStats(const SampleStats& stats)
         return;
     }
 
-    if (_stats[_startIndex % Size].GetStart() > stats.GetStart()) {
+    const auto windowStart = _stats[_startIndex % Size].GetStart();
+    if (windowStart > stats.GetStart()) {
         return;
     }
 
-    auto neededStats = std::ranges::find_if(_stats, [&stats](const SampleStats& stat) {
-        return stat.GetStart() <= stats.GetStart() && stat.GetEnd() >= stats.GetEnd();
-    });
+    const auto diff = stats.GetStart() - windowStart;
+    const size_t slotIndex = _startIndex + diff / Interval;
 
-    if (neededStats != _stats.end()) {
-        neededStats->Merge(stats);
-    } else {
-        auto diff = stats.GetStart() - _stats[_startIndex % Size].GetStart();
-        const size_t newEndIndex = _startIndex + diff / Interval;
-
-        auto newStartIndex = std::max<size_t>(_startIndex, newEndIndex - Size + 1);
-        auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
-        auto windowStart = _stats[_startIndex % Size].GetStart();
-        for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
-            _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
-            startInterval += Interval;
-        }
-
-        _startIndex = newStartIndex;
-
-        auto slotStart = windowStart + (diff / Interval) * Interval;
-        _stats[newEndIndex % Size] = SampleStats(0, 0, slotStart, slotStart + Interval, 0ms);
-        _stats[newEndIndex % Size].Merge(stats);
+    if (slotIndex < _startIndex + Size) {
+        _stats[slotIndex % Size].Merge(stats);
+        return;
     }
+
+    const auto newStartIndex = std::max<size_t>(_startIndex, slotIndex - Size + 1);
+    auto startInterval = _stats[(_startIndex + Size - 1) % Size].GetEnd();
+    for (size_t i = _startIndex; i < newStartIndex && i < _startIndex + Size; i++) {
+        _stats[i % Size] = SampleStats(0, 0, startInterval, startInterval + Interval, 0ms);
+        startInterval += Interval;
+    }
+
+    _startIndex = newStartIndex;
+
+    const auto slotStart = windowStart + (diff / Interval) * Interval;
+    _stats[slotIndex % Size] = SampleStats(0, 0, slotStart, slotStart + Interval, 0ms);
+    _stats[slotIndex % Size].Merge(stats);
 }
 } // namespace FastTransport::Protocol

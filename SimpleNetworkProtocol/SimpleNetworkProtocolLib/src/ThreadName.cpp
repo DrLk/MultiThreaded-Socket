@@ -1,6 +1,7 @@
 #include "ThreadName.hpp"
 
 #include <cassert>
+#include <string>
 #include <string_view>
 
 #ifdef WIN32

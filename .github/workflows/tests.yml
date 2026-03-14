@@ -19,7 +19,9 @@ jobs:
                 sudo modprobe fuse
 
             - name: Configure kernel network parameters
-              run: sudo sysctl -p ${{ github.workspace }}/SimpleNetworkProtocol/sysctl.conf
+              run: |
+                sudo sysctl -p ${{ github.workspace }}/SimpleNetworkProtocol/sysctl.conf
+                sudo tc qdisc replace dev lo root fq
 
             - name: Login to container registry
               uses: docker/login-action@v3

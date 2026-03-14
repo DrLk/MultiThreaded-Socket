@@ -28,7 +28,7 @@ public:
                                                             //
     template <class T>
     MessageReader& operator>>(std::vector<T>& data); // NOLINT(fuchsia-overloaded-operator)
-    
+
     [[nodiscard]] IPacket::List GetPackets();
     [[nodiscard]] IPacket::List GetFreePackets();
 

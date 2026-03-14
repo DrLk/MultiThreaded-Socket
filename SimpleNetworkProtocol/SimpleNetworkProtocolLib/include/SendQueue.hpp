@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
-#include <set>
+#include <vector>
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
@@ -25,8 +25,10 @@ public:
     [[nodiscard]] OutgoingPacket::List GetServicePacketsToSend() override;
 
 private:
-    static bool OutgoingComparator(const OutgoingPacket& left, const OutgoingPacket& right);
-    std::set<OutgoingPacket, decltype(&OutgoingComparator)> _resendPackets;
+    struct OutgoingComparator {
+        bool operator()(const OutgoingPacket& left, const OutgoingPacket& right) const; // NOLINT(fuchsia-overloaded-operator)
+    };
+    std::vector<OutgoingPacket> _resendPackets;
 
     MultiList<OutgoingPacket> _needToSend;
     MultiList<OutgoingPacket> _serviceNeedToSend;

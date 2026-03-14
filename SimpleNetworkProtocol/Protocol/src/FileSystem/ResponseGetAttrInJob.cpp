@@ -9,7 +9,7 @@
 
 namespace FastTransport::TaskQueue {
 
-ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
+ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
 
     auto& reader = GetReader();
@@ -26,7 +26,7 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskSch
         return {};
     }
 
-    struct stat stbuf { };
+    struct stat stbuf {};
     reader >> stbuf.st_ino;
     reader >> stbuf.st_mode;
     reader >> stbuf.st_nlink;

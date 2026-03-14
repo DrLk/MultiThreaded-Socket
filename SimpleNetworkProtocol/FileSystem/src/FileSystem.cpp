@@ -26,7 +26,7 @@
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
-#define TRACER() LOGGER() << "[FileSystem] "  // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[FileSystem] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
 
@@ -243,7 +243,7 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
              << " request: " << req
              << " inode: " << inode;
 
-    struct stat stbuf { };
+    struct stat stbuf {};
 
     (void)fileInfo;
 
@@ -284,7 +284,7 @@ void FileSystem::FuseInit(void* userdata, struct fuse_conn_info* conn)
 void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name,
     fuse_ino_t ino)
 {
-    struct stat stbuf { };
+    struct stat stbuf {};
     const size_t oldsize = buffer->size;
     buffer->size += fuse_add_direntry(req, nullptr, 0, name, nullptr, 0);
     buffer->p = static_cast<char*>(realloc(buffer->p, buffer->size));

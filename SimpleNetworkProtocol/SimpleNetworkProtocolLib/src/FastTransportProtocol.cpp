@@ -1,8 +1,8 @@
 #include "FastTransportProtocol.hpp"
 
 #include <Tracy.hpp>
+#include <algorithm>
 #include <atomic>
-#include <chrono>
 #include <functional>
 #include <mutex>
 #include <shared_mutex>
@@ -101,13 +101,14 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
         throw std::runtime_error("Not implemented");
     }
 
+    Connection::Ptr foundConnection;
+
     {
         std::shared_lock sharedLock(_connectionsMutex);
-        auto connection = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetDstConnectionID()));
+        const auto connectionIt = _connections.find(ConnectionKey(packet->GetDstAddr(), packet->GetDstConnectionID()));
 
-        if (connection != _connections.end()) {
-            auto freeRecvPackets = connection->second->OnRecvPackets(std::move(packet));
-            freePackets.splice(std::move(freeRecvPackets));
+        if (connectionIt != _connections.end()) {
+            foundConnection = connectionIt->second;
         } else {
             auto [connection, freeRecvPackets] = ListenState::Listen(std::move(packet), GenerateID());
             if (connection != nullptr) {
@@ -127,8 +128,11 @@ IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
             }
 
             freePackets.splice(std::move(freeRecvPackets));
+            return freePackets;
         }
     }
+
+    freePackets.splice(foundConnection->OnRecvPackets(std::move(packet)));
 
     return freePackets;
 }
@@ -219,8 +223,14 @@ void FastTransportContext::CheckRecvQueue()
 void FastTransportContext::RemoveRecvClosedConnections()
 {
     ZoneScopedN("RemoveRecvClosedConnections");
-    const std::scoped_lock lock(_connectionsMutex);
+    {
+        const std::shared_lock sharedLock(_connectionsMutex);
+        if (std::ranges::none_of(_connections, [](const auto& pair) { return pair.second->IsClosed(); })) {
+            return;
+        }
+    }
 
+    const std::scoped_lock lock(_connectionsMutex);
     std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
         const auto& [key, connection] = that;
 
@@ -233,9 +243,17 @@ void FastTransportContext::RemoveRecvClosedConnections()
         return connection->CanBeDeleted();
     });
 }
+
 void FastTransportContext::RemoveSendClosedConnections()
 {
     ZoneScopedN("RemoveSendClosedConnections");
+    {
+        const std::shared_lock sharedLock(_connectionsMutex);
+        if (std::ranges::none_of(_connections, [](const auto& pair) { return pair.second->IsClosed(); })) {
+            return;
+        }
+    }
+
     const std::scoped_lock lock(_connectionsMutex);
     std::erase_if(_connections, [this](const std::pair<ConnectionKey, Connection::Ptr>& that) {
         const auto& [key, connection] = that;

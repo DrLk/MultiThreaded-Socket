@@ -16,7 +16,7 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
     assert(!_data.empty());
 }
 
-WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler&  /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
+WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
     TRACER() << "Execute"
              << " inode=" << _inode

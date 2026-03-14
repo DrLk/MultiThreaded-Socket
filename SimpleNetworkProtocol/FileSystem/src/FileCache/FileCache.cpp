@@ -34,4 +34,4 @@ void FileCache::CleanupOldFiles()
     }
 }
 
-}  // namespace FastTransport::FileSystem::FileCache
+} // namespace FastTransport::FileSystem::FileCache
