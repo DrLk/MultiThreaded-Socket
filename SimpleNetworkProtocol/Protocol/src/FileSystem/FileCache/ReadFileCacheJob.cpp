@@ -1,6 +1,6 @@
 #include "ReadFileCacheJob.hpp"
 
-#include <cstring>
+#include <algorithm>
 #include <vector>
 
 #include "IPacket.hpp"
@@ -9,6 +9,11 @@
 #include <fuse3/fuse_lowlevel.h>
 
 namespace FastTransport::FileCache {
+
+ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset)
+    : ReadFileCacheJob(request, std::move(file), size, offset, {})
+{
+}
 
 ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset, std::vector<char> appendData)
     : _request(request)
@@ -37,14 +42,17 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
         }
         const auto payload = packet->GetPayload();
         const size_t toCopy = std::min(payload.size(), _size - copied);
-        std::memcpy(buf.data() + copied, payload.data(), toCopy);
+        std::transform(payload.begin(), std::next(payload.begin(), static_cast<std::ptrdiff_t>(toCopy)),
+            std::next(buf.begin(), static_cast<std::ptrdiff_t>(copied)),
+            [](std::byte byte) { return std::to_integer<char>(byte); });
         copied += toCopy;
     }
 
     // If the cache file ended before _size (cross-block read), append pre-fetched memory data.
     if (copied < _size && !_appendData.empty()) {
         const size_t toAppend = std::min(_appendData.size(), _size - copied);
-        std::memcpy(buf.data() + copied, _appendData.data(), toAppend);
+        std::copy_n(_appendData.begin(), static_cast<std::ptrdiff_t>(toAppend),
+            std::next(buf.begin(), static_cast<std::ptrdiff_t>(copied)));
         copied += toAppend;
     }
 

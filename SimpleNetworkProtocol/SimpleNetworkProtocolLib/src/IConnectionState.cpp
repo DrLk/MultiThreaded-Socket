@@ -27,7 +27,7 @@ namespace FastTransport::Protocol {
 std::pair<Connection::Ptr, IPacket::List> ListenState::Listen(IPacket::Ptr&& packet, ConnectionID myID, ConnectionEvents& subscriber)
 {
     if (packet->GetPacketType() == PacketType::Syn) {
-        Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID, subscriber); // NOLINT
+        const Connection::Ptr connection = std::make_shared<Connection>(ConnectionState::WaitingSynState, packet->GetDstAddr(), myID, subscriber);
         auto freePackets = connection->OnRecvPackets(std::move(packet));
         return { connection, std::move(freePackets) };
     }

@@ -1,6 +1,7 @@
 #include "FuseReadFileJob.hpp"
 
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "FileCache/FileCache.hpp"
@@ -67,9 +68,9 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
                     const size_t secondPartSize = static_cast<size_t>(_offset) + _size - blockEnd;
                     auto secondBuffer = tree.GetData(_inode, static_cast<off_t>(blockEnd), secondPartSize);
                     if (secondBuffer && secondBuffer->count > 0) {
-                        for (size_t i = 0; i < secondBuffer->count; ++i) {
-                            const auto* mem = static_cast<const char*>(secondBuffer->buf[i].mem); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                            appendData.insert(appendData.end(), mem, mem + secondBuffer->buf[i].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                        for (const auto& bufEntry : std::span<fuse_buf>(std::data(secondBuffer->buf), secondBuffer->count)) {
+                            const auto* mem = static_cast<const char*>(bufEntry.mem);
+                            appendData.insert(appendData.end(), mem, std::next(mem, static_cast<std::ptrdiff_t>(bufEntry.size)));
                         }
                     }
                 }

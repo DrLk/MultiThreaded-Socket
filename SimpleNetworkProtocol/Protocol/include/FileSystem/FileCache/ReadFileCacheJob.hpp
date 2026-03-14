@@ -12,7 +12,8 @@ namespace FastTransport::FileCache {
 
 class ReadFileCacheJob : public TaskQueue::DiskJob {
 public:
-    ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset, std::vector<char> appendData = {});
+    ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset);
+    ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset, std::vector<char> appendData);
     Data ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Data&& free) override;
 
 private:
