@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileSystem/ResponseInFuseNetworkJob.hpp"
+#include "IPacket.hpp"
 #include <memory>
 #include <stop_token>
 
@@ -37,6 +38,7 @@ public:
     virtual void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) = 0;
     virtual void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) = 0;
     virtual void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) = 0;
+    virtual void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) = 0;
 };
 
 } // namespace FastTransport::TaskQueue

@@ -1,6 +1,7 @@
 #include "FuseReadFileJob.hpp"
 
 #include <memory>
+#include <vector>
 
 #include "FileCache/FileCache.hpp"
 #include "ITaskScheduler.hpp"
@@ -53,7 +54,28 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
 
         if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::OnDisk) {
             const FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
-            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
+
+            // If the read spans into the next block and that block is NOT on disk (it's in
+            // memory), the cache file ends at the block boundary and preadv would return a
+            // short read.  Pre-copy the second block's portion from memory so
+            // ReadFileCacheJob can assemble a full reply.
+            std::vector<char> appendData;
+            const size_t blockEnd = (blockIndex + 1) * static_cast<size_t>(Leaf::BlockSize);
+            if (static_cast<size_t>(_offset) + _size > blockEnd) {
+                const size_t nextBlockIndex = blockEnd / static_cast<size_t>(Leaf::BlockSize);
+                if (leaf.GetPiecesStatus()->GetStatus(nextBlockIndex) != FileSystem::PieceStatus::OnDisk) {
+                    const size_t secondPartSize = static_cast<size_t>(_offset) + _size - blockEnd;
+                    auto secondBuffer = tree.GetData(_inode, static_cast<off_t>(blockEnd), secondPartSize);
+                    if (secondBuffer && secondBuffer->count > 0) {
+                        for (size_t i = 0; i < secondBuffer->count; ++i) {
+                            const auto* mem = static_cast<const char*>(secondBuffer->buf[i].mem); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                            appendData.insert(appendData.end(), mem, mem + secondBuffer->buf[i].size); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                        }
+                    }
+                }
+            }
+
+            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset, std::move(appendData)));
             return;
         }
 

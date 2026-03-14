@@ -155,4 +155,11 @@ void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
     });
 }
 
+void TaskScheduler::ReturnFreeDiskPackets(Protocol::IPacket::List&& packets)
+{
+    _diskQueue.Async([packets = std::move(packets), this](std::stop_token /*stop*/) mutable {
+        _freeDiskPackets.splice(std::move(packets));
+    });
+}
+
 } // namespace FastTransport::TaskQueue

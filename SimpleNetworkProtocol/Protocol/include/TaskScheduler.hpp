@@ -34,6 +34,7 @@ public:
     void ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job) override;
     void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) override;
     void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) override;
+    void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) override;
 
 private:
     // Data members must be declared before queues so that queues (and their

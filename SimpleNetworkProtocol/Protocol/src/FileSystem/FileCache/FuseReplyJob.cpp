@@ -2,6 +2,7 @@
 
 #include <bit>
 
+#include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[FuseReplyJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -37,12 +38,13 @@ void FuseReplyJob::PrepareBuffer()
     }
 }
 
-FuseReplyJob::Message FuseReplyJob::ExecuteResponse(TaskQueue::ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
+FuseReplyJob::Message FuseReplyJob::ExecuteResponse(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
     TRACER() << "Execute request=" << _request;
     PrepareBuffer();
-    fuse_reply_data(_request, _buffer, fuse_buf_copy_flags::FUSE_BUF_SPLICE_MOVE);
-    return std::move(_packets);
+    fuse_reply_data(_request, _buffer, fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    scheduler.ReturnFreeDiskPackets(std::move(_packets));
+    return {};
 }
 
 } // namespace FastTransport::FileCache
