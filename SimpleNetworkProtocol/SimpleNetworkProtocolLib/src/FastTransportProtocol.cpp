@@ -1,6 +1,7 @@
 #include "FastTransportProtocol.hpp"
 
 #include <Tracy.hpp>
+#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <mutex>

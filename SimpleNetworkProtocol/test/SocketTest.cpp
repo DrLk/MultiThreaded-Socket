@@ -1,4 +1,5 @@
 #include "Socket.hpp"
+#include <Tracy.hpp>
 #include <gtest/gtest.h>
 
 #include <chrono>

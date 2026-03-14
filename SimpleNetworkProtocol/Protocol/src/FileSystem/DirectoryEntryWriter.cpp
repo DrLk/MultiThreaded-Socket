@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <fuse3/fuse_lowlevel.h>
 #include <string_view>
 #include <unistd.h>

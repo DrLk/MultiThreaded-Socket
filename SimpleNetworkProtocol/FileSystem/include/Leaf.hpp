@@ -7,6 +7,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>

@@ -1,6 +1,7 @@
 #include "UDPQueue.hpp"
 
 #include <Tracy.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <stop_token>

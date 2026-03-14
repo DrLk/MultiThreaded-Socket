@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <future>
 #include <stop_token>
 
 #include "ByteStream.hpp"
