@@ -73,33 +73,30 @@ template <class T>
 bool LockedList<T>::Wait(std::stop_token stop)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, stop, [this]() { return !_list.empty(); });
-    return !_list.empty();
+    return _condition.wait(lock, stop, [this]() { return !_list.empty(); });
 }
 
 template <class T>
 template <class Predicate>
 bool LockedList<T>::Wait(std::stop_token stop, const Predicate& predicate)
 {
+    auto fullPredicate = [this, &predicate]() { return !_list.empty() || predicate(); };
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, stop, [this, &predicate]() { return !_list.empty() || predicate(); });
-    return !_list.empty() || predicate();
+    return _condition.wait(lock, stop, std::move(fullPredicate));
 }
 
 template <class T>
 bool LockedList<T>::WaitEmpty(std::stop_token stop)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, stop, [this]() { return _list.empty(); });
-    return _list.empty();
+    return _condition.wait(lock, stop, [this]() { return _list.empty(); });
 }
 
 template <class T>
 bool LockedList<T>::WaitFor(std::stop_token stop)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait_for(lock, stop, 50ms, [this]() { return !_list.empty(); });
-    return !_list.empty();
+    return _condition.wait_for(lock, stop, 50ms, [this]() { return !_list.empty(); });
 }
 
 template <class T>
@@ -107,8 +104,7 @@ template <class Predicate>
 bool LockedList<T>::WaitFor(std::stop_token stop, const Predicate& predicate)
 {
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait_for(lock, stop, 50ms, predicate);
-    return predicate();
+    return _condition.wait_for(lock, stop, 50ms, predicate);
 }
 
 template <class T>
