@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff*)",
+      "Bash(/workspace/.claude/scripts/tidy-get-files.sh*)",
+      "Bash(/workspace/.claude/scripts/tidy-fix.sh*)",
+      "Bash(/workspace/.claude/scripts/tidy-verify.sh*)",
+      "Edit(**.cpp)",
+      "Edit(**.hpp)"
+    ]
+  }
+}
