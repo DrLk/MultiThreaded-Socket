@@ -72,9 +72,8 @@ LockedList<T>::~LockedList() = default;
 template <class T>
 bool LockedList<T>::Wait(std::stop_token stop)
 {
-    std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, [this, &stop]() { return !_list.empty() || stop.stop_requested(); });
+    _condition.wait(lock, stop, [this]() { return !_list.empty(); });
     return !_list.empty();
 }
 
@@ -82,27 +81,24 @@ template <class T>
 template <class Predicate>
 bool LockedList<T>::Wait(std::stop_token stop, const Predicate& predicate)
 {
-    std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, [this, &predicate, &stop]() { return !_list.empty() || predicate() || stop.stop_requested(); });
+    _condition.wait(lock, stop, [this, &predicate]() { return !_list.empty() || predicate(); });
     return !_list.empty() || predicate();
 }
 
 template <class T>
 bool LockedList<T>::WaitEmpty(std::stop_token stop)
 {
-    std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait(lock, [this, &stop]() { return _list.empty() || stop.stop_requested(); });
+    _condition.wait(lock, stop, [this]() { return _list.empty(); });
     return _list.empty();
 }
 
 template <class T>
 bool LockedList<T>::WaitFor(std::stop_token stop)
 {
-    std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait_for(lock, 50ms, [this, &stop]() { return !_list.empty() || stop.stop_requested(); });
+    _condition.wait_for(lock, stop, 50ms, [this]() { return !_list.empty(); });
     return !_list.empty();
 }
 
@@ -110,9 +106,8 @@ template <class T>
 template <class Predicate>
 bool LockedList<T>::WaitFor(std::stop_token stop, const Predicate& predicate)
 {
-    std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
     std::unique_lock<Mutex> lock(_mutex);
-    _condition.wait_for(lock, 50ms, [&predicate, &stop]() { return predicate() || stop.stop_requested(); });
+    _condition.wait_for(lock, stop, 50ms, predicate);
     return predicate();
 }
 

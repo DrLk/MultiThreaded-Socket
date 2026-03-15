@@ -153,9 +153,8 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
 {
     ZoneScopedN("SendQueueStep");
     {
-        std::stop_callback stopCb(stop, [this]() noexcept { _condition.notify_all(); });
         std::unique_lock<Mutex> lock(_mutex);
-        _condition.wait_for(lock, 25ms, [this, &stop]() { return static_cast<bool>(_readySend) || stop.stop_requested(); });
+        _condition.wait_for(lock, stop, 25ms, [this]() { return static_cast<bool>(_readySend); });
         _readySend = false;
     }
 
