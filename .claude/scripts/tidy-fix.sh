@@ -6,6 +6,9 @@ set -euo pipefail
 HOST_SRC="$1"; shift
 FILES="$*"
 
+# Prefix each file with /build/ for use inside the container
+CONTAINER_FILES=$(echo "$FILES" | tr ' ' '\n' | sed 's|^|/build/|')
+
 docker run --rm \
   -u 1000 \
   --mount type=bind,src="$HOST_SRC",dst=/build \
@@ -13,6 +16,6 @@ docker run --rm \
     cd /build/SimpleNetworkProtocol/build &&
     CC=clang CXX=clang++ cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DENABLE_PRECOMPILE_HEADERS=OFF .. &&
     cd /build &&
-    clang-tidy -p SimpleNetworkProtocol/build --fix --fix-errors --use-color $FILES ; true &&
-    clang-format -i $FILES
+    echo '$CONTAINER_FILES' | xargs -P\$(nproc) -I{} clang-tidy -p SimpleNetworkProtocol/build --fix --fix-errors --use-color {} ; true &&
+    echo '$CONTAINER_FILES' | xargs -P\$(nproc) clang-format -i
   "
