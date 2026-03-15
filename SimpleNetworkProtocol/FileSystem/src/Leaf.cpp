@@ -352,12 +352,12 @@ void Leaf::AddPendingRequest(size_t blockIndex, PendingFuseRequest req)
 
 std::vector<PendingFuseRequest> Leaf::TakePendingRequests(size_t blockIndex)
 {
-    auto it = _pendingRequests.find(blockIndex);
-    if (it == _pendingRequests.end()) {
+    auto iter = _pendingRequests.find(blockIndex);
+    if (iter == _pendingRequests.end()) {
         return {};
     }
-    auto result = std::move(it->second);
-    _pendingRequests.erase(it);
+    auto result = std::move(iter->second);
+    _pendingRequests.erase(iter);
     return result;
 }
 

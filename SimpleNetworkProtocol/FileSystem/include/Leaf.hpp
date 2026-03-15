@@ -35,7 +35,7 @@ struct PendingFuseRequest {
     size_t size;
     off_t offset;
     RemoteFileHandle* remoteFile;
-};
+} __attribute__((aligned(64)));
 
 class Leaf {
     using FilePtr = std::unique_ptr<File>;

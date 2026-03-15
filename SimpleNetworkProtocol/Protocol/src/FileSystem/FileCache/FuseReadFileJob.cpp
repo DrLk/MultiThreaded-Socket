@@ -84,7 +84,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
             const off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
             scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         } else {
-            leaf.AddPendingRequest(blockIndex, {.request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile});
+            leaf.AddPendingRequest(blockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
         }
         return;
     }
@@ -106,7 +106,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         if (leaf.SetInFlight(nextBlockIndex)) {
             scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
         } else {
-            leaf.AddPendingRequest(nextBlockIndex, {.request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile});
+            leaf.AddPendingRequest(nextBlockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
         }
         return;
     }
