@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
+option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
 
 project(SimpleNetworkProtocol)
 
@@ -12,6 +13,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(MSVC)
   add_compile_options(/MP)
+endif()
+
+if(ENABLE_TSAN)
+  add_compile_options(-fsanitize=thread)
+  add_link_options(-fsanitize=thread)
 endif()
 
 if(LINUX)
@@ -43,7 +49,6 @@ endif()
 # Unit Tests
 ##############
 option(ENABLE_TESTS "Enable Unit Tests" ON)
-option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
 
 if(ENABLE_TESTS)
   add_subdirectory(external/googletest EXCLUDE_FROM_ALL SYSTEM)
@@ -66,10 +71,7 @@ if(ENABLE_TESTS)
   if(LINUX)
   target_link_libraries(SimpleNetworkProtocolTest PRIVATE FileSystem)
 endif()
-  if(ENABLE_TSAN)
-    target_compile_options(SimpleNetworkProtocolTest PRIVATE -fsanitize=thread)
-    target_link_options(SimpleNetworkProtocolTest PRIVATE -fsanitize=thread)
-  else()
+  if(NOT ENABLE_TSAN)
     target_link_options(SimpleNetworkProtocolTest
         PRIVATE
         -static-libgcc

@@ -336,4 +336,29 @@ std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()
     return _piecesStatus;
 }
 
+bool Leaf::SetInFlight(size_t blockIndex)
+{
+    if (_piecesStatus->GetStatus(blockIndex) == PieceStatus::NotFound) {
+        _piecesStatus->SetStatus(blockIndex, PieceStatus::InFlight);
+        return true;
+    }
+    return false;
+}
+
+void Leaf::AddPendingRequest(size_t blockIndex, PendingFuseRequest req)
+{
+    _pendingRequests[blockIndex].push_back(req);
+}
+
+std::vector<PendingFuseRequest> Leaf::TakePendingRequests(size_t blockIndex)
+{
+    auto it = _pendingRequests.find(blockIndex);
+    if (it == _pendingRequests.end()) {
+        return {};
+    }
+    auto result = std::move(it->second);
+    _pendingRequests.erase(it);
+    return result;
+}
+
 } // namespace FastTransport::FileSystem

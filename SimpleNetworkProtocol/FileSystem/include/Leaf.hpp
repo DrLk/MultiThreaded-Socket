@@ -11,9 +11,11 @@
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
+#include <vector>
 
 #include "FileCache/Range.hpp"
 #include "PiecesStatus.hpp"
+#include "RemoteFileHandle.hpp"
 
 namespace FastTransport::Containers {
 template <class T>
@@ -26,6 +28,14 @@ class IPacket;
 namespace FastTransport::FileSystem {
 
 class File;
+
+struct PendingFuseRequest {
+    fuse_req_t request;
+    fuse_ino_t inode;
+    size_t size;
+    off_t offset;
+    RemoteFileHandle* remoteFile;
+};
 
 class Leaf {
     using FilePtr = std::unique_ptr<File>;
@@ -67,6 +77,10 @@ public:
 
     std::shared_ptr<PiecesStatus> GetPiecesStatus();
 
+    bool SetInFlight(size_t blockIndex);
+    void AddPendingRequest(size_t blockIndex, PendingFuseRequest req);
+    std::vector<PendingFuseRequest> TakePendingRequests(size_t blockIndex);
+
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set
     std::filesystem::path _name;
@@ -77,6 +91,7 @@ private:
 
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
     std::shared_ptr<PiecesStatus> _piecesStatus;
+    std::unordered_map<size_t, std::vector<PendingFuseRequest>> _pendingRequests;
 };
 
 } // namespace FastTransport::FileSystem

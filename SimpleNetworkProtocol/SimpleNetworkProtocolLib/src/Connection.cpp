@@ -61,7 +61,7 @@ Connection ::~Connection() = default;
 IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
     _lastPacketReceive = clock::now();
-    auto [connectionState, freePackets] = _states[_connectionState]->OnRecvPackets(std::move(packet), *this);
+    auto [connectionState, freePackets] = _states[_connectionState.load()]->OnRecvPackets(std::move(packet), *this);
 
     _connectionState = connectionState;
 
@@ -406,8 +406,8 @@ void Connection::NotifySendPacketsEvent() const
 
 void Connection::Run()
 {
-    const auto& connectionState = _states[_connectionState];
-    if (clock::now() - _lastPacketReceive > connectionState->GetTimeout()) {
+    const auto& connectionState = _states[_connectionState.load()];
+    if (clock::now() - _lastPacketReceive.load() > connectionState->GetTimeout()) {
         _connectionState = connectionState->OnTimeOut(*this);
         _lastPacketReceive = clock::now();
     } else {
