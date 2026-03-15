@@ -25,7 +25,7 @@ void PeriodicExecutor::Run()
         auto now = clock::now();
         auto waitInterval = now - _end;
         if ((_interval - waitInterval) > 10ms) {
-            const auto& interval = _interval - waitInterval;
+            auto interval = _interval - waitInterval;
             std::this_thread::sleep_for(interval);
         } else {
             while ((clock::now() - _end) < _interval) {
