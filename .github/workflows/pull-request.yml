@@ -114,4 +114,4 @@ jobs:
                   -v ${{ github.workspace }}:/workspace \
                   -w /workspace \
                   ghcr.io/drlk/clang-tidy-image:v16 \
-                  bash -c "apt-get install -y fuse3 && cd SimpleNetworkProtocol/build && CC=clang CXX=clang++ cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && ./SimpleNetworkProtocolTest"
+                  bash -c "apt-get install -y fuse3 && cd SimpleNetworkProtocol/build && CC=clang CXX=clang++ cmake -G Ninja .. && cmake --build . -- -j\$(nproc) && TSAN_OPTIONS="halt_on_error=1" ./SimpleNetworkProtocolTest"
