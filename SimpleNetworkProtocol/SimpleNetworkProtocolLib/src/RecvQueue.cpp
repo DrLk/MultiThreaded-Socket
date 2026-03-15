@@ -24,7 +24,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
         throw std::runtime_error("Wrong packet number");
     }
 
-    if (packetNumber < _beginFullRecievedAck.load()) {
+    if (packetNumber < _beginFullRecievedAck) {
         {
             const std::scoped_lock lock(_selectiveAcksMutex);
             _selectiveAcks.push_back(packetNumber);
@@ -33,7 +33,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
         return { RecvQueueStatus::Duplicated, std::move(packet) };
     }
 
-    if (packetNumber - _beginFullRecievedAck.load() >= QueueSize) {
+    if (packetNumber - _beginFullRecievedAck >= QueueSize) {
         return { RecvQueueStatus::Full, std::move(packet) };
     }
 
@@ -55,8 +55,8 @@ void RecvQueue::ProccessUnorderedPackets()
 {
     IPacket::List data;
     while (true) {
-        auto& nextPacket = _queue[_beginFullRecievedAck.load() % QueueSize];
-        assert(_beginFullRecievedAck.load() != (std::numeric_limits<SeqNumberType>::max)());
+        auto& nextPacket = _queue[_beginFullRecievedAck % QueueSize];
+        assert(_beginFullRecievedAck != (std::numeric_limits<SeqNumberType>::max)());
         if (!nextPacket) {
             break;
         }
@@ -90,7 +90,7 @@ std::vector<SeqNumberType> RecvQueue::GetSelectiveAcks()
 
 [[nodiscard]] SeqNumberType RecvQueue::GetLastAck() const
 {
-    return _beginFullRecievedAck.load() - 1;
+    return _beginFullRecievedAck - 1;
 }
 
 } // namespace FastTransport::Protocol
