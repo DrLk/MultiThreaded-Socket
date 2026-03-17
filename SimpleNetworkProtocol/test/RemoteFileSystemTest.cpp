@@ -156,7 +156,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
     std::this_thread::sleep_for(500ms);
 
     // Client thread: connects to server and mounts FUSE at MountPoint
-    std::jthread clientThread([](std::stop_token stop) {
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort));
         const ConnectionAddr serverAddr("127.0.0.1", ServerPort);
 
@@ -168,63 +168,62 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
-        // filesystem declared before scheduler so that ~scheduler (joins worker
-        // threads, completing all pending fuse_reply_* calls) runs before
-        // ~filesystem (calls fuse_session_destroy).
-        RemoteFileSystem filesystem(MountPoint);
-        TaskScheduler scheduler(*dstConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        // filesystem must outlive scheduler (scheduler's workers call fuse_reply_*).
+        auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint);
+        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
-        RemoteFileSystem::scheduler = &scheduler;
-        filesystem.Start(stop); // blocks until unmounted or stop requested
+        RemoteFileSystem::scheduler = scheduler.get();
+        filesystem->Start(stop);
 
-        scheduler.Wait(stop);
+        std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
+            const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
+
+            // First: direct read comparison
+            if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
+                std::cerr << "[test] first comparison failed\n";
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+
+            // Second: copy via FUSE and verify
+            if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+            if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
+                std::cerr << "[test] copy comparison failed\n";
+                testResult = false;
+                Unmount();
+                return;
+            }
+
+            // Third: copy again to verify re-reading works
+            if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+            const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
+            testResult = result;
+            stopSource.request_stop();
+            Unmount();
+        });
+
+        readThread.join();
+
+        scheduler->Wait(stop);
+        scheduler.reset();
+        filesystem.reset();
+        // fileTree, dstConnection, dst (FastTransportContext) destructors follow at end of scope
     });
 
-    // Read thread: waits for mount, reads via FUSE and verifies
-    std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
-        std::this_thread::sleep_for(5s);
-
-        const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
-
-        // First: direct read comparison
-        if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
-            std::cerr << "[test] first comparison failed\n";
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-
-        // Second: copy via FUSE and verify
-        if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-        if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
-            std::cerr << "[test] copy comparison failed\n";
-            testResult = false;
-            Unmount();
-            return;
-        }
-
-        // Third: copy again to verify re-reading works
-        if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-        const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
-        std::cerr << "[test] copy2 comparison: copy2Match=" << result << "\n";
-        testResult = result;
-        stopSource.request_stop();
-        Unmount();
-    });
-
-    // Wait for readThread to signal done (max 300s)
+    // Wait for readThread (inside clientThread) to signal done (max 300s)
     auto deadline = std::chrono::steady_clock::now() + 300s;
     while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(100ms);
@@ -237,7 +236,8 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
     serverThread.request_stop();
     clientThread.request_stop();
-    readThread.join();
+    clientThread.join();
+    serverThread.join();
 
     EXPECT_TRUE(testResult) << "File read via FUSE did not match original ("
                             << TestFileSize << " bytes expected)";

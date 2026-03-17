@@ -1,6 +1,7 @@
 #include "ReadFileCacheJob.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <vector>
 
 #include "IPacket.hpp"
@@ -26,14 +27,23 @@ ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::P
 
 TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
+    if (_appendData.empty()) {
+        // Zero-copy path: splice directly from cache file fd to FUSE device.
+        // fuse_reply_data is thread-safe in libfuse3.
+        fuse_bufvec buf = FUSE_BUFVEC_INIT(_size); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        buf.buf[0].flags = std::bit_cast<fuse_buf_flags>(static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));
+        buf.buf[0].fd = _file->GetHandle();
+        buf.buf[0].pos = _offset;
+        fuse_reply_data(_request, &buf, FUSE_BUF_SPLICE_MOVE);
+        return std::move(free);
+    }
+
+    // Cross-block case: first part is on disk, remainder is in appendData (in memory).
     // Capture full payload size before Read() may truncate the last packet.
     const size_t fullPayloadSize = free.empty() ? 0 : free.front()->GetPayload().size();
     Data packets = _file->Read(free, _size, _offset);
 
     // Collect up to _size bytes into a contiguous buffer for fuse_reply_buf.
-    // NativeFile::Read may return more bytes than requested (last packet padding),
-    // so cap at _size to avoid EINVAL from the kernel.
-    // fuse_reply_buf is thread-safe in libfuse3.
     std::vector<char> buf(_size);
     size_t copied = 0;
     for (const auto& packet : packets) {
@@ -48,7 +58,6 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
         copied += toCopy;
     }
 
-    // If the cache file ended before _size (cross-block read), append pre-fetched memory data.
     if (copied < _size && !_appendData.empty()) {
         const size_t toAppend = std::min(_appendData.size(), _size - copied);
         std::copy_n(_appendData.begin(), static_cast<std::ptrdiff_t>(toAppend),
@@ -58,8 +67,6 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
 
     fuse_reply_buf(_request, buf.data(), copied);
 
-    // NativeFile::Read may have truncated the last packet's payload size for a short read.
-    // Reset all packets to full capacity before returning them to the pool.
     if (fullPayloadSize > 0) {
         for (auto& packet : packets) {
             if (packet->GetPayload().size() != fullPayloadSize) {
@@ -68,7 +75,6 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
         }
     }
 
-    // Return all packets (used + remaining free) immediately to the disk pool.
     packets.splice(std::move(free));
     return packets;
 }
