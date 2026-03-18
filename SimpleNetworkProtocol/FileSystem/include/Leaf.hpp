@@ -70,7 +70,7 @@ public:
     std::filesystem::path GetCachePath() const;
 
     Data AddData(off_t offset, size_t size, Data&& data);
-    std::unique_ptr<fuse_bufvec> GetData(off_t offset, size_t size) const;
+    FileCache::PinnedFuseBufVec GetData(off_t offset, size_t size) const;
     std::pair<off_t, Data> ExtractBlock(size_t index);
     size_t GetFirstBlockIndex() const;
     static constexpr ssize_t BlockSize = static_cast<const size_t>(1000 * 1300U);

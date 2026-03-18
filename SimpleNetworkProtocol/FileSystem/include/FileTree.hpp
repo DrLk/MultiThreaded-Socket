@@ -47,7 +47,7 @@ public:
 
     void Scan();
 
-    std::unique_ptr<fuse_bufvec> GetData(fuse_ino_t inode, off_t offset, size_t size);
+    FileCache::PinnedFuseBufVec GetData(fuse_ino_t inode, off_t offset, size_t size) const;
     FileTree::Data AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data);
 
     FreeData GetFreeData();
