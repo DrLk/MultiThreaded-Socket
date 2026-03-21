@@ -5,8 +5,10 @@
 #include <atomic>
 #include <chrono>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
+#include <random>
 #include <stop_token>
 #include <sys/wait.h>
 #include <thread>
@@ -43,6 +45,14 @@ constexpr const char* MountPoint = "/tmp/mnt_rfs_test";
 constexpr const char* CacheDir = "/tmp/rfs_test_cache";
 constexpr const char* CopyFilePath = "/tmp/rfs_test_copy.bin";
 constexpr const char* Copy2FilePath = "/tmp/rfs_test_copy2.bin";
+
+constexpr uint16_t ServerPort2 = 31300;
+constexpr uint16_t ClientPort2 = 31400;
+constexpr const char* MountPoint2 = "/tmp/mnt_rfs_test2";
+constexpr const char* CacheDir2 = "/tmp/rfs_test_cache2";
+
+// Block size must match Leaf::BlockSize (1000 * 1300)
+constexpr size_t FuseBlockSize = 1000UL * 1300UL;
 
 void CreateTestFile()
 {
@@ -120,6 +130,56 @@ bool CopyFileViaMount(const std::string& src, const std::string& dst, const char
     return true;
 }
 
+bool RandomReadComparison(const std::string& original, const std::string& mounted, size_t fileSize)
+{
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg,android-cloexec-open)
+    const int origFd = open(original.c_str(), O_RDONLY | O_CLOEXEC);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg,android-cloexec-open)
+    const int mntFd = open(mounted.c_str(), O_RDONLY | O_CLOEXEC);
+    if (origFd < 0 || mntFd < 0) {
+        if (origFd >= 0) { close(origFd); }
+        if (mntFd >= 0) { close(mntFd); }
+        return false;
+    }
+
+    // Max read size: 3 blocks, so reads regularly cross block boundaries
+    constexpr size_t MaxReadSize = 3 * FuseBlockSize;
+    std::vector<char> origBuf(MaxReadSize);
+    std::vector<char> mntBuf(MaxReadSize);
+
+    std::mt19937_64 rng(std::random_device {}()); // NOLINT(cert-msc51-cpp)
+    std::uniform_int_distribution<size_t> offsetDist(0, fileSize - 1);
+
+    constexpr size_t NumReads = 50;
+    for (size_t i = 0; i < NumReads; ++i) {
+        const size_t offset = offsetDist(rng);
+        const size_t maxSize = std::min(MaxReadSize, fileSize - offset);
+        std::uniform_int_distribution<size_t> sizeDist(1, maxSize);
+        const size_t size = sizeDist(rng);
+
+        const ssize_t origRead = pread(origFd, origBuf.data(), size, static_cast<off_t>(offset));
+        const ssize_t mntRead = pread(mntFd, mntBuf.data(), size, static_cast<off_t>(offset));
+
+        if (origRead != static_cast<ssize_t>(size) || mntRead != static_cast<ssize_t>(size)) {
+            std::cerr << "[test] pread failed at offset=" << offset << " size=" << size
+                      << " origRead=" << origRead << " mntRead=" << mntRead << "\n";
+            close(origFd);
+            close(mntFd);
+            return false;
+        }
+        if (std::memcmp(origBuf.data(), mntBuf.data(), size) != 0) {
+            std::cerr << "[test] mismatch at offset=" << offset << " size=" << size << "\n";
+            close(origFd);
+            close(mntFd);
+            return false;
+        }
+    }
+
+    close(origFd);
+    close(mntFd);
+    return true;
+}
+
 } // namespace
 
 TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-cognitive-complexity)
@@ -156,7 +216,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
     std::this_thread::sleep_for(500ms);
 
     // Client thread: connects to server and mounts FUSE at MountPoint
-    std::jthread clientThread([](std::stop_token stop) {
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort));
         const ConnectionAddr serverAddr("127.0.0.1", ServerPort);
 
@@ -168,63 +228,62 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
-        // filesystem declared before scheduler so that ~scheduler (joins worker
-        // threads, completing all pending fuse_reply_* calls) runs before
-        // ~filesystem (calls fuse_session_destroy).
-        RemoteFileSystem filesystem(MountPoint);
-        TaskScheduler scheduler(*dstConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        // filesystem must outlive scheduler (scheduler's workers call fuse_reply_*).
+        auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint);
+        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
-        RemoteFileSystem::scheduler = &scheduler;
-        filesystem.Start(stop); // blocks until unmounted or stop requested
+        RemoteFileSystem::scheduler = scheduler.get();
+        filesystem->Start(stop);
 
-        scheduler.Wait(stop);
+        std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
+            const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
+
+            // First: direct read comparison
+            if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
+                std::cerr << "[test] first comparison failed\n";
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+
+            // Second: copy via FUSE and verify
+            if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+            if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
+                std::cerr << "[test] copy comparison failed\n";
+                testResult = false;
+                Unmount();
+                return;
+            }
+
+            // Third: copy again to verify re-reading works
+            if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
+                testResult = false;
+                stopSource.request_stop();
+                Unmount();
+                return;
+            }
+            const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
+            testResult = result;
+            stopSource.request_stop();
+            Unmount();
+        });
+
+        readThread.join();
+
+        scheduler->Wait(stop);
+        scheduler.reset();
+        filesystem.reset();
+        // fileTree, dstConnection, dst (FastTransportContext) destructors follow at end of scope
     });
 
-    // Read thread: waits for mount, reads via FUSE and verifies
-    std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
-        std::this_thread::sleep_for(5s);
-
-        const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
-
-        // First: direct read comparison
-        if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
-            std::cerr << "[test] first comparison failed\n";
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-
-        // Second: copy via FUSE and verify
-        if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-        if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
-            std::cerr << "[test] copy comparison failed\n";
-            testResult = false;
-            Unmount();
-            return;
-        }
-
-        // Third: copy again to verify re-reading works
-        if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
-            testResult = false;
-            stopSource.request_stop();
-            Unmount();
-            return;
-        }
-        const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
-        std::cerr << "[test] copy2 comparison: copy2Match=" << result << "\n";
-        testResult = result;
-        stopSource.request_stop();
-        Unmount();
-    });
-
-    // Wait for readThread to signal done (max 300s)
+    // Wait for readThread (inside clientThread) to signal done (max 300s)
     auto deadline = std::chrono::steady_clock::now() + 300s;
     while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(100ms);
@@ -237,10 +296,100 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
     serverThread.request_stop();
     clientThread.request_stop();
-    readThread.join();
+    clientThread.join();
+    serverThread.join();
 
     EXPECT_TRUE(testResult) << "File read via FUSE did not match original ("
                             << TestFileSize << " bytes expected)";
+}
+
+TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-cognitive-complexity)
+{
+    std::filesystem::create_directories(MountPoint2);
+    std::filesystem::remove_all(CacheDir2);
+    std::filesystem::create_directories(CacheDir2);
+    Unmount(); // clean up MountPoint if left over
+    // Ensure test file exists (may have been created by prior test)
+    if (!std::filesystem::exists(TestFilePath)) {
+        CreateTestFile();
+    }
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr("127.0.0.1", ServerPort2));
+        const IConnection::Ptr srcConnection = src.Accept(stop);
+        if (srcConnection == nullptr) {
+            return;
+        }
+        srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+        srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
+        FileTree fileTree("/tmp", CacheDir2);
+        TaskScheduler scheduler(*srcConnection, fileTree);
+        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        scheduler.Wait(stop);
+    });
+
+    std::this_thread::sleep_for(500ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort2));
+        const IConnection::Ptr dstConnection = dst.Connect(ConnectionAddr("127.0.0.1", ServerPort2));
+        dstConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+        dstConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
+
+        FileTree fileTree("/tmp/rfs_client_tree2", CacheDir2);
+        auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint2);
+        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        RemoteFileSystem::scheduler = scheduler.get();
+        filesystem->Start(stop);
+
+        std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
+            const std::string mntFile = std::string(MountPoint2) + "/" + TestFileName;
+            const bool result = RandomReadComparison(TestFilePath, mntFile, TestFileSize);
+            if (!result) {
+                std::cerr << "[test] random read comparison failed\n";
+            }
+            testResult = result;
+            stopSource.request_stop();
+            // Unmount MountPoint2
+            const pid_t pid = fork();
+            if (pid == 0) {
+                std::string prog = "fusermount3";
+                std::string arg1 = "-u";
+                std::string arg2 = MountPoint2;
+                std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
+                execvp(args[0], args.data());
+                _exit(1);
+            }
+            if (pid > 0) {
+                waitpid(pid, nullptr, 0);
+            }
+        });
+
+        readThread.join();
+        scheduler->Wait(stop);
+        scheduler.reset();
+        filesystem.reset();
+    });
+
+    auto deadline = std::chrono::steady_clock::now() + 300s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+
+    if (!stopSource.stop_requested()) {
+        stopSource.request_stop();
+    }
+
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "Random read via FUSE did not match original";
 }
 
 #endif // __linux__

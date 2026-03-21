@@ -1,9 +1,9 @@
 #include "TaskScheduler.hpp"
 
-#include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <stop_token>
-#include <thread>
 
 #include "CacheTreeJob.hpp"
 #include "DiskJob.hpp"
@@ -38,9 +38,10 @@ void TaskScheduler::Schedule(std::unique_ptr<Job>&& job)
 
 void TaskScheduler::Wait(std::stop_token stop)
 {
-    while (!stop.stop_requested()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
+    std::mutex mutex;
+    std::unique_lock<std::mutex> lock(mutex);
+    std::condition_variable_any stopCondition;
+    stopCondition.wait(lock, stop, [] { return false; });
 }
 
 void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)

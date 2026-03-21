@@ -35,14 +35,13 @@ size_t SpeedController::GetNumberPacketToSend()
     }
 
     const auto& state = _states[_currentState];
-    static SpeedControllerState speedState;
-    state->Run(_stats, speedState);
+    state->Run(_stats, _speedState);
 
     const size_t coeficient = 100s / diff;
     if (coeficient != 0) {
         const size_t ration = 1s / TimeRangedStats::Interval;
 
-        const size_t realSpeed = std::clamp<size_t>(speedState.realSpeed, _minSpeed, _maxSpeed);
+        const size_t realSpeed = std::clamp<size_t>(_speedState.realSpeed, _minSpeed, _maxSpeed);
         _number = realSpeed * ration * 100 / coeficient;
         if (_number != 0) {
             _lastSend = now;

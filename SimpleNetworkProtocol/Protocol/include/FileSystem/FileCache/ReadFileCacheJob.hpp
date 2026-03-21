@@ -1,8 +1,9 @@
 #pragma once
 
-#include "DiskJob.hpp"
 #include <fuse3/fuse_lowlevel.h>
-#include <vector>
+
+#include "DiskJob.hpp"
+#include "FileCache/Range.hpp"
 
 namespace FastTransport::FileSystem {
 class NativeFile;
@@ -13,7 +14,8 @@ namespace FastTransport::FileCache {
 class ReadFileCacheJob : public TaskQueue::DiskJob {
 public:
     ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset);
-    ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset, std::vector<char> appendData);
+    ReadFileCacheJob(fuse_req_t request, std::shared_ptr<FileSystem::NativeFile> file, size_t size, off_t offset,
+        FileSystem::FileCache::PinnedFuseBufVec appendData);
     Data ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Data&& free) override;
 
 private:
@@ -21,6 +23,6 @@ private:
     std::shared_ptr<FileSystem::NativeFile> _file;
     size_t _size;
     off_t _offset;
-    std::vector<char> _appendData;
+    FileSystem::FileCache::PinnedFuseBufVec _appendData;
 };
 } // namespace FastTransport::FileCache

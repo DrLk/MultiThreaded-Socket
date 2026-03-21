@@ -28,6 +28,11 @@ class UDPQueue {
 
 public:
     UDPQueue(const ConnectionAddr& address, int threadCount, int sendQueueSizePerThreadCount, int recvQueueSizePerThreadCount);
+    UDPQueue(const UDPQueue&) = delete;
+    UDPQueue(UDPQueue&&) = delete;
+    UDPQueue& operator=(const UDPQueue&) = delete;
+    UDPQueue& operator=(UDPQueue&&) = delete;
+    ~UDPQueue();
     void Init();
 
     IPacket::List Recv(std::stop_token stop, IPacket::List&& freeBuffers);

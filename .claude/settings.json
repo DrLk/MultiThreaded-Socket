@@ -5,6 +5,10 @@
       "Bash(/workspace/.claude/scripts/tidy-get-files.sh*)",
       "Bash(/workspace/.claude/scripts/tidy-fix.sh*)",
       "Bash(/workspace/.claude/scripts/tidy-verify.sh*)",
+      "Bash(/workspace/.claude/scripts/build.sh*)",
+      "Bash(.claude/scripts/build.sh*)",
+      "Bash(/workspace/.claude/scripts/test.sh*)",
+      "Bash(.claude/scripts/test.sh*)",
       "Edit(**.cpp)",
       "Edit(**.hpp)"
     ]

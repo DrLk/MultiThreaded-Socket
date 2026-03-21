@@ -1,21 +1,26 @@
 #include "ReadFileCacheJob.hpp"
 
-#include <algorithm>
-#include <vector>
+#include <bit>
+#include <memory>
+
+#include <fuse3/fuse_lowlevel.h>
 
 #include "IPacket.hpp"
 #include "ITaskScheduler.hpp"
 #include "NativeFile.hpp"
-#include <fuse3/fuse_lowlevel.h>
 
 namespace FastTransport::FileCache {
 
 ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset)
-    : ReadFileCacheJob(request, std::move(file), size, offset, {})
+    : _request(request)
+    , _file(std::move(file))
+    , _size(size)
+    , _offset(offset)
 {
 }
 
-ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset, std::vector<char> appendData)
+ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::Ptr file, size_t size, off_t offset,
+    FileSystem::FileCache::PinnedFuseBufVec appendData)
     : _request(request)
     , _file(std::move(file))
     , _size(size)
@@ -26,51 +31,48 @@ ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::P
 
 TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
-    // Capture full payload size before Read() may truncate the last packet.
-    const size_t fullPayloadSize = free.empty() ? 0 : free.front()->GetPayload().size();
-    Data packets = _file->Read(free, _size, _offset);
-
-    // Collect up to _size bytes into a contiguous buffer for fuse_reply_buf.
-    // NativeFile::Read may return more bytes than requested (last packet padding),
-    // so cap at _size to avoid EINVAL from the kernel.
-    // fuse_reply_buf is thread-safe in libfuse3.
-    std::vector<char> buf(_size);
-    size_t copied = 0;
-    for (const auto& packet : packets) {
-        if (copied >= _size) {
-            break;
-        }
-        const auto payload = packet->GetPayload();
-        const size_t toCopy = std::min(payload.size(), _size - copied);
-        std::transform(payload.begin(), std::next(payload.begin(), static_cast<std::ptrdiff_t>(toCopy)),
-            std::next(buf.begin(), static_cast<std::ptrdiff_t>(copied)),
-            [](std::byte byte) { return std::to_integer<char>(byte); });
-        copied += toCopy;
+    if (!_appendData.HasData()) {
+        // Zero-copy path: splice directly from cache file fd to FUSE device.
+        // fuse_reply_data is thread-safe in libfuse3.
+        fuse_bufvec buf = FUSE_BUFVEC_INIT(_size); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        buf.buf[0].flags = std::bit_cast<fuse_buf_flags>(static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));
+        buf.buf[0].fd = _file->GetHandle();
+        buf.buf[0].pos = _offset;
+        fuse_reply_data(_request, &buf, FUSE_BUF_SPLICE_MOVE);
+        return std::move(free);
     }
 
-    // If the cache file ended before _size (cross-block read), append pre-fetched memory data.
-    if (copied < _size && !_appendData.empty()) {
-        const size_t toAppend = std::min(_appendData.size(), _size - copied);
-        std::copy_n(_appendData.begin(), static_cast<std::ptrdiff_t>(toAppend),
-            std::next(buf.begin(), static_cast<std::ptrdiff_t>(copied)));
-        copied += toAppend;
+    // Cross-block case: first part from disk fd (splice, zero-copy), second part from
+    // pinned in-memory Ranges (direct pointers into Leaf packet payloads, no copy).
+    // _appendData.pin keeps the backing Ranges alive until this function returns.
+    size_t appendTotalSize = 0;
+    for (std::size_t i = 0; i < _appendData.bufvec->count; ++i) {
+        appendTotalSize += _appendData.bufvec->buf[i].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+    const size_t diskSize = _size - appendTotalSize;
+    const std::size_t totalCount = 1 + _appendData.bufvec->count;
+    const std::size_t allocSize = sizeof(fuse_bufvec) + ((_appendData.bufvec->count) * sizeof(fuse_buf));
+    std::unique_ptr<fuse_bufvec> combined(reinterpret_cast<fuse_bufvec*>(new char[allocSize])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    combined->count = totalCount;
+    combined->idx = 0;
+    combined->off = 0;
+
+    // Entry 0: disk portion via fd splice.
+    combined->buf[0] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    combined->buf[0].size = diskSize; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    combined->buf[0].flags = std::bit_cast<fuse_buf_flags>( // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+        static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));
+    combined->buf[0].fd = _file->GetHandle(); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    combined->buf[0].pos = _offset; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+
+    // Entries 1..n: memory portions — direct pointers into pinned Leaf packet payloads.
+    for (std::size_t i = 0; i < _appendData.bufvec->count; ++i) {
+        combined->buf[1 + i] = _appendData.bufvec->buf[i]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
-    fuse_reply_buf(_request, buf.data(), copied);
-
-    // NativeFile::Read may have truncated the last packet's payload size for a short read.
-    // Reset all packets to full capacity before returning them to the pool.
-    if (fullPayloadSize > 0) {
-        for (auto& packet : packets) {
-            if (packet->GetPayload().size() != fullPayloadSize) {
-                packet->SetPayloadSize(fullPayloadSize);
-            }
-        }
-    }
-
-    // Return all packets (used + remaining free) immediately to the disk pool.
-    packets.splice(std::move(free));
-    return packets;
+    fuse_reply_data(_request, combined.get(), FUSE_BUF_SPLICE_MOVE);
+    // _appendData destructs here: pin unpins Ranges → blocks can now be evicted to disk.
+    return std::move(free);
 }
 
 } // namespace FastTransport::FileCache

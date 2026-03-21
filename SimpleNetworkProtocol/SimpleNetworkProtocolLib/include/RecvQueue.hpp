@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <utility>
 #include <vector>
 
@@ -31,7 +32,7 @@ private:
     LockedList<IPacket::Ptr> _data;
     Thread::SpinLock _selectiveAcksMutex;
     std::vector<SeqNumberType> _selectiveAcks;
-    SeqNumberType _beginFullRecievedAck { 1 };
+    std::atomic<SeqNumberType> _beginFullRecievedAck { 1 };
 };
 
 } // namespace FastTransport::Protocol

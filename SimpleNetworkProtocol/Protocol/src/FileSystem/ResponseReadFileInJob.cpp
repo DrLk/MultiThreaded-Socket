@@ -6,7 +6,9 @@
 #include <stop_token>
 #include <sys/types.h>
 
+#include "FileCache/FuseReadFileJob.hpp"
 #include "ITaskScheduler.hpp"
+#include "Leaf.hpp"
 #include "Logger.hpp"
 #include "WriteFileCacheJob.hpp"
 
@@ -50,10 +52,22 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
     const size_t replySize = std::min(readed + skipped, size);
 
     auto freePackets = fileTree.AddData(inode, offset + skipped, readed, std::move(data));
-    auto buffVector = fileTree.GetData(inode, offset, replySize);
-    TRACER() << "reply replySize=" << replySize << " buffCount=" << buffVector->count
-             << " offset=" << offset << " skipped=" << skipped << " readed=" << readed;
-    fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    if (request != nullptr) {
+        auto buffVector = fileTree.GetData(inode, offset, replySize);
+        TRACER() << "reply replySize=" << replySize << " buffCount=" << buffVector->count
+                 << " offset=" << offset << " skipped=" << skipped << " readed=" << readed;
+        fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    }
+
+    const size_t blockIndex = static_cast<size_t>(offset + skipped) / static_cast<size_t>(FileSystem::Leaf::BlockSize);
+    auto& leaf = inode == FUSE_ROOT_ID // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+        ? fileTree.GetRoot()
+        : *(reinterpret_cast<FileSystem::Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    for (auto& pending : leaf.TakePendingRequests(blockIndex)) {
+        scheduler.ScheduleCacheTreeJob(std::make_unique<FileCache::FuseReadFileJob>(
+            pending.request, pending.inode, pending.size, pending.offset, pending.remoteFile));
+    }
+
     while (fileTree.NeedsEviction()) {
         auto [evictInode, evictOffset, evictSize, evictData] = fileTree.GetFreeData();
         if (evictData.empty()) {

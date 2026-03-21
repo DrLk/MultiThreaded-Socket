@@ -62,9 +62,9 @@ void FileTree::Scan()
     Scan(_root->GetFullPath(), *_root);
 }
 
-std::unique_ptr<fuse_bufvec> FileTree::GetData(fuse_ino_t inode, off_t offset, size_t size)
+FileCache::PinnedFuseBufVec FileTree::GetData(fuse_ino_t inode, off_t offset, size_t size) const
 {
-    auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    const auto& leaf = inode == FUSE_ROOT_ID ? *_root : *(reinterpret_cast<const Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     return leaf.GetData(offset, size);
 }
 

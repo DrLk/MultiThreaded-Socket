@@ -1,8 +1,6 @@
 #include "FuseReadFileJob.hpp"
 
 #include <memory>
-#include <span>
-#include <vector>
 
 #include "FileCache/FileCache.hpp"
 #include "ITaskScheduler.hpp"
@@ -13,7 +11,7 @@
 #include "ReadFileCacheJob.hpp"
 #include "RequestReadFileJob.hpp"
 
-#define TRACER() LOGGER() << "[ReadFileCacheJob] " // NOLINT(cppcoreguidelines-macro-usage)
+#define TRACER() LOGGER() << "[FuseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileCache {
 
@@ -48,40 +46,56 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         _size = leaf.GetSize() - _offset;
     }
 
-    std::unique_ptr<fuse_bufvec> buffer = tree.GetData(_inode, _offset, _size);
+    auto buffer = tree.GetData(_inode, _offset, _size);
 
-    if (!buffer || buffer->count == 0) {
+    if (!buffer.HasData()) {
         const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
 
         if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::OnDisk) {
             const FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
 
             // If the read spans into the next block and that block is NOT on disk (it's in
-            // memory), the cache file ends at the block boundary and preadv would return a
-            // short read.  Pre-copy the second block's portion from memory so
-            // ReadFileCacheJob can assemble a full reply.
-            std::vector<char> appendData;
+            // memory), pass a PinnedFuseBufVec pointing directly into the Leaf's packet
+            // payloads — no copy. The embedded RangePin keeps those Ranges alive until the
+            // job is done, after which they remain in the Leaf cache for later disk eviction.
+            FileSystem::FileCache::PinnedFuseBufVec appendData;
             const size_t blockEnd = (blockIndex + 1) * static_cast<size_t>(Leaf::BlockSize);
             if (static_cast<size_t>(_offset) + _size > blockEnd) {
                 const size_t nextBlockIndex = blockEnd / static_cast<size_t>(Leaf::BlockSize);
                 if (leaf.GetPiecesStatus()->GetStatus(nextBlockIndex) != FileSystem::PieceStatus::OnDisk) {
                     const size_t secondPartSize = static_cast<size_t>(_offset) + _size - blockEnd;
-                    auto secondBuffer = tree.GetData(_inode, static_cast<off_t>(blockEnd), secondPartSize);
-                    if (secondBuffer && secondBuffer->count > 0) {
-                        for (const auto& bufEntry : std::span<fuse_buf>(std::data(secondBuffer->buf), secondBuffer->count)) {
-                            const auto* mem = static_cast<const char*>(bufEntry.mem);
-                            appendData.insert(appendData.end(), mem, std::next(mem, static_cast<std::ptrdiff_t>(bufEntry.size)));
-                        }
+                    auto pinned = leaf.GetData(static_cast<off_t>(blockEnd), secondPartSize);
+                    if (pinned.HasData()) {
+                        appendData = std::move(pinned);
                     }
                 }
             }
 
-            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset, std::move(appendData)));
+            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset,
+                std::move(appendData)));
             return;
         }
 
-        const off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
-        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
+        if (leaf.SetInFlight(blockIndex)) {
+            const off_t skipped = -static_cast<off_t>(_offset % Leaf::BlockSize);
+            scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
+
+            // Prefetch upcoming blocks to overlap network RTTs
+            constexpr size_t PrefetchAhead = 4;
+            for (size_t i = 1; i <= PrefetchAhead; i++) {
+                const size_t prefetchBlockIndex = blockIndex + i;
+                const auto prefetchOffset = static_cast<off_t>(prefetchBlockIndex * static_cast<size_t>(Leaf::BlockSize));
+                if (static_cast<size_t>(prefetchOffset) >= leaf.GetSize()) {
+                    break;
+                }
+                if (leaf.SetInFlight(prefetchBlockIndex)) {
+                    scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
+                        nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), prefetchOffset, 0, _remoteFile));
+                }
+            }
+        } else {
+            leaf.AddPendingRequest(blockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+        }
         return;
     }
 
@@ -99,7 +113,25 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
             scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset));
             return;
         }
-        scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
+        if (leaf.SetInFlight(nextBlockIndex)) {
+            scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(_request, _inode, _size, _offset, skipped, _remoteFile));
+
+            // Prefetch upcoming blocks to overlap network RTTs
+            constexpr size_t PrefetchAhead = 4;
+            for (size_t i = 1; i <= PrefetchAhead; i++) {
+                const size_t prefetchBlockIndex = nextBlockIndex + i;
+                const auto prefetchOffset = static_cast<off_t>(prefetchBlockIndex * static_cast<size_t>(Leaf::BlockSize));
+                if (static_cast<size_t>(prefetchOffset) >= leaf.GetSize()) {
+                    break;
+                }
+                if (leaf.SetInFlight(prefetchBlockIndex)) {
+                    scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
+                        nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), prefetchOffset, 0, _remoteFile));
+                }
+            }
+        } else {
+            leaf.AddPendingRequest(nextBlockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+        }
         return;
     }
 

@@ -29,6 +29,8 @@ UDPQueue::UDPQueue(const ConnectionAddr& address, int threadCount, int sendQueue
 {
 }
 
+UDPQueue::~UDPQueue() = default;
+
 void UDPQueue::Init()
 {
     ConnectionAddr threadAddress = _address;

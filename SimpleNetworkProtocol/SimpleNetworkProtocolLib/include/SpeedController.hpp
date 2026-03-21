@@ -49,6 +49,7 @@ private:
     std::map<SpeedState, std::unique_ptr<ISpeedControllerState>> _states;
     SpeedState _currentState = SpeedState::Stable;
 
+    SpeedControllerState _speedState {};
     bool _up { true };
     int64_t _speedIncrement { 1 };
     std::atomic<size_t> _minSpeed { 0 };

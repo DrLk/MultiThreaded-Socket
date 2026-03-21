@@ -115,7 +115,7 @@ private:
     LockedList<IPacket::Ptr> _freeRecvPackets;
     LockedList<std::vector<char>> _recvUserData;
 
-    clock::time_point _lastPacketReceive;
+    std::atomic<clock::time_point> _lastPacketReceive;
 
     std::unique_ptr<IInFlightQueue> _inFlightQueue;
     std::unique_ptr<IRecvQueue> _recvQueue;
@@ -128,7 +128,7 @@ private:
     std::atomic<bool> _cleanRecvBuffers;
     std::atomic<bool> _cleanSendBuffers;
 
-    ConnectionState _connectionState;
+    std::atomic<ConnectionState> _connectionState;
     std::unordered_map<ConnectionState, std::unique_ptr<IConnectionState>> _states;
     Statistics _statistics;
 

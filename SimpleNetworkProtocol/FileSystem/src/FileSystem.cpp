@@ -89,9 +89,6 @@ void FileSystem::Start(std::stop_token stop)
         .forget_multi = *_forgetMulti.target<void (*)(fuse_req_t, size_t, fuse_forget_data*)>(),
         .readdirplus = *_readDirPlus.target<void (*)(fuse_req_t, fuse_ino_t, size_t, off_t, fuse_file_info*)>(),
         .copy_file_range = FuseCopyFileRange,
-        /*.setxattr = FuseSetxattr,
-        .getxattr = FuseGetxattr,
-        .removexattr = FuseRemovexattr,*/
     };
 
     fuse_args args = FUSE_ARGS_INIT(0, nullptr);
@@ -118,13 +115,12 @@ void FileSystem::Start(std::stop_token stop)
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
-    fuse_daemonize(1);
+    // FUSE is mounted — start event loop in background thread and return.
+    _fuseThread = std::jthread([this, stop = std::move(stop)](std::stop_token threadStop) {
+        fuse_daemonize(1);
 
-    int result = 0;
-    {
-        const std::stop_callback onStop(stop, [this]() {
-            fuse_session_exit(_session);
-        });
+        const std::stop_callback onStop(stop, [this]() { fuse_session_exit(_session); });
+        const std::stop_callback onThreadStop(threadStop, [this]() { fuse_session_exit(_session); });
 
         // Custom loop with poll() timeout so fuse_session_exit() is checked
         // periodically without needing to interrupt a blocking read() from
@@ -136,40 +132,30 @@ void FileSystem::Start(std::stop_token stop)
                 if (errno == EINTR) {
                     continue;
                 }
-                result = -errno;
                 break;
             }
             if (ret == 0) {
-                continue; // timeout — recheck fuse_session_exited()
+                continue;
             }
 
             fuse_buf buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
             const int res = fuse_session_receive_buf(_session, &buf);
             const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
             if (res == 0) {
-                break; // unmounted cleanly
+                break;
             }
             if (res < 0) {
-                if (res != -EINTR && res != -EAGAIN) {
-                    result = res;
+                if (res == -EINTR || res == -EAGAIN) {
+                    continue;
                 }
+                LOGGER() << "[FileSystem] fuse_session_receive_buf error: " << res;
                 break;
             }
             fuse_session_process_buf(_session, &buf);
         }
-    } // onStop destructor deregisters the callback
 
-    // Remove signal handlers now that the poll loop has exited.
-    // fuse_session_unmount() and fuse_session_destroy() are deferred to
-    // ~FileSystem() so that async fuse_reply_* calls in worker threads
-    // (TaskScheduler queues) complete before the session is freed.
-    // The -oauto_unmount option ensures the mount is cleaned up when the
-    // FUSE fd is closed inside fuse_session_destroy().
-    fuse_remove_signal_handlers(_session);
-
-    if (result != 0 && !stop.stop_requested()) {
-        throw std::runtime_error("Failed to fuse_session_loop");
-    }
+        fuse_remove_signal_handlers(_session);
+    });
 }
 
 FileSystem::~FileSystem()

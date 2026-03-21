@@ -407,7 +407,7 @@ void Connection::NotifySendPacketsEvent() const
 void Connection::Run()
 {
     const auto& connectionState = _states[_connectionState];
-    if (clock::now() - _lastPacketReceive > connectionState->GetTimeout()) {
+    if (clock::now() - _lastPacketReceive.load() > connectionState->GetTimeout()) {
         _connectionState = connectionState->OnTimeOut(*this);
         _lastPacketReceive = clock::now();
     } else {
