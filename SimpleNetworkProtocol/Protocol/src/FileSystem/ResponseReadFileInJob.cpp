@@ -6,7 +6,7 @@
 #include <stop_token>
 #include <sys/types.h>
 
-#include "FileCache/FuseReadFileJob.hpp"
+#include "FileCache/PinnedFuseBufVec.hpp"
 #include "ITaskScheduler.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
@@ -53,7 +53,8 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
 
     auto freePackets = fileTree.AddData(inode, offset + skipped, readed, std::move(data));
     if (request != nullptr) {
-        auto buffVector = fileTree.GetData(inode, offset, replySize);
+        auto bufView = fileTree.GetData(inode, offset, replySize);
+        auto buffVector = FileSystem::FileCache::buildPinnedBufVec(std::move(bufView));
         TRACER() << "reply replySize=" << replySize << " buffCount=" << buffVector->count
                  << " offset=" << offset << " skipped=" << skipped << " readed=" << readed;
         fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
@@ -63,18 +64,8 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
     auto& leaf = inode == FUSE_ROOT_ID // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
         ? fileTree.GetRoot()
         : *(reinterpret_cast<FileSystem::Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
-    // Pin the block before the eviction loop so it is not evicted before the
-    // scheduled FuseReadFileJob runs. The pin is moved into FuseReadFileJob and
-    // released naturally when the job destructs after ExecuteCachedTree returns.
-    const auto blockOffset = static_cast<off_t>(blockIndex * static_cast<size_t>(FileSystem::Leaf::BlockSize));
-    for (auto& pending : leaf.TakePendingRequests(blockIndex)) {
-        auto arrivedPin = leaf.GetData(blockOffset, static_cast<size_t>(FileSystem::Leaf::BlockSize));
-        const size_t requestBlockIndex = static_cast<size_t>(pending.offset) / static_cast<size_t>(FileSystem::Leaf::BlockSize);
-        const auto requestBlockOffset = static_cast<off_t>(requestBlockIndex * static_cast<size_t>(FileSystem::Leaf::BlockSize));
-        auto requestPin = leaf.GetData(requestBlockOffset, static_cast<size_t>(FileSystem::Leaf::BlockSize));
-        scheduler.ScheduleCacheTreeJob(std::make_unique<FileCache::FuseReadFileJob>(
-            pending.request, pending.inode, pending.size, pending.offset, pending.remoteFile,
-            std::move(arrivedPin), std::move(requestPin)));
+    for (auto& pendingJob : leaf.TakePendingJobs(blockIndex)) {
+        pendingJob->Execute();
     }
 
     while (fileTree.NeedsEviction()) {

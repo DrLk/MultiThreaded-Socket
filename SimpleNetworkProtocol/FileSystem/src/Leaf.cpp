@@ -1,10 +1,8 @@
 #include "Leaf.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cstdint>
 #include <filesystem>
-#include <fuse3/fuse_lowlevel.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -255,32 +253,26 @@ size_t Leaf::GetFirstBlockIndex() const
     return minIndex;
 }
 
-FileCache::PinnedFuseBufVec Leaf::GetData(off_t offset, size_t size) const
+FileCache::BufferView Leaf::GetData(off_t offset, size_t size) const
 {
-    int index = 0;
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (((size + 1299) / 1300) + 1));
-    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    buffVector->count = 0;
-    buffVector->off = 0;
-    buffVector->idx = 0;
-
+    std::vector<FileCache::Span> spans;
     std::vector<const FileCache::Range*> pinnedRanges;
 
     if (std::cmp_greater_equal(offset, _size)) {
-        return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin {} };
+        return {};
     }
     size_t readed = std::min(size, _size - static_cast<size_t>(offset));
 
     while (readed > 0) {
         auto block = _data.find(offset / BlockSize);
         if (block == _data.end()) {
-            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
         const std::set<FileCache::Range>& blocks = block->second;
         auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
         if (data == blocks.begin()) {
-            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
         --data;
@@ -303,41 +295,30 @@ FileCache::PinnedFuseBufVec Leaf::GetData(off_t offset, size_t size) const
                 start -= (*packet)->GetPayload().size();
                 packet++;
                 if (packet == packets.end()) {
-                    return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
+                    return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
                 }
             }
-            if (index == 0) {
-                auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().subspan(start).data();
-                buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
-                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
-                buffer.pos = 0;
-                buffer.fd = 0;
-                buffVector->count = 1;
-                index++;
-                readed -= buffer.size;
-                offset += static_cast<off_t>(buffer.size);
-                packet++;
-            }
+
+            const auto firstPayload = (*packet)->GetPayload().subspan(start);
+            const size_t firstSize = std::min(firstPayload.size(), readed);
+            spans.push_back({ .data = reinterpret_cast<const std::byte*>(firstPayload.data()), .size = firstSize }); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            readed -= firstSize;
+            offset += static_cast<off_t>(firstSize);
+            packet++;
 
             for (; packet != packets.end() && readed != 0; packet++) {
-                auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().data();
-                buffer.size = std::min((*packet)->GetPayload().size(), readed);
-                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
-                buffer.pos = 0;
-                buffer.fd = 0;
-
-                readed -= buffer.size;
-                offset += static_cast<off_t>(buffer.size);
-                buffVector->count++;
+                const auto payload = (*packet)->GetPayload();
+                const size_t spanSize = std::min(payload.size(), readed);
+                spans.push_back({ .data = reinterpret_cast<const std::byte*>(payload.data()), .size = spanSize }); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                readed -= spanSize;
+                offset += static_cast<off_t>(spanSize);
             }
         } else {
-            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
         }
     }
 
-    return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
+    return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
 }
 
 std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()
@@ -354,19 +335,19 @@ bool Leaf::SetInFlight(size_t blockIndex)
     return false;
 }
 
-void Leaf::AddPendingRequest(size_t blockIndex, PendingFuseRequest req)
+void Leaf::AddPendingJob(size_t blockIndex, std::unique_ptr<IPendingJob> job)
 {
-    _pendingRequests[blockIndex].push_back(req);
+    _pendingJobs[blockIndex].push_back(std::move(job));
 }
 
-std::vector<PendingFuseRequest> Leaf::TakePendingRequests(size_t blockIndex)
+std::vector<std::unique_ptr<IPendingJob>> Leaf::TakePendingJobs(size_t blockIndex)
 {
-    auto iter = _pendingRequests.find(blockIndex);
-    if (iter == _pendingRequests.end()) {
+    auto iter = _pendingJobs.find(blockIndex);
+    if (iter == _pendingJobs.end()) {
         return {};
     }
     auto result = std::move(iter->second);
-    _pendingRequests.erase(iter);
+    _pendingJobs.erase(iter);
     return result;
 }
 

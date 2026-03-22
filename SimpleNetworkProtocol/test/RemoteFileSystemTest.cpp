@@ -165,14 +165,13 @@ bool RandomReadComparison(const std::string& original, const std::string& mounte
         const ssize_t origRead = pread(origFd, origBuf.data(), size, static_cast<off_t>(offset));
         const ssize_t mntRead = pread(mntFd, mntBuf.data(), size, static_cast<off_t>(offset));
 
-        if (std::cmp_not_equal(origRead, size) || std::cmp_not_equal(mntRead, size))
-            {
-                std::cerr << "[test] pread failed at offset=" << offset << " size=" << size
-                          << " origRead=" << origRead << " mntRead=" << mntRead << "\n";
-                close(origFd);
-                close(mntFd);
-                return false;
-            }
+        if (std::cmp_not_equal(origRead, size) || std::cmp_not_equal(mntRead, size)) {
+            std::cerr << "[test] pread failed at offset=" << offset << " size=" << size
+                      << " origRead=" << origRead << " mntRead=" << mntRead << "\n";
+            close(origFd);
+            close(mntFd);
+            return false;
+        }
         if (std::memcmp(origBuf.data(), mntBuf.data(), size) != 0) {
             std::cerr << "[test] mismatch at offset=" << offset << " size=" << size << "\n";
             close(origFd);

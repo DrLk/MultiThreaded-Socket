@@ -4,8 +4,6 @@
 #include <memory>
 #include <vector>
 
-#include <fuse3/fuse_lowlevel.h>
-
 #include "IPacket.hpp"
 #include "MultiList.hpp"
 
@@ -78,26 +76,5 @@ public:
 private:
     std::vector<const Range*> _ranges;
 };
-
-// A fuse_bufvec whose buf[i].mem entries point directly into pinned Leaf packet payloads.
-// Keeping both together ensures the pin is always held for exactly the lifetime of the buffer.
-struct PinnedFuseBufVec {
-    PinnedFuseBufVec() = default;
-    PinnedFuseBufVec(std::unique_ptr<fuse_bufvec> buf, RangePin rangePin) noexcept
-        : bufvec(std::move(buf))
-        , pin(std::move(rangePin))
-    {
-    }
-
-    [[nodiscard]] bool HasData() const noexcept { return bufvec && bufvec->count > 0; }
-
-    // Pointer-like access so callers can use -> and .get() the same way as unique_ptr<fuse_bufvec>.
-    fuse_bufvec* operator->() const noexcept { return bufvec.get(); } // NOLINT(fuchsia-overloaded-operator)
-    [[nodiscard]] fuse_bufvec* get() const noexcept { return bufvec.get(); }
-
-private:
-    std::unique_ptr<fuse_bufvec> bufvec;
-    RangePin pin;
-} __attribute__((aligned(32)));
 
 } // namespace FastTransport::FileSystem::FileCache

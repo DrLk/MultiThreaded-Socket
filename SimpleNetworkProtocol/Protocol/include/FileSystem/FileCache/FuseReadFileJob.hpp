@@ -9,7 +9,7 @@ class FuseReadFileJob : public TaskQueue::CacheTreeJob {
 public:
     FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile);
     FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile,
-        FileSystem::FileCache::PinnedFuseBufVec arrivedBlockPin, FileSystem::FileCache::PinnedFuseBufVec requestBlockPin);
+        FileSystem::FileCache::RangePin arrivedBlockPin, FileSystem::FileCache::RangePin requestBlockPin);
     void ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree) override;
 
 private:
@@ -22,7 +22,7 @@ private:
     // Pins to prevent eviction before ExecuteCachedTree runs.
     // _arrivedBlockPin: the block that just arrived (triggered scheduling this job).
     // _requestBlockPin: the block containing _offset (may differ from arrived block).
-    FileSystem::FileCache::PinnedFuseBufVec _arrivedBlockPin;
-    FileSystem::FileCache::PinnedFuseBufVec _requestBlockPin;
+    FileSystem::FileCache::RangePin _arrivedBlockPin;
+    FileSystem::FileCache::RangePin _requestBlockPin;
 };
 } // namespace FastTransport::FileCache

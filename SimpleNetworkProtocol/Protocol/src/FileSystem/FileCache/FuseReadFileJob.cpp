@@ -3,15 +3,64 @@
 #include <memory>
 
 #include "FileCache/FileCache.hpp"
+#include "FileCache/PinnedFuseBufVec.hpp"
+#include "IPendingJob.hpp"
 #include "ITaskScheduler.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
 #include "NativeFile.hpp"
 #include "PieceStatus.hpp"
+#include "PrefixDiskReadFileCacheJob.hpp"
 #include "ReadFileCacheJob.hpp"
 #include "RequestReadFileJob.hpp"
 
 #define TRACER() LOGGER() << "[FuseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
+
+namespace {
+
+// Pending job stored in Leaf when a required block is not yet in cache.
+// Execute() is called by ResponseReadFileInJob when the block arrives, and reschedules
+// FuseReadFileJob so it can re-evaluate the full cross-block read from scratch.
+class FuseReadFilePendingJob : public FastTransport::FileSystem::IPendingJob {
+public:
+    FuseReadFilePendingJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset,
+        FastTransport::FileSystem::RemoteFileHandle* remoteFile, size_t arrivedBlockIndex,
+        FastTransport::FileSystem::Leaf* leaf, FastTransport::TaskQueue::ITaskScheduler* scheduler)
+        : _request(request)
+        , _inode(inode)
+        , _size(size)
+        , _offset(offset)
+        , _remoteFile(remoteFile)
+        , _arrivedBlockIndex(arrivedBlockIndex)
+        , _leaf(leaf)
+        , _scheduler(scheduler)
+    {
+    }
+
+    void Execute() override
+    {
+        const auto arrivedBlockOffset = static_cast<off_t>(_arrivedBlockIndex * static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize));
+        const size_t requestBlockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize);
+        const auto requestBlockOffset = static_cast<off_t>(requestBlockIndex * static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize));
+        auto arrivedPin = std::move(_leaf->GetData(arrivedBlockOffset, static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize)).pin);
+        auto requestPin = std::move(_leaf->GetData(requestBlockOffset, static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize)).pin);
+        _scheduler->ScheduleCacheTreeJob(std::make_unique<FastTransport::FileCache::FuseReadFileJob>(
+            _request, _inode, _size, _offset, _remoteFile,
+            std::move(arrivedPin), std::move(requestPin)));
+    }
+
+private:
+    fuse_req_t _request;
+    fuse_ino_t _inode;
+    size_t _size;
+    off_t _offset;
+    FastTransport::FileSystem::RemoteFileHandle* _remoteFile;
+    size_t _arrivedBlockIndex;
+    FastTransport::FileSystem::Leaf* _leaf;
+    FastTransport::TaskQueue::ITaskScheduler* _scheduler;
+};
+
+} // anonymous namespace
 
 namespace FastTransport::FileCache {
 
@@ -25,7 +74,7 @@ FuseReadFileJob::FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t si
 }
 
 FuseReadFileJob::FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, FileSystem::RemoteFileHandle* remoteFile,
-    FileSystem::FileCache::PinnedFuseBufVec arrivedBlockPin, FileSystem::FileCache::PinnedFuseBufVec requestBlockPin)
+    FileSystem::FileCache::RangePin arrivedBlockPin, FileSystem::FileCache::RangePin requestBlockPin)
     : _request(request)
     , _inode(inode)
     , _size(size)
@@ -42,8 +91,13 @@ FuseReadFileJob::FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t si
 // If the block is already InFlight (another request is fetching it), just registers as pending.
 void FuseReadFileJob::FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, TaskQueue::ITaskScheduler& scheduler)
 {
+    auto makePendingJob = [&] {
+        return std::make_unique<FuseReadFilePendingJob>(
+            _request, _inode, _size, _offset, _remoteFile, blockIndex, &leaf, &scheduler);
+    };
+
     if (leaf.SetInFlight(blockIndex)) {
-        leaf.AddPendingRequest(blockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+        leaf.AddPendingJob(blockIndex, makePendingJob());
         const auto blockOffset = static_cast<off_t>(blockIndex * static_cast<size_t>(Leaf::BlockSize));
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
             nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), blockOffset, 0, _remoteFile));
@@ -63,7 +117,7 @@ void FuseReadFileJob::FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, Task
     } else if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::InCache) {
         scheduler.ScheduleCacheTreeJob(std::make_unique<FuseReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
     } else {
-        leaf.AddPendingRequest(blockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+        leaf.AddPendingJob(blockIndex, makePendingJob());
     }
 }
 
@@ -109,7 +163,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
                     if (pinned.HasData()) {
                         // B+1 in memory: disk B (first part) + memory B+1 (second part).
                         scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, file, _size, _offset,
-                            std::move(pinned)));
+                            buildPinnedBufVec(std::move(pinned))));
                         return;
                     }
 
@@ -119,7 +173,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
                         return;
                     }
                     if (leaf.SetInFlight(nextBlockIndex)) {
-                        leaf.AddPendingRequest(nextBlockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+                        leaf.AddPendingJob(nextBlockIndex, std::make_unique<FuseReadFilePendingJob>(_request, _inode, _size, _offset, _remoteFile, nextBlockIndex, &leaf, &scheduler));
                         const auto nextBlockOffset = static_cast<off_t>(nextBlockIndex * static_cast<size_t>(Leaf::BlockSize));
                         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
                             nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), nextBlockOffset, 0, _remoteFile));
@@ -127,7 +181,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
                         scheduler.ScheduleCacheTreeJob(std::make_unique<FuseReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
                         return;
                     } else {
-                        leaf.AddPendingRequest(nextBlockIndex, { .request = _request, .inode = _inode, .size = _size, .offset = _offset, .remoteFile = _remoteFile });
+                        leaf.AddPendingJob(nextBlockIndex, std::make_unique<FuseReadFilePendingJob>(_request, _inode, _size, _offset, _remoteFile, nextBlockIndex, &leaf, &scheduler));
                     }
                     return;
                 }
@@ -145,10 +199,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         return;
     }
 
-    size_t totalBytes = 0;
-    for (size_t i = 0; i < buffer->count; ++i) {
-        totalBytes += buffer->buf[i].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-    }
+    const size_t totalBytes = buffer.TotalSize();
 
     if (totalBytes < _size) {
         // Partial data: FUSE read spans two cache blocks and the next block is not yet in cache.
@@ -161,7 +212,7 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
             const FileSystem::NativeFile::Ptr file = tree.GetFileCache().GetFile(tree.GetCacheFolder() / leaf.GetCachePath());
             const size_t secondPartSize = _size - totalBytes;
             const auto diskOffset = static_cast<off_t>(nextBlockIndex * static_cast<size_t>(Leaf::BlockSize));
-            scheduler.Schedule(std::make_unique<ReadFileCacheJob>(_request, std::move(buffer), file, diskOffset, secondPartSize));
+            scheduler.Schedule(std::make_unique<PrefixDiskReadFileCacheJob>(_request, buildPinnedBufVec(std::move(buffer)), file, diskOffset, secondPartSize));
             return;
         }
 
@@ -171,7 +222,8 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         return;
     }
 
-    fuse_reply_data(_request, buffer.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    auto pinned = buildPinnedBufVec(std::move(buffer));
+    fuse_reply_data(_request, pinned.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
 }
 
 } // namespace FastTransport::FileCache

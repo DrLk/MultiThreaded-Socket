@@ -6,7 +6,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "FileCache/Range.hpp"
+#include "FileCache/BufferView.hpp"
 #include "IPacket.hpp"
 
 namespace FastTransport::FileSystem {
@@ -47,7 +47,7 @@ public:
 
     void Scan();
 
-    FileCache::PinnedFuseBufVec GetData(fuse_ino_t inode, off_t offset, size_t size) const;
+    FileCache::BufferView GetData(fuse_ino_t inode, off_t offset, size_t size) const;
     FileTree::Data AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data);
 
     FreeData GetFreeData();
