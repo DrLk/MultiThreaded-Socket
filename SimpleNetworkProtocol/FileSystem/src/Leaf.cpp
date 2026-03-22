@@ -267,20 +267,20 @@ FileCache::PinnedFuseBufVec Leaf::GetData(off_t offset, size_t size) const
     std::vector<const FileCache::Range*> pinnedRanges;
 
     if (std::cmp_greater_equal(offset, _size)) {
-        return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin {} };
+        return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin {} };
     }
     size_t readed = std::min(size, _size - static_cast<size_t>(offset));
 
     while (readed > 0) {
         auto block = _data.find(offset / BlockSize);
         if (block == _data.end()) {
-            return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
         const std::set<FileCache::Range>& blocks = block->second;
         auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
         if (data == blocks.begin()) {
-            return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
         --data;
@@ -303,7 +303,7 @@ FileCache::PinnedFuseBufVec Leaf::GetData(off_t offset, size_t size) const
                 start -= (*packet)->GetPayload().size();
                 packet++;
                 if (packet == packets.end()) {
-                    return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+                    return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
                 }
             }
             if (index == 0) {
@@ -333,11 +333,11 @@ FileCache::PinnedFuseBufVec Leaf::GetData(off_t offset, size_t size) const
                 buffVector->count++;
             }
         } else {
-            return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+            return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
         }
     }
 
-    return { .bufvec = std::move(buffVector), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+    return FileCache::PinnedFuseBufVec { std::move(buffVector), FileCache::RangePin(std::move(pinnedRanges)) };
 }
 
 std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()

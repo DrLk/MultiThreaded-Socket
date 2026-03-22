@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "ConnectionAddr.hpp"
@@ -137,8 +138,12 @@ bool RandomReadComparison(const std::string& original, const std::string& mounte
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg,android-cloexec-open)
     const int mntFd = open(mounted.c_str(), O_RDONLY | O_CLOEXEC);
     if (origFd < 0 || mntFd < 0) {
-        if (origFd >= 0) { close(origFd); }
-        if (mntFd >= 0) { close(mntFd); }
+        if (origFd >= 0) {
+            close(origFd);
+        }
+        if (mntFd >= 0) {
+            close(mntFd);
+        }
         return false;
     }
 
@@ -160,13 +165,14 @@ bool RandomReadComparison(const std::string& original, const std::string& mounte
         const ssize_t origRead = pread(origFd, origBuf.data(), size, static_cast<off_t>(offset));
         const ssize_t mntRead = pread(mntFd, mntBuf.data(), size, static_cast<off_t>(offset));
 
-        if (origRead != static_cast<ssize_t>(size) || mntRead != static_cast<ssize_t>(size)) {
-            std::cerr << "[test] pread failed at offset=" << offset << " size=" << size
-                      << " origRead=" << origRead << " mntRead=" << mntRead << "\n";
-            close(origFd);
-            close(mntFd);
-            return false;
-        }
+        if (std::cmp_not_equal(origRead, size) || std::cmp_not_equal(mntRead, size))
+            {
+                std::cerr << "[test] pread failed at offset=" << offset << " size=" << size
+                          << " origRead=" << origRead << " mntRead=" << mntRead << "\n";
+                close(origFd);
+                close(mntFd);
+                return false;
+            }
         if (std::memcmp(origBuf.data(), mntBuf.data(), size) != 0) {
             std::cerr << "[test] mismatch at offset=" << offset << " size=" << size << "\n";
             close(origFd);
