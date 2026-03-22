@@ -3,7 +3,7 @@ allowedTools:
   - Bash
 ---
 
-Run the built `SimpleNetworkProtocolTest` binary.
+Run the built `SimpleNetworkProtocolTest` binary inside the local Docker container (`clang-tidy-image`).
 
 ## Steps
 
@@ -19,3 +19,5 @@ Run the built `SimpleNetworkProtocolTest` binary.
 ## Notes
 - If `$ARGUMENTS` is provided it is used as `--gtest_filter`.
 - Run `/build` first if the binary doesn't exist yet.
+- The Docker image is `clang-tidy-image`. The container gets `--device /dev/fuse` and `--cap-add SYS_ADMIN` for FUSE support.
+- The repo root is mounted at `/build` inside the container.

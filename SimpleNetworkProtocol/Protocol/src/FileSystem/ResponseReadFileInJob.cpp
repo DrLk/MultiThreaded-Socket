@@ -63,9 +63,18 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
     auto& leaf = inode == FUSE_ROOT_ID // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
         ? fileTree.GetRoot()
         : *(reinterpret_cast<FileSystem::Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    // Pin the block before the eviction loop so it is not evicted before the
+    // scheduled FuseReadFileJob runs. The pin is moved into FuseReadFileJob and
+    // released naturally when the job destructs after ExecuteCachedTree returns.
+    const auto blockOffset = static_cast<off_t>(blockIndex * static_cast<size_t>(FileSystem::Leaf::BlockSize));
     for (auto& pending : leaf.TakePendingRequests(blockIndex)) {
+        auto arrivedPin = leaf.GetData(blockOffset, static_cast<size_t>(FileSystem::Leaf::BlockSize));
+        const size_t requestBlockIndex = static_cast<size_t>(pending.offset) / static_cast<size_t>(FileSystem::Leaf::BlockSize);
+        const auto requestBlockOffset = static_cast<off_t>(requestBlockIndex * static_cast<size_t>(FileSystem::Leaf::BlockSize));
+        auto requestPin = leaf.GetData(requestBlockOffset, static_cast<size_t>(FileSystem::Leaf::BlockSize));
         scheduler.ScheduleCacheTreeJob(std::make_unique<FileCache::FuseReadFileJob>(
-            pending.request, pending.inode, pending.size, pending.offset, pending.remoteFile));
+            pending.request, pending.inode, pending.size, pending.offset, pending.remoteFile,
+            std::move(arrivedPin), std::move(requestPin)));
     }
 
     while (fileTree.NeedsEviction()) {
