@@ -116,6 +116,7 @@ private:
     LockedList<std::vector<char>> _recvUserData;
 
     std::atomic<clock::time_point> _lastPacketReceive;
+    static_assert(decltype(_lastPacketReceive)::is_always_lock_free);
 
     std::unique_ptr<IInFlightQueue> _inFlightQueue;
     std::unique_ptr<IRecvQueue> _recvQueue;
