@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <stop_token>
+#include <thread>
 
 #include <cstdio>
 #include <cstdlib>
@@ -75,6 +76,7 @@ private:
     FileTree _tree;
     std::string _mountpoint;
     fuse_session* _session = nullptr;
+    std::jthread _fuseThread;
 };
 
 } // namespace FastTransport::FileSystem

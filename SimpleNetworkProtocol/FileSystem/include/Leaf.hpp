@@ -4,15 +4,17 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <fuse3/fuse_lowlevel.h>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
+#include <vector>
 
+#include "FileCache/BufferView.hpp"
 #include "FileCache/Range.hpp"
+#include "IPendingJob.hpp"
 #include "PiecesStatus.hpp"
 
 namespace FastTransport::Containers {
@@ -60,12 +62,16 @@ public:
     std::filesystem::path GetCachePath() const;
 
     Data AddData(off_t offset, size_t size, Data&& data);
-    std::unique_ptr<fuse_bufvec> GetData(off_t offset, size_t size) const;
+    FileCache::BufferView GetData(off_t offset, size_t size) const;
     std::pair<off_t, Data> ExtractBlock(size_t index);
     size_t GetFirstBlockIndex() const;
     static constexpr ssize_t BlockSize = static_cast<const size_t>(1000 * 1300U);
 
     std::shared_ptr<PiecesStatus> GetPiecesStatus();
+
+    bool SetInFlight(size_t blockIndex);
+    void AddPendingJob(size_t blockIndex, std::unique_ptr<IPendingJob> job);
+    std::vector<std::unique_ptr<IPendingJob>> TakePendingJobs(size_t blockIndex);
 
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set
@@ -77,6 +83,7 @@ private:
 
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
     std::shared_ptr<PiecesStatus> _piecesStatus;
+    std::unordered_map<size_t, std::vector<std::unique_ptr<IPendingJob>>> _pendingJobs;
 };
 
 } // namespace FastTransport::FileSystem

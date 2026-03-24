@@ -1,9 +1,8 @@
 #include "Leaf.hpp"
 
-#include <bit>
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
-#include <fuse3/fuse_lowlevel.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -213,87 +212,6 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
     return {};
 }
 
-std::unique_ptr<fuse_bufvec> Leaf::GetData(off_t offset, size_t size) const
-{
-    int index = 0;
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (((size + 1299) / 1300) + 1));
-    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    buffVector->count = 0;
-    buffVector->off = 0;
-    buffVector->idx = 0;
-
-    if (std::cmp_greater_equal(offset, _size)) {
-        return buffVector;
-    }
-    size_t readed = std::min(size, _size - static_cast<size_t>(offset));
-
-    while (readed > 0) {
-        auto block = _data.find(offset / BlockSize);
-        if (block == _data.end()) {
-            return buffVector;
-        }
-
-        const std::set<FileCache::Range>& blocks = block->second;
-        auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
-        if (data == blocks.begin()) {
-            return buffVector;
-        }
-
-        --data; // Move to the previous range
-
-        if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
-
-            const auto& packets = data->GetPackets();
-
-            if (packets.empty()) {
-                throw std::runtime_error("Data not found");
-            }
-
-            size_t start = offset - data->GetOffset();
-
-            auto packet = packets.begin();
-            while (start >= (*packet)->GetPayload().size()) {
-                start -= (*packet)->GetPayload().size();
-                packet++;
-                if (packet == packets.end()) {
-                    return buffVector;
-                }
-            }
-            if (index == 0) {
-
-                auto& buffer = buffVector->buf[0]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().subspan(start).data();
-                buffer.size = std::min((*packet)->GetPayload().size() - start, readed);
-                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
-                buffer.pos = 0;
-                buffer.fd = 0;
-                buffVector->count = 1;
-                index++;
-                readed -= buffer.size;
-                offset += static_cast<off_t>(buffer.size);
-                packet++;
-            }
-
-            for (; packet != packets.end() && readed != 0; packet++) {
-                auto& buffer = buffVector->buf[index++]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
-                buffer.mem = (*packet)->GetPayload().data();
-                buffer.size = std::min((*packet)->GetPayload().size(), readed);
-                buffer.flags = std::bit_cast<fuse_buf_flags>(0);
-                buffer.pos = 0;
-                buffer.fd = 0;
-
-                readed -= buffer.size;
-                offset += static_cast<off_t>(buffer.size);
-                buffVector->count++;
-            }
-        } else {
-            return buffVector;
-        }
-    }
-
-    return buffVector;
-}
-
 std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 {
     Leaf::Data extractedData;
@@ -326,14 +244,111 @@ size_t Leaf::GetFirstBlockIndex() const
     }
     size_t minIndex = SIZE_MAX;
     for (const auto& [index, ranges] : _data) {
-        minIndex = std::min(minIndex, index);
+        const bool anyPinned = std::ranges::any_of(ranges,
+            [](const FileCache::Range& range) { return range.IsPinned(); });
+        if (!anyPinned) {
+            minIndex = std::min(minIndex, index);
+        }
     }
     return minIndex;
+}
+
+FileCache::BufferView Leaf::GetData(off_t offset, size_t size) const
+{
+    std::vector<FileCache::Span> spans;
+    std::vector<const FileCache::Range*> pinnedRanges;
+
+    if (std::cmp_greater_equal(offset, _size)) {
+        return {};
+    }
+    size_t readed = std::min(size, _size - static_cast<size_t>(offset));
+
+    while (readed > 0) {
+        auto block = _data.find(offset / BlockSize);
+        if (block == _data.end()) {
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+        }
+
+        const std::set<FileCache::Range>& blocks = block->second;
+        auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
+        if (data == blocks.begin()) {
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+        }
+
+        --data;
+
+        if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
+            // Pin this range so GetFirstBlockIndex skips it until the job is done.
+            data->Pin();
+            pinnedRanges.push_back(&*data);
+
+            const auto& packets = data->GetPackets();
+
+            if (packets.empty()) {
+                throw std::runtime_error("Data not found");
+            }
+
+            size_t start = offset - data->GetOffset();
+
+            auto packet = packets.begin();
+            while (start >= (*packet)->GetPayload().size()) {
+                start -= (*packet)->GetPayload().size();
+                packet++;
+                if (packet == packets.end()) {
+                    return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+                }
+            }
+
+            const auto firstPayload = (*packet)->GetPayload().subspan(start);
+            const size_t firstSize = std::min(firstPayload.size(), readed);
+            spans.push_back({ .data = reinterpret_cast<const std::byte*>(firstPayload.data()), .size = firstSize }); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            readed -= firstSize;
+            offset += static_cast<off_t>(firstSize);
+            packet++;
+
+            for (; packet != packets.end() && readed != 0; packet++) {
+                const auto payload = (*packet)->GetPayload();
+                const size_t spanSize = std::min(payload.size(), readed);
+                spans.push_back({ .data = reinterpret_cast<const std::byte*>(payload.data()), .size = spanSize }); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                readed -= spanSize;
+                offset += static_cast<off_t>(spanSize);
+            }
+        } else {
+            return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
+        }
+    }
+
+    return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
 }
 
 std::shared_ptr<PiecesStatus> Leaf::GetPiecesStatus()
 {
     return _piecesStatus;
+}
+
+bool Leaf::SetInFlight(size_t blockIndex)
+{
+    if (_piecesStatus->GetStatus(blockIndex) == PieceStatus::NotFound) {
+        _piecesStatus->SetStatus(blockIndex, PieceStatus::InFlight);
+        return true;
+    }
+    return false;
+}
+
+void Leaf::AddPendingJob(size_t blockIndex, std::unique_ptr<IPendingJob> job)
+{
+    _pendingJobs[blockIndex].push_back(std::move(job));
+}
+
+std::vector<std::unique_ptr<IPendingJob>> Leaf::TakePendingJobs(size_t blockIndex)
+{
+    auto iter = _pendingJobs.find(blockIndex);
+    if (iter == _pendingJobs.end()) {
+        return {};
+    }
+    auto result = std::move(iter->second);
+    _pendingJobs.erase(iter);
+    return result;
 }
 
 } // namespace FastTransport::FileSystem

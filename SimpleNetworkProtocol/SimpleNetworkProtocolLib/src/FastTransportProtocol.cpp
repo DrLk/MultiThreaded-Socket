@@ -37,8 +37,8 @@ FastTransportContext::FastTransportContext(const ConnectionAddr& address)
     , _sendContextThread(SendThread, std::ref(*this))
     , _recvContextThread(RecvThread, std::ref(*this))
 {
-    _udpQueue.Init();
     _udpQueue.Subscribe(*this);
+    _udpQueue.Init();
 }
 
 IConnection::Ptr FastTransportContext::Accept(std::stop_token stop)
