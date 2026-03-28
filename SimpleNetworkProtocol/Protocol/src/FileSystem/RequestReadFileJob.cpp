@@ -1,4 +1,5 @@
 #include "RequestReadFileJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -23,6 +24,7 @@ RequestReadFileJob::RequestReadFileJob(fuse_req_t request, fuse_ino_t inode, siz
 
 FuseNetworkJob::Message RequestReadFileJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestReadFileJob::ExecuteMain");
     TRACER() << "Execute"
              << "request: " << _request
              << " inode: " << _inode

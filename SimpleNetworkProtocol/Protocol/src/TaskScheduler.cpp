@@ -1,4 +1,5 @@
 #include "TaskScheduler.hpp"
+#include <Tracy.hpp>
 
 #include <condition_variable>
 #include <memory>
@@ -47,6 +48,7 @@ void TaskScheduler::Wait(std::stop_token stop)
 void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleMainJob");
         auto freePackets = _connection.get().Send2(stop, IPacket::List());
         _freeSendPackets.splice(std::move(freePackets));
         TRACER() << "3freePackets.size(): " << _freeSendPackets.size();
@@ -58,6 +60,7 @@ void TaskScheduler::ScheduleMainJob(std::unique_ptr<MainJob>&& job)
 void TaskScheduler::ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleMainReadJob");
         job->ExecuteMainRead(stop, *this);
     });
 }
@@ -65,6 +68,7 @@ void TaskScheduler::ScheduleMainReadJob(std::unique_ptr<MainReadJob>&& job)
 void TaskScheduler::ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job)
 {
     _writeNetworkQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleWriteNetworkJob");
         job->ExecuteWriteNetwork(stop, *this, _connection);
     });
 }
@@ -72,6 +76,7 @@ void TaskScheduler::ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& j
 void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job)
 {
     _readNetworkQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleReadNetworkJob");
         job->ExecuteReadNetwork(stop, *this, _connection);
     });
 }
@@ -79,6 +84,7 @@ void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job
 void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 {
     _diskQueue.Async([job = std::move(job), this](std::stop_token /*stop*/) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleDiskJob");
         auto freeDiskPackets = job->ExecuteDisk(*this, std::move(_freeDiskPackets));
         _freeDiskPackets = std::move(freeDiskPackets);
     });
@@ -87,12 +93,15 @@ void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleFuseNetworkJob");
         if (_freeSendPackets.empty()) {
             auto freePackets = _connection.get().Send2(stop, IPacket::List());
             _freeSendPackets.splice(std::move(freePackets));
         }
         assert(!_freeSendPackets.empty());
-        Protocol::MessageWriter writer(std::move(_freeSendPackets));
+        static constexpr size_t MaxWriterPackets = 1100;
+        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+        Protocol::MessageWriter writer(std::move(writerPackets));
         Message freePackets = job->ExecuteMain(stop, writer);
         freePackets.splice(job->GetFreeReadPackets());
 
@@ -105,7 +114,7 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
-        _freeSendPackets = writer.GetPackets();
+        _freeSendPackets.splice(writer.GetPackets());
         TRACER() << "2freePackets.size(): " << _freeSendPackets.size();
     });
 }
@@ -113,13 +122,20 @@ void TaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job
 void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleResponseFuseNetworkJob");
         if (_freeSendPackets.size() < 2500) {
+            ZoneScopedN("ScheduleResponseFuseNetworkJob::Send2Wait");
             auto freePackets = _connection.get().Send2(stop, IPacket::List());
             _freeSendPackets.splice(std::move(freePackets));
         }
         assert(!_freeSendPackets.empty());
-        Protocol::MessageWriter writer(std::move(_freeSendPackets));
-        Message freePackets = job->ExecuteResponse(stop, writer, _fileTree);
+        static constexpr size_t MaxWriterPackets = 1100;
+        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+        Protocol::MessageWriter writer(std::move(writerPackets));
+        Message freePackets = [&] {
+            ZoneScopedN("ScheduleResponseFuseNetworkJob::ExecuteResponse");
+            return job->ExecuteResponse(stop, writer, _fileTree);
+        }();
         freePackets.splice(job->GetFreeReadPackets());
 
         auto writedPackets = writer.GetWritedPackets();
@@ -131,7 +147,7 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
-        _freeSendPackets = writer.GetPackets();
+        _freeSendPackets.splice(writer.GetPackets());
         TRACER() << "1freePackets.size(): " << _freeSendPackets.size();
     });
 }
@@ -139,6 +155,7 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
 void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleResponseInFuseNetworkJob");
         assert(!_freeSendPackets.empty());
         Message freePackets = job->ExecuteResponse(*this, stop, _fileTree);
         freePackets.splice(job->GetFreeReadPackets());
@@ -152,6 +169,7 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
 void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
         job->ExecuteCachedTree(*this, stop, _fileTree);
     });
 }

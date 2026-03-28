@@ -1,4 +1,5 @@
 #include "RequestOpenDirJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -19,6 +20,7 @@ RequestOpenDirJob::RequestOpenDirJob(fuse_req_t request, fuse_ino_t inode, fuse_
 
 FuseNetworkJob::Message RequestOpenDirJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestOpenDirJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request
              << " inode: " << _inode

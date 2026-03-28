@@ -1,4 +1,5 @@
 #include "ReadFileCacheJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 #include <memory>
@@ -31,6 +32,7 @@ ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::P
 
 TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
+    ZoneScopedN("ReadFileCacheJob::ExecuteDisk");
     if (!_appendData.HasData()) {
         // Zero-copy path: splice directly from cache file fd to FUSE device.
         // fuse_reply_data is thread-safe in libfuse3.

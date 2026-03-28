@@ -1,4 +1,5 @@
 #include "FreeRecvPacketsJob.hpp"
+#include <Tracy.hpp>
 
 #include <memory>
 
@@ -20,6 +21,7 @@ FreeRecvPacketsJob::FreeRecvPacketsJob(Message&& message)
 
 void FreeRecvPacketsJob::ExecuteReadNetwork(std::stop_token /*stop*/, ITaskScheduler& /*scheduler*/, Protocol::IConnection& connection)
 {
+    ZoneScopedN("FreeRecvPacketsJob::ExecuteReadNetwork");
     connection.AddFreeRecvPackets(std::move(_message));
 }
 

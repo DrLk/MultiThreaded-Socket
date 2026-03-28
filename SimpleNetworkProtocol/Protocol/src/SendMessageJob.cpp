@@ -1,4 +1,5 @@
 #include "SendMessageJob.hpp"
+#include <Tracy.hpp>
 
 #include "IConnection.hpp"
 #include "IStatistics.hpp"
@@ -22,6 +23,7 @@ SendMessageJob::SendMessageJob(Message&& message)
 
 void SendMessageJob::ExecuteWriteNetwork(std::stop_token /*stop*/, ITaskScheduler& /*scheduler*/, Protocol::IConnection& connection)
 {
+    ZoneScopedN("SendMessageJob::ExecuteWriteNetwork");
     TRACER() << "Execute";
 
     TRACER() << "Send Lost: " << connection.GetStatistics().GetLostPackets()

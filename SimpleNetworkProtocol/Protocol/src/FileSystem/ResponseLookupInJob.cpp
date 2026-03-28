@@ -1,4 +1,5 @@
 #include "ResponseLookupInJob.hpp"
+#include <Tracy.hpp>
 
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -12,6 +13,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseLookupInJob::ExecuteResponse");
     TRACER() << "Execute";
 
     auto& reader = GetReader();

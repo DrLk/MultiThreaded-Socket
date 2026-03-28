@@ -1,4 +1,5 @@
 #include "FileCache/SetPieceOnDiskJob.hpp"
+#include <Tracy.hpp>
 
 #include "PieceStatus.hpp"
 #include "PiecesStatus.hpp"
@@ -13,6 +14,7 @@ SetPieceOnDiskJob::SetPieceOnDiskJob(const std::shared_ptr<FileSystem::PiecesSta
 
 void SetPieceOnDiskJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*tree*/)
 {
+    ZoneScopedN("SetPieceOnDiskJob::ExecuteCachedTree");
     _piecesStatus->SetStatus(_index, FileSystem::PieceStatus::OnDisk);
 }
 

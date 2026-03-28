@@ -1,4 +1,5 @@
 #include "ResponseReleaseDirInJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -11,6 +12,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseInFuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
+    ZoneScopedN("ResponseReleaseDirInJob::ExecuteResponse");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     int error = 0;

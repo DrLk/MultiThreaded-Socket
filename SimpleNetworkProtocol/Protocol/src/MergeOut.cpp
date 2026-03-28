@@ -1,4 +1,5 @@
 #include "MergeOut.hpp"
+#include <Tracy.hpp>
 
 #include <functional>
 #include <memory>
@@ -30,6 +31,7 @@ MergeOut::MergeOut(FastTransport::FileSystem::FileTree& fileTree)
 
 MergeOut::Message MergeOut::ExecuteMain(std::stop_token /*stop*/, ITaskScheduler& scheduler, Message&& message)
 {
+    ZoneScopedN("MergeOut::ExecuteMain");
     TRACER() << "Execute";
 
     Protocol::MessageWriter writer(std::move(message));

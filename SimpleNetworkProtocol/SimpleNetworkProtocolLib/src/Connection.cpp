@@ -1,4 +1,5 @@
 #include "Connection.hpp"
+#include <Tracy.hpp>
 
 #include <array>
 #include <atomic>
@@ -120,6 +121,7 @@ void Connection::Send(IPacket::List&& data)
 
 IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 {
+    ZoneScopedN("Connection::Send2");
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
         NotifySendPacketsEvent();
@@ -127,6 +129,7 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 
     IPacket::List result;
     {
+        ZoneScopedN("Connection::Send2::WaitFreePackets");
         if (_freeUserSendPackets.Wait(stop, [this]() { return IsClosed(); })) {
             _freeUserSendPackets.LockedSwap(result);
         }
@@ -141,12 +144,14 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 
 IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets)
 {
+    ZoneScopedN("Connection::Recv");
     if (!freePackets.empty()) {
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }
 
     IPacket::List result;
     {
+        ZoneScopedN("Connection::Recv::WaitUserData");
         LockedList<IPacket::Ptr>& userData = _recvQueue->GetUserData();
         if (userData.Wait(stop, [this]() { return IsClosed(); })) {
             userData.LockedSwap(result);

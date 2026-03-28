@@ -1,4 +1,5 @@
 #include "FileCache/EvictLeafBlockJob.hpp"
+#include <Tracy.hpp>
 
 #include <memory>
 
@@ -21,6 +22,7 @@ EvictLeafBlockJob::EvictLeafBlockJob(Data&& data, off_t offset, size_t size, siz
 
 TaskQueue::DiskJob::Data EvictLeafBlockJob::ExecuteDisk(TaskQueue::ITaskScheduler& scheduler, Data&& free)
 {
+    ZoneScopedN("EvictLeafBlockJob::ExecuteDisk");
     if (_data.empty()) {
         return std::move(free);
     }

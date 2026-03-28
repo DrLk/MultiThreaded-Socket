@@ -1,4 +1,5 @@
 #include "ResponseReadFileJob.hpp"
+#include <Tracy.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -16,7 +17,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& /*fileTree*/)
 {
-
+    ZoneScopedN("ResponseReadFileJob::ExecuteResponse");
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
     size_t size = 0;
@@ -46,7 +47,11 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     writer << offset;
     writer << skipped;
 
-    Message dataPackets = writer.GetDataPackets(1000);
+    Message dataPackets;
+    {
+        ZoneScopedN("ResponseReadFileJob::GetDataPackets");
+        dataPackets = writer.GetDataPackets(1000);
+    }
     assert(size <= dataPackets.size() * dataPackets.front()->GetPayload().size());
 
     Message readed = remoteFile->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset + skipped);
@@ -59,7 +64,10 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     }
 
     writer << error;
-    writer << std::move(readed);
+    {
+        ZoneScopedN("ResponseReadFileJob::WriteReaded");
+        writer << std::move(readed);
+    }
 
     return dataPackets;
 }

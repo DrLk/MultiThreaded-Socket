@@ -1,4 +1,5 @@
 #include "RequestLookupJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -19,6 +20,7 @@ RequestLookupJob::RequestLookupJob(fuse_req_t request, fuse_ino_t parent, std::s
 
 FuseNetworkJob::Message RequestLookupJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestLookupJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request;
 

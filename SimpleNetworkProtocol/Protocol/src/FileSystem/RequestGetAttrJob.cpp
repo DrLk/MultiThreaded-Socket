@@ -1,4 +1,5 @@
 #include "RequestGetAttrJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -20,6 +21,7 @@ RequestGetAttrJob::RequestGetAttrJob(fuse_req_t request, fuse_ino_t inode, const
 
 FuseNetworkJob::Message RequestGetAttrJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestGetAttrJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request;
 

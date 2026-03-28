@@ -1,4 +1,5 @@
 #include "RequestReleaseJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -20,6 +21,7 @@ RequestReleaseJob::RequestReleaseJob(fuse_req_t request, fuse_ino_t inode, FileH
 
 FuseNetworkJob::Message RequestReleaseJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestReleaseJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request;
 

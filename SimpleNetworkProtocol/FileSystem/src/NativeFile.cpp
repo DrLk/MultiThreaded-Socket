@@ -1,4 +1,5 @@
 #include "NativeFile.hpp"
+#include <Tracy.hpp>
 #include <cstddef>
 
 #ifdef __linux__
@@ -82,7 +83,11 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
         ++packet;
     }
 
-    std::size_t readed = preadv(_file, iovecs.data(), blocks, offset); // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
+    std::size_t readed;
+    {
+        ZoneScopedN("NativeFile::preadv");
+        readed = preadv(_file, iovecs.data(), blocks, offset);
+    } // NOLINT (cppcoreguidelines-pro-type-cstyle-cast)
 
     if (blockSize * packets.size() != readed) {
         auto readPackets = packets.TryGenerate((readed + blockSize - 1) / blockSize);

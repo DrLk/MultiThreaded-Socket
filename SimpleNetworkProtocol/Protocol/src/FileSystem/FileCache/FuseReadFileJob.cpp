@@ -1,4 +1,5 @@
 #include "FuseReadFileJob.hpp"
+#include <Tracy.hpp>
 
 #include <memory>
 
@@ -91,6 +92,7 @@ FuseReadFileJob::FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t si
 // If the block is already InFlight (another request is fetching it), just registers as pending.
 void FuseReadFileJob::FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, TaskQueue::ITaskScheduler& scheduler)
 {
+    ZoneScopedN("FuseReadFileJob::FetchBlock");
     auto makePendingJob = [&] {
         return std::make_unique<FuseReadFilePendingJob>(
             _request, _inode, _size, _offset, _remoteFile, blockIndex, &leaf, &scheduler);
@@ -123,6 +125,7 @@ void FuseReadFileJob::FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, Task
 
 void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& tree)
 {
+    ZoneScopedN("FuseReadFileJob::ExecuteCachedTree");
     TRACER() << "[read]"
              << " request: " << _request
              << " inode: " << _inode

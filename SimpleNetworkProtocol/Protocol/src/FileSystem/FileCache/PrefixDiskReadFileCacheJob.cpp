@@ -1,4 +1,5 @@
 #include "PrefixDiskReadFileCacheJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 #include <memory>
@@ -24,6 +25,7 @@ PrefixDiskReadFileCacheJob::PrefixDiskReadFileCacheJob(fuse_req_t request,
 
 TaskQueue::DiskJob::Data PrefixDiskReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
+    ZoneScopedN("PrefixDiskReadFileCacheJob::ExecuteDisk");
     const std::size_t prefixCount = _prefixData->count;
     const std::size_t totalCount = prefixCount + 1;
     const std::size_t allocSize = sizeof(fuse_bufvec) + (prefixCount * sizeof(fuse_buf));

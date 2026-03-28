@@ -34,8 +34,8 @@ public:
     virtual ISpeedControllerState* Run(const TimeRangedStats& stats, SpeedControllerState& state) = 0;
 
 protected:
-    static constexpr size_t MinSpeed = 100;
-    static constexpr size_t MaxSpeed = 10000;
+    static constexpr size_t MinSpeed = 1000;
+    static constexpr size_t MaxSpeed = 100000;
 
     static constexpr float MaxPacketLost = 5.0;
 
@@ -302,7 +302,7 @@ public:
     ISpeedControllerState* Run(const TimeRangedStats& /*stats*/, SpeedControllerState& state) override
     {
         // state.realSpeed = MinSpeed;
-        state.realSpeed = 10000;
+        state.realSpeed = 100000;
 
         return this;
     }

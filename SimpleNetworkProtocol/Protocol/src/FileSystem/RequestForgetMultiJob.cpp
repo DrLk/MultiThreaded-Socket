@@ -1,4 +1,5 @@
 #include "RequestForgetMultiJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -18,6 +19,7 @@ RequestForgetMultiJob::RequestForgetMultiJob(fuse_req_t request, std::span<fuse_
 
 FuseNetworkJob::Message RequestForgetMultiJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestForgetMultiJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request
              << " size: " << _forgets.size()

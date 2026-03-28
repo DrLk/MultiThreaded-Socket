@@ -1,4 +1,5 @@
 #include "FileCache/FuseReplyJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 
@@ -40,6 +41,7 @@ void FuseReplyJob::PrepareBuffer()
 
 FuseReplyJob::Message FuseReplyJob::ExecuteResponse(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
+    ZoneScopedN("FuseReplyJob::ExecuteResponse");
     TRACER() << "Execute request=" << _request;
     PrepareBuffer();
     fuse_reply_data(_request, _buffer, fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);

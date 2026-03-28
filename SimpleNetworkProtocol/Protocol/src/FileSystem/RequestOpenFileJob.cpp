@@ -1,4 +1,5 @@
 #include "RequestOpenJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -19,6 +20,7 @@ RequestOpenJob::RequestOpenJob(fuse_req_t request, fuse_ino_t inode, fuse_file_i
 
 FuseNetworkJob::Message RequestOpenJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestOpenJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request
              << " inode: " << _inode

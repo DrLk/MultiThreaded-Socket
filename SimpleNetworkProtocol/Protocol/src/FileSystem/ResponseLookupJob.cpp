@@ -1,4 +1,5 @@
 #include "ResponseLookupJob.hpp"
+#include <Tracy.hpp>
 
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -26,6 +27,7 @@ namespace {
 
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseLookupJob::ExecuteResponse");
     TRACER() << "Execute";
     auto& reader = GetReader();
     fuse_req_t request = nullptr;

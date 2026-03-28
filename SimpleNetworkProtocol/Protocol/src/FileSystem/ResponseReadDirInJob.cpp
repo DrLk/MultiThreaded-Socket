@@ -1,4 +1,5 @@
 #include "ResponseReadDirInJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 #include <cstddef>
@@ -13,7 +14,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
-
+    ZoneScopedN("ResponseReadDirInJob::ExecuteResponse");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     Message data;
