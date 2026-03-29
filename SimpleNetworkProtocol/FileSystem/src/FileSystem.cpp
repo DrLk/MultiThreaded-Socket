@@ -1,7 +1,6 @@
 #include "FileSystem.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
@@ -13,7 +12,7 @@
 #include <functional>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
-#include <poll.h>
+#include <fuse3/fuse_common.h>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
@@ -115,45 +114,22 @@ void FileSystem::Start(std::stop_token stop)
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
-    // FUSE is mounted — start event loop in background thread and return.
+    // FUSE is mounted — start multi-threaded event loop in background thread and return.
     _fuseThread = std::jthread([this, stop = std::move(stop)](std::stop_token threadStop) {
         fuse_daemonize(1);
 
         const std::stop_callback onStop(stop, [this]() { fuse_session_exit(_session); });
         const std::stop_callback onThreadStop(threadStop, [this]() { fuse_session_exit(_session); });
 
-        // Custom loop with poll() timeout so fuse_session_exit() is checked
-        // periodically without needing to interrupt a blocking read() from
-        // another thread (which would be a data race on the FUSE fd).
-        while (fuse_session_exited(_session) == 0) {
-            struct pollfd pfd = { .fd = fuse_session_fd(_session), .events = POLLIN, .revents = 0 };
-            const int ret = poll(&pfd, 1, 100 /*ms*/);
-            if (ret < 0) {
-                if (errno == EINTR) {
-                    continue;
-                }
-                break;
-            }
-            if (ret == 0) {
-                continue;
-            }
+        struct fuse_loop_config* config = fuse_loop_cfg_create();
+        fuse_loop_cfg_set_clone_fd(config, 1);
 
-            fuse_buf buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
-            const int res = fuse_session_receive_buf(_session, &buf);
-            const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
-            if (res == 0) {
-                break;
-            }
-            if (res < 0) {
-                if (res == -EINTR || res == -EAGAIN) {
-                    continue;
-                }
-                LOGGER() << "[FileSystem] fuse_session_receive_buf error: " << res;
-                break;
-            }
-            fuse_session_process_buf(_session, &buf);
+        const int ret = fuse_session_loop_mt(_session, config);
+        if (ret != 0) {
+            LOGGER() << "[FileSystem] fuse_session_loop_mt exited with error: " << ret;
         }
 
+        fuse_loop_cfg_destroy(config);
         fuse_remove_signal_handlers(_session);
     });
 }
