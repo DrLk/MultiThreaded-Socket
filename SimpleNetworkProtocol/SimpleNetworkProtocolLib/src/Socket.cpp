@@ -14,7 +14,6 @@
 
 #ifdef __linux__
 #include <cassert>
-#include <iterator>
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/udp.h>
@@ -144,19 +143,19 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
                 return iovec;
             });
 
-            const struct msghdr message = {
+        const struct msghdr message = {
                 .msg_name = const_cast<void*>(static_cast<const void*>(&(address.GetAddr()))), // NOLINT(cppcoreguidelines-pro-type-const-cast)
-                .msg_namelen = sizeof(sockaddr),
+            .msg_namelen = sizeof(sockaddr),
                 .msg_iov = std::addressof(*iovBegin),
                 .msg_iovlen = packetChunkSize,
                 .msg_control = std::addressof(*ctrlBegin),
-                .msg_controllen = 0,
-            };
+            .msg_controllen = 0,
+        };
 
             iovBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
             ctrlBegin += static_cast<std::ptrdiff_t>(packetChunkSize);
-            headers.push_back(mmsghdr { .msg_hdr = message });
-        }
+        headers.push_back(mmsghdr { .msg_hdr = message });
+    }
     }
 
     std::size_t messageIndex = 0;

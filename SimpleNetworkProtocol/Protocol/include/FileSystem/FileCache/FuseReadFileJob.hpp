@@ -14,6 +14,7 @@ public:
 
 private:
     void FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, TaskQueue::ITaskScheduler& scheduler);
+    void TriggerPrefetch(FileSystem::Leaf& leaf, size_t blockIndex, TaskQueue::ITaskScheduler& scheduler);
     fuse_req_t _request;
     fuse_ino_t _inode;
     size_t _size;

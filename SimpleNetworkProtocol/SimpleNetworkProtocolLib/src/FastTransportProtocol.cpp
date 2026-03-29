@@ -3,6 +3,7 @@
 #include <Tracy.hpp>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <shared_mutex>
@@ -23,6 +24,8 @@
 #include "OutgoingPacket.hpp"
 #include "ThreadName.hpp"
 #include "UDPQueue.hpp"
+
+using namespace std::chrono_literals;
 
 namespace FastTransport::Protocol {
 class ConnectionAddr;
@@ -82,6 +85,7 @@ void FastTransportContext::InitRecvPackets()
 
 IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
+    ZoneScopedN("FastTransport::OnReceive(batch)");
     IPacket::List freePackets;
 
     for (auto&& packet : packets) {
@@ -94,6 +98,7 @@ IPacket::List FastTransportContext::OnReceive(IPacket::List&& packets) // NOLINT
 
 IPacket::List FastTransportContext::OnReceive(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("FastTransport::OnReceive(single)");
     IPacket::List freePackets;
 
     if (!packet->IsValid()) {
@@ -154,7 +159,7 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
     ZoneScopedN("SendQueueStep");
     {
         std::unique_lock<Mutex> lock(_mutex);
-        _condition.wait_for(lock, stop, 25ms, [this]() { return static_cast<bool>(_readySend); });
+        _condition.wait_for(lock, stop, 10ms, [this]() { return static_cast<bool>(_readySend); });
         _readySend = false;
     }
 
@@ -166,6 +171,11 @@ void FastTransportContext::SendQueueStep(std::stop_token stop)
         for (auto& [key, connection] : _connections) {
             packets.splice(connection->GetPacketsToSend());
         }
+    }
+
+    if (!packets.empty()) {
+        const std::scoped_lock lock(_mutex);
+        _readySend = true;
     }
 
     OutgoingPacket::List inFlightPackets = Send(stop, packets);

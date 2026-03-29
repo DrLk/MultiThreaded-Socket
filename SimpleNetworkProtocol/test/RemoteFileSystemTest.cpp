@@ -218,7 +218,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         scheduler.Wait(stop);
     });
 
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(10ms);
 
     // Client thread: connects to server and mounts FUSE at MountPoint
     std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {

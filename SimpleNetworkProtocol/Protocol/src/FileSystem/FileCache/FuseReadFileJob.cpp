@@ -104,22 +104,28 @@ void FuseReadFileJob::FetchBlock(FileSystem::Leaf& leaf, size_t blockIndex, Task
         scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
             nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), blockOffset, 0, _remoteFile));
 
-        constexpr size_t PrefetchAhead = 4;
-        for (size_t i = 1; i <= PrefetchAhead; i++) {
-            const size_t prefetchBlockIndex = blockIndex + i;
-            const auto prefetchOffset = static_cast<off_t>(prefetchBlockIndex * static_cast<size_t>(Leaf::BlockSize));
-            if (static_cast<size_t>(prefetchOffset) >= leaf.GetSize()) {
-                break;
-            }
-            if (leaf.SetInFlight(prefetchBlockIndex)) {
-                scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
-                    nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), prefetchOffset, 0, _remoteFile));
-            }
-        }
+        TriggerPrefetch(leaf, blockIndex, scheduler);
     } else if (leaf.GetPiecesStatus()->GetStatus(blockIndex) == FileSystem::PieceStatus::InCache) {
         scheduler.ScheduleCacheTreeJob(std::make_unique<FuseReadFileJob>(_request, _inode, _size, _offset, _remoteFile));
     } else {
         leaf.AddPendingJob(blockIndex, makePendingJob());
+    }
+}
+
+void FuseReadFileJob::TriggerPrefetch(FileSystem::Leaf& leaf, size_t blockIndex, TaskQueue::ITaskScheduler& scheduler)
+{
+    ZoneScopedN("FuseReadFileJob::TriggerPrefetch");
+    constexpr size_t PrefetchAhead = 4;
+    for (size_t i = 1; i <= PrefetchAhead; i++) {
+        const size_t prefetchBlockIndex = blockIndex + i;
+        const auto prefetchOffset = static_cast<off_t>(prefetchBlockIndex * static_cast<size_t>(Leaf::BlockSize));
+        if (static_cast<size_t>(prefetchOffset) >= leaf.GetSize()) {
+            break;
+        }
+        if (leaf.SetInFlight(prefetchBlockIndex)) {
+            scheduler.Schedule(std::make_unique<TaskQueue::RequestReadFileJob>(
+                nullptr, _inode, static_cast<size_t>(Leaf::BlockSize), prefetchOffset, 0, _remoteFile));
+        }
     }
 }
 
@@ -224,6 +230,9 @@ void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, st
         FetchBlock(leaf, nextBlockIndex, scheduler);
         return;
     }
+
+    const size_t blockIndex = static_cast<size_t>(_offset) / static_cast<size_t>(Leaf::BlockSize);
+    TriggerPrefetch(leaf, blockIndex, scheduler);
 
     auto pinned = buildPinnedBufVec(std::move(buffer));
     fuse_reply_data(_request, pinned.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);

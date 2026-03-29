@@ -61,6 +61,7 @@ Connection ::~Connection() = default;
 
 IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("Connection::OnRecvPackets");
     _lastPacketReceive = clock::now();
     auto [connectionState, freePackets] = _states[_connectionState]->OnRecvPackets(std::move(packet), *this);
 
@@ -113,6 +114,7 @@ IPacket::List Connection::GetFreeSendPackets(std::stop_token stop)
 
 void Connection::Send(IPacket::List&& data)
 {
+    ZoneScopedN("Connection::Send");
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
         NotifySendPacketsEvent();
@@ -124,8 +126,8 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
     ZoneScopedN("Connection::Send2");
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
-        NotifySendPacketsEvent();
     }
+    NotifySendPacketsEvent();
 
     IPacket::List result;
     {
@@ -224,6 +226,7 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
+    ZoneScopedN("Connection::GetPacketsToSend");
     OutgoingPacket::List servicePackets = _sendQueue->GetServicePacketsToSend();
 
     std::size_t size = _inFlightQueue->GetNumberPacketToSend();
@@ -285,6 +288,7 @@ void Connection::SendDataPackets(IPacket::List&& packets)
 
 IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("Connection::RecvPacket");
     auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
     switch (status) {
     case RecvQueueStatus::Full: {
@@ -411,6 +415,7 @@ void Connection::NotifySendPacketsEvent() const
 
 void Connection::Run()
 {
+    ZoneScopedN("Connection::Run");
     const auto& connectionState = _states[_connectionState];
     if (clock::now() - _lastPacketReceive.load() > connectionState->GetTimeout()) {
         _connectionState = connectionState->OnTimeOut(*this);

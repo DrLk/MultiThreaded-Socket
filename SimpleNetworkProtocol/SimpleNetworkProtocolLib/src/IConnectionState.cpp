@@ -12,6 +12,8 @@
 #include "ConnectionKey.hpp"
 #include "ConnectionState.hpp"
 #include "HeaderTypes.hpp"
+#include <Tracy.hpp>
+
 #include "IConnectionInternal.hpp"
 #include "IPacket.hpp"
 #include "IRecvQueue.hpp"
@@ -181,6 +183,7 @@ ConnectionState WaitingSynAckState::OnTimeOut(IConnectionInternal& connection)
 
 ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 {
+    ZoneScopedN("DataState::SendPackets");
     std::vector<SeqNumberType> acks = connection.GetRecvQueue().GetSelectiveAcks();
     auto lastAck = connection.GetRecvQueue().GetLastAck();
     // TODO: maybe error after std::move second loop
@@ -200,7 +203,7 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
         std::vector<SeqNumberType> packetAcks;
         packetAcks.reserve(MaxAcksSize);
 
-        while (acksOffset < acks.size() && packetAcks.size() <= MaxAcksSize) {
+        while (acksOffset < acks.size() && packetAcks.size() < MaxAcksSize) {
             if (acks[acksOffset] >= lastAck) {
                 packetAcks.push_back(acks[acksOffset]);
             }
@@ -239,6 +242,7 @@ ConnectionState DataState::SendPackets(IConnectionInternal& connection)
 
 std::tuple<ConnectionState, IPacket::List> DataState::OnRecvPackets(IPacket::Ptr&& packet, IConnectionInternal& connection)
 {
+    ZoneScopedN("DataState::OnRecvPackets");
     std::tuple<ConnectionState, IPacket::List> result;
     auto& [connectionState, freePackets] = result;
 

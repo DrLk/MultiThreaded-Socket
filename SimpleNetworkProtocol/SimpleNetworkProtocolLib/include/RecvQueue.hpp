@@ -33,6 +33,7 @@ private:
     Thread::SpinLock _selectiveAcksMutex;
     std::vector<SeqNumberType> _selectiveAcks;
     std::atomic<SeqNumberType> _beginFullRecievedAck { 1 };
+    bool _outOfOrderLogged { false };
 };
 
 } // namespace FastTransport::Protocol
