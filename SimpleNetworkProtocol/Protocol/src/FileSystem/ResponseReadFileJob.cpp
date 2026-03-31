@@ -3,9 +3,11 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <stop_token>
 #include <sys/uio.h>
 
+#include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
 #include "RemoteFileHandle.hpp"
@@ -14,6 +16,12 @@
 #define TRACER() LOGGER() << "[ResponseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::TaskQueue {
+
+void ResponseReadFileJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+{
+    auto* pointer = dynamic_cast<ResponseReadFileJob*>(job.release());
+    scheduler.ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>(pointer));
+}
 
 ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& /*fileTree*/)
 {

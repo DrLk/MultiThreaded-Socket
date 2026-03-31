@@ -34,6 +34,14 @@ public:
     TaskQueue();
     std::future<void> Async(std::move_only_function<void(std::stop_token)>&& function) override;
 
+    void RequestStop() noexcept { _workerThread.request_stop(); }
+    void Join()
+    {
+        if (_workerThread.joinable()) {
+            _workerThread.join();
+        }
+    }
+
 private:
     LockedList _taskQueue;
     std::jthread _workerThread;

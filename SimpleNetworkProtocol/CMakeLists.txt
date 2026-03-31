@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
-option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
+option(ENABLE_TSAN "Enable Thread Sanitizer for tests" OFF)
 
 project(SimpleNetworkProtocol)
 

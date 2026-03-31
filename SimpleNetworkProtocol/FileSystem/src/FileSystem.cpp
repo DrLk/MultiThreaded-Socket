@@ -125,6 +125,7 @@ void FileSystem::Start(std::stop_token stop)
         fuse_loop_cfg_set_clone_fd(config, 1);
 
         const int ret = fuse_session_loop_mt(_session, config);
+        // const int ret = fuse_session_loop(_session);
         if (ret != 0) {
             LOGGER() << "[FileSystem] fuse_session_loop_mt exited with error: " << ret;
         }
@@ -241,6 +242,12 @@ void FileSystem::FuseInit(void* userdata, struct fuse_conn_info* conn)
     if ((conn->capable & FUSE_CAP_SPLICE_MOVE) != 0U) {
         conn->want |= FUSE_CAP_SPLICE_MOVE;
     }
+
+    if ((conn->capable & FUSE_CAP_ASYNC_READ) != 0U) {
+        conn->want |= FUSE_CAP_ASYNC_READ;
+    }
+
+    conn->max_readahead = 4 * 1024 * 1024;
 }
 
 void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name,

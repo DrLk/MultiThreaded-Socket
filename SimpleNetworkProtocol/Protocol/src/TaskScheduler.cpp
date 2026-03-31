@@ -2,12 +2,14 @@
 #include <Tracy.hpp>
 
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <stop_token>
 
 #include "CacheTreeJob.hpp"
 #include "DiskJob.hpp"
+#include "FileSystem/ResponseReadFileJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "FuseNetworkJob.hpp"
 #include "ITaskScheduler.hpp"
@@ -30,7 +32,35 @@ TaskScheduler::TaskScheduler(IConnection& connection, FileTree& fileTree)
 {
 }
 
-TaskScheduler::~TaskScheduler() = default;
+TaskScheduler::~TaskScheduler()
+{
+    // Phase 1: signal all workers to stop simultaneously.
+    // Workers that cross-schedule between queues (e.g. _readNetworkQueue
+    // workers call ScheduleResponseFuseNetworkJob -> _mainQueue.Async) must
+    // not be able to push into a queue whose LockedList is already destroyed.
+    for (auto& diskQueue : _diskQueues) {
+        diskQueue.RequestStop();
+    }
+    for (auto& cacheQueue : _cacheTreeQueues) {
+        cacheQueue.RequestStop();
+    }
+    _mainQueue.RequestStop();
+    _readNetworkQueue.RequestStop();
+    _writeNetworkQueue.RequestStop();
+
+    // Phase 2: join all workers before any member destructor runs.
+    // After this point no thread can push to any LockedList, so the member
+    // destructors (phase 3, automatic) that clear those lists are race-free.
+    _writeNetworkQueue.Join();
+    _readNetworkQueue.Join();
+    _mainQueue.Join();
+    for (auto& diskQueue : _diskQueues) {
+        diskQueue.Join();
+    }
+    for (auto& cacheQueue : _cacheTreeQueues) {
+        cacheQueue.Join();
+    }
+}
 
 void TaskScheduler::Schedule(std::unique_ptr<Job>&& job)
 {
@@ -83,10 +113,11 @@ void TaskScheduler::ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job
 
 void TaskScheduler::ScheduleDiskJob(std::unique_ptr<DiskJob>&& job)
 {
-    _diskQueue.Async([job = std::move(job), this](std::stop_token /*stop*/) mutable {
+    const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
+    _diskQueues.at(idx).Async([job = std::move(job), this, idx](std::stop_token /*stop*/) mutable {
         ZoneScopedN("TaskScheduler::ScheduleDiskJob");
-        auto freeDiskPackets = job->ExecuteDisk(*this, std::move(_freeDiskPackets));
-        _freeDiskPackets = std::move(freeDiskPackets);
+        auto freeDiskPackets = job->ExecuteDisk(*this, std::move(_freeDiskPackets.at(idx)));
+        _freeDiskPackets.at(idx) = std::move(freeDiskPackets);
     });
 }
 
@@ -152,6 +183,47 @@ void TaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseN
     });
 }
 
+void TaskScheduler::ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>&& job)
+{
+    // Phase 1 (mainQueue): allocate send packets — _freeSendPackets is mainQueue-only.
+    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleResponseReadDiskJob::alloc");
+        if (_freeSendPackets.size() < 2500) {
+            ZoneScopedN("ScheduleResponseReadDiskJob::Send2Wait");
+            auto freePackets = _connection.get().Send2(stop, IPacket::List());
+            _freeSendPackets.splice(std::move(freePackets));
+        }
+        assert(!_freeSendPackets.empty());
+        static constexpr size_t MaxWriterPackets = 1100;
+        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+
+        // Phase 2 (disk thread): perform the blocking file read.
+        const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
+        _diskQueues.at(idx).Async(
+            [job = std::move(job), writerPackets = std::move(writerPackets), this](std::stop_token diskStop) mutable {
+                ZoneScopedN("TaskScheduler::ScheduleResponseReadDiskJob::read");
+                Protocol::MessageWriter writer(std::move(writerPackets));
+                Message freeReadPackets = job->ExecuteResponse(diskStop, writer, _fileTree);
+
+                auto writedPackets = writer.GetWritedPackets();
+                TRACER() << "ScheduleResponseReadDiskJob writedPackets.size(): " << writedPackets.size();
+                if (!writedPackets.empty()) {
+                    ScheduleWriteNetworkJob(std::make_unique<SendMessageJob>(std::move(writedPackets)));
+                }
+                if (!freeReadPackets.empty()) {
+                    ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freeReadPackets)));
+                }
+                // Return unused write packets back to mainQueue.
+                auto unusedPackets = writer.GetPackets();
+                if (!unusedPackets.empty()) {
+                    _mainQueue.Async([unusedPackets = std::move(unusedPackets), this](std::stop_token /*s*/) mutable {
+                        _freeSendPackets.splice(std::move(unusedPackets));
+                    });
+                }
+            });
+    });
+}
+
 void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job)
 {
     _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
@@ -168,7 +240,8 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
 
 void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    const size_t idx = std::hash<fuse_ino_t> {}(job->GetInode()) % CacheTreeThreadCount;
+    _cacheTreeQueues.at(idx).Async([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
         job->ExecuteCachedTree(*this, stop, _fileTree);
     });
@@ -176,8 +249,9 @@ void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
 
 void TaskScheduler::ReturnFreeDiskPackets(Protocol::IPacket::List&& packets)
 {
-    _diskQueue.Async([packets = std::move(packets), this](std::stop_token /*stop*/) mutable {
-        _freeDiskPackets.splice(std::move(packets));
+    const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
+    _diskQueues.at(idx).Async([packets = std::move(packets), this, idx](std::stop_token /*stop*/) mutable {
+        _freeDiskPackets.at(idx).splice(std::move(packets));
     });
 }
 
