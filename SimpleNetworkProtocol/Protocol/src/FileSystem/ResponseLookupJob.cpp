@@ -19,8 +19,14 @@ namespace {
     {
         auto type = std::filesystem::status(path).type();
 
-        std::error_code error;
-        const uintmax_t size = std::filesystem::file_size(path, error);
+        uintmax_t size = 0;
+        if (type == std::filesystem::file_type::regular) {
+            std::error_code error;
+            size = std::filesystem::file_size(path, error);
+            if (error) {
+                size = 0;
+            }
+        }
         return parent.AddChild(path.filename(), type, size);
     }
 } // namespace

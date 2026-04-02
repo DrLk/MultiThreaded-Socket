@@ -129,9 +129,14 @@ void FuseReadFileJob::TriggerPrefetch(FileSystem::Leaf& leaf, size_t blockIndex,
     }
 }
 
-void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& tree)
+void FuseReadFileJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token stop, FileTree& tree)
 {
     ZoneScopedN("FuseReadFileJob::ExecuteCachedTree");
+    if (stop.stop_requested()) {
+        TRACER() << "Job cancelled";
+        fuse_reply_err(_request, EIO);
+        return;
+    }
     TRACER() << "[read]"
              << " request: " << _request
              << " inode: " << _inode

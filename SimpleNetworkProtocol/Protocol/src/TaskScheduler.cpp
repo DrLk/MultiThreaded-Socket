@@ -34,6 +34,7 @@ TaskScheduler::TaskScheduler(IConnection& connection, FileTree& fileTree)
 
 TaskScheduler::~TaskScheduler()
 {
+    TRACER() << "Stopping TaskScheduler";
     // Phase 1: signal all workers to stop simultaneously.
     // Workers that cross-schedule between queues (e.g. _readNetworkQueue
     // workers call ScheduleResponseFuseNetworkJob -> _mainQueue.Async) must

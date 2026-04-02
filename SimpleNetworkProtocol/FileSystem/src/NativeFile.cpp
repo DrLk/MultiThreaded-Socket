@@ -23,7 +23,9 @@ NativeFile::NativeFile(std::filesystem::path name)
 
 NativeFile::~NativeFile()
 {
-    NativeFile::Close();
+    if (_file != -1) {
+        NativeFile::Close();
+    }
 }
 
 int NativeFile::GetHandle() const
@@ -79,7 +81,7 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
     for (int i = 0; i < blocks; i++) {
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
-        assert(blockSize == (*packet)->GetPayload().size());
+        assert(blockSize == (*packet)->GetPayload().size() && i != blocks - 1);
         ++packet;
     }
 
@@ -118,7 +120,7 @@ void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
     for (int i = 0; i < blocks; i++) {
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
-        assert(blockSize == (*packet)->GetPayload().size());
+        assert(blockSize == (*packet)->GetPayload().size() && i != blocks - 1);
         ++packet;
     }
 

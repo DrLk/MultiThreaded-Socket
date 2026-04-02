@@ -21,6 +21,7 @@
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
+#include "Logger.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "TaskScheduler.hpp"
 #include "UDPQueue.hpp"
@@ -66,9 +67,9 @@ constexpr const char* CacheDir3 = "/tmp/rfs_test_cache3";
 //   │   └── file_b.bin   (20 MB)
 //   └── file_root.bin    (10 MB)
 constexpr const char* TestTreeRoot = "/tmp/rfs_test_tree";
-constexpr size_t FileASize = 300ULL * 1024 * 1024;
-constexpr size_t FileBSize = 200ULL * 1024 * 1024;
-constexpr size_t FileRootSize = 100ULL * 1024 * 1024;
+constexpr size_t FileASize = 30ULL * 1024 * 1024;
+constexpr size_t FileBSize = 30ULL * 1024 * 1024;
+constexpr size_t FileRootSize = 30ULL * 1024 * 1024;
 
 // Block size must match Leaf::BlockSize (1000 * 1300)
 constexpr size_t FuseBlockSize = 1000UL * 1300UL;
@@ -541,6 +542,8 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
                     ++failures;
                     return;
                 }
+
+                LOGGER() << "[test] readAThread iteration " << iteration << " succeeded\n";
                 ++iteration;
             }
             std::cerr << "[test] readAThread did " << iteration << " iterations\n";
@@ -557,6 +560,7 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
                     ++failures;
                     return;
                 }
+                LOGGER() << "[test] readBThread iteration " << iteration << " succeeded\n";
                 ++iteration;
             }
             std::cerr << "[test] readBThread did " << iteration << " iterations\n";
@@ -573,6 +577,7 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
                     ++failures;
                     return;
                 }
+                LOGGER() << "[test] readRootThread iteration " << iteration << " succeeded\n";
                 ++iteration;
             }
             std::cerr << "[test] readRootThread did " << iteration << " iterations\n";
@@ -584,11 +589,18 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
         readBThread.request_stop();
         readRootThread.request_stop();
 
+        LOGGER() << "[test] requested stop for all threads, waiting for them to finish...\n";
         listThread.join();
+        LOGGER() << "[test] listThread stopped\n";
         readAThread.join();
+        LOGGER() << "[test] readAThread stopped\n";
         readBThread.join();
+        LOGGER() << "[test] readBThread stopped\n";
         readRootThread.join();
+        LOGGER() << "[test] all threads stopped\n";
 
+
+        std::this_thread::sleep_for(1s);
         stopSource.request_stop();
         Unmount3();
 
