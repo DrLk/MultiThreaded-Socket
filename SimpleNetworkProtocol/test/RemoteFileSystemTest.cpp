@@ -17,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+#include "jprocess.hpp"
+
 #include "ConnectionAddr.hpp"
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
@@ -59,13 +61,13 @@ constexpr uint16_t ClientPort3 = 31600;
 constexpr const char* MountPoint3 = "/tmp/mnt_rfs_test3";
 constexpr const char* CacheDir3 = "/tmp/rfs_test_cache3";
 
-// Directory structure for multi-thread test:
+// Directory structure for multi-process test:
 // /tmp/rfs_test_tree/
 //   ├── subdir_a/
 //   │   └── file_a.bin   (30 MB)
 //   ├── subdir_b/
-//   │   └── file_b.bin   (20 MB)
-//   └── file_root.bin    (10 MB)
+//   │   └── file_b.bin   (30 MB)
+//   └── file_root.bin    (30 MB)
 constexpr const char* TestTreeRoot = "/tmp/rfs_test_tree";
 constexpr size_t FileASize = 30ULL * 1024 * 1024;
 constexpr size_t FileBSize = 30ULL * 1024 * 1024;
@@ -73,6 +75,8 @@ constexpr size_t FileRootSize = 30ULL * 1024 * 1024;
 
 // Block size must match Leaf::BlockSize (1000 * 1300)
 constexpr size_t FuseBlockSize = 1000UL * 1300UL;
+
+// ── file creation ─────────────────────────────────────────────────────────────
 
 void CreateTestFile()
 {
@@ -113,13 +117,17 @@ void CreateTestTree()
     CreateTestFileAt(std::filesystem::path(TestTreeRoot) / "file_root.bin", FileRootSize, 99);
 }
 
-void Unmount3()
+// ── mount / directory helpers ─────────────────────────────────────────────────
+
+// Runs fusermount3 -u in a child process so unmounting works from a thread/process
+// that did not mount the filesystem.
+void UnmountAt(const char* mountPoint)
 {
     const pid_t pid = fork();
     if (pid == 0) {
         std::string prog = "fusermount3";
         std::string arg1 = "-u";
-        std::string arg2 = MountPoint3;
+        std::string arg2 = mountPoint;
         std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
         execvp(args[0], args.data());
         _exit(1);
@@ -129,27 +137,15 @@ void Unmount3()
     }
 }
 
-void PrepareDirectories()
+void PrepareTestDirectories(const char* mountPoint, const char* cacheDir)
 {
-    std::filesystem::create_directories(MountPoint);
-    std::filesystem::create_directories(CacheDir);
+    UnmountAt(mountPoint); // clean up any leftover mount from a previous run
+    std::filesystem::create_directories(mountPoint);
+    std::filesystem::remove_all(cacheDir);
+    std::filesystem::create_directories(cacheDir);
 }
 
-void Unmount()
-{
-    const pid_t pid = fork();
-    if (pid == 0) {
-        std::string prog = "fusermount3";
-        std::string arg1 = "-u";
-        std::string arg2 = MountPoint;
-        std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
-        execvp(args[0], args.data());
-        _exit(1);
-    }
-    if (pid > 0) {
-        waitpid(pid, nullptr, 0);
-    }
-}
+// ── file comparison ───────────────────────────────────────────────────────────
 
 bool CompareFiles(const std::string& path1, const std::string& path2, size_t totalSize)
 {
@@ -245,110 +241,144 @@ bool RandomReadComparison(const std::string& original, const std::string& mounte
     return true;
 }
 
+// ── server helper ─────────────────────────────────────────────────────────────
+
+void RunServer(std::stop_token stop, uint16_t port, const char* root, const char* cacheDir)
+{
+    FastTransportContext src(ConnectionAddr("127.0.0.1", port));
+    const IConnection::Ptr srcConnection = src.Accept(stop);
+    if (srcConnection == nullptr) {
+        return;
+    }
+    srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+    srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
+    FileTree fileTree(root, cacheDir);
+    TaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    scheduler.Wait(stop);
+}
+
+// ── directory listing helper ──────────────────────────────────────────────────
+
+bool ListDirectoriesIterative(const std::string& root)
+{
+    std::vector<std::string> stack = { root };
+    while (!stack.empty()) {
+        std::string path = std::move(stack.back());
+        stack.pop_back();
+
+        DIR* dir = opendir(path.c_str());
+        if (dir == nullptr) {
+            std::cerr << "[test] opendir failed: " << path << "\n";
+            return false;
+        }
+        while (struct dirent* entry = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
+            const std::string_view name(entry->d_name);
+            if (name == "." || name == "..") {
+                continue;
+            }
+            std::string fullPath = path;
+            fullPath += '/';
+            fullPath += name;
+            std::cerr << "[test] listed: " << fullPath << "\n";
+            if (entry->d_type == DT_DIR) {
+                stack.push_back(std::move(fullPath));
+            }
+        }
+        closedir(dir);
+    }
+    return true;
+}
+
+// Loop helpers: intended to run inside a jprocess child.
+
+bool ListDirectoriesLoop(const std::string& root, jprocess::stop_token stop)
+{
+    int iteration = 0;
+    while (!stop.stop_requested()) {
+        if (!ListDirectoriesIterative(root)) {
+            return false;
+        }
+        ++iteration;
+    }
+    std::cerr << "[test] listProcess did " << iteration << " iterations\n";
+    return true;
+}
+
+bool ReadFileComparisonLoop(const std::string& orig, const std::string& mnt,
+    size_t size, const char* name, jprocess::stop_token stop)
+{
+    int iteration = 0;
+    while (!stop.stop_requested()) {
+        if (!CompareFiles(orig, mnt, size)) {
+            std::cerr << "[test] " << name << " comparison failed at iteration " << iteration << "\n";
+            return false;
+        }
+        ++iteration;
+    }
+    std::cerr << "[test] " << name << " process did " << iteration << " iterations\n";
+    return true;
+}
+
 } // namespace
 
 TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-cognitive-complexity)
 {
-    PrepareDirectories();
-    Unmount(); // clean up any leftover mount from previous run
+    PrepareTestDirectories(MountPoint, CacheDir);
     CreateTestFile();
-    std::filesystem::remove_all(CacheDir);
-    std::filesystem::create_directories(CacheDir);
 
     std::atomic<bool> testResult { false };
     std::stop_source stopSource;
 
-    // Server thread: serves files from /tmp, accepts incoming connections
     std::jthread serverThread([](std::stop_token stop) {
-        FastTransportContext src(ConnectionAddr("127.0.0.1", ServerPort));
-
-        const IConnection::Ptr srcConnection = src.Accept(stop);
-        if (srcConnection == nullptr) {
-            return;
-        }
-
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
-        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
-        srcConnection->AddFreeRecvPackets(std::move(recvPackets));
-        srcConnection->AddFreeSendPackets(std::move(sendPackets));
-
-        FileTree fileTree("/tmp", CacheDir);
-        TaskScheduler scheduler(*srcConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-        scheduler.Wait(stop);
+        RunServer(stop, ServerPort, "/tmp", CacheDir);
     });
 
     std::this_thread::sleep_for(10ms);
 
-    // Client thread: connects to server and mounts FUSE at MountPoint
     std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort));
-        const ConnectionAddr serverAddr("127.0.0.1", ServerPort);
-
-        const IConnection::Ptr dstConnection = dst.Connect(serverAddr);
-
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
-        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
-        dstConnection->AddFreeRecvPackets(std::move(recvPackets));
-        dstConnection->AddFreeSendPackets(std::move(sendPackets));
+        const IConnection::Ptr dstConnection = dst.Connect(ConnectionAddr("127.0.0.1", ServerPort));
+        dstConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+        dstConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
 
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
         // filesystem must outlive scheduler (scheduler's workers call fuse_reply_*).
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint);
         auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
         scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
-        std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
-            const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
-
-            // First: direct read comparison
+        const std::string mntFile = std::string(MountPoint) + "/" + TestFileName;
+        jprocess proc([&mntFile](jprocess::stop_token /*stop*/) -> bool {
             if (!CompareFiles(TestFilePath, mntFile, TestFileSize)) {
                 std::cerr << "[test] first comparison failed\n";
-                testResult = false;
-                stopSource.request_stop();
-                Unmount();
-                return;
+                return false;
             }
-
-            // Second: copy via FUSE and verify
             if (!CopyFileViaMount(mntFile, CopyFilePath, "copy_file")) {
-                testResult = false;
-                stopSource.request_stop();
-                Unmount();
-                return;
+                return false;
             }
             if (!CompareFiles(TestFilePath, CopyFilePath, TestFileSize)) {
                 std::cerr << "[test] copy comparison failed\n";
-                testResult = false;
-                Unmount();
-                return;
+                return false;
             }
-
-            // Third: copy again to verify re-reading works
             if (!CopyFileViaMount(mntFile, Copy2FilePath, "copy2_file")) {
-                testResult = false;
-                stopSource.request_stop();
-                Unmount();
-                return;
+                return false;
             }
-            const bool result = CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
-            testResult = result;
-            stopSource.request_stop();
-            Unmount();
+            return CompareFiles(TestFilePath, Copy2FilePath, TestFileSize);
         });
+        testResult = proc.join();
 
-        readThread.join();
+        stopSource.request_stop();
+        UnmountAt(MountPoint);
 
         scheduler->Wait(stop);
         scheduler.reset();
         filesystem.reset();
-        // fileTree, dstConnection, dst (FastTransportContext) destructors follow at end of scope
     });
 
-    // Wait for readThread (inside clientThread) to signal done (max 300s)
     auto deadline = std::chrono::steady_clock::now() + 300s;
     while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(100ms);
@@ -356,7 +386,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
     if (!stopSource.stop_requested()) {
         stopSource.request_stop();
-        Unmount();
+        UnmountAt(MountPoint);
     }
 
     serverThread.request_stop();
@@ -370,11 +400,7 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
 
 TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-cognitive-complexity)
 {
-    std::filesystem::create_directories(MountPoint2);
-    std::filesystem::remove_all(CacheDir2);
-    std::filesystem::create_directories(CacheDir2);
-    Unmount(); // clean up MountPoint if left over
-    // Ensure test file exists (may have been created by prior test)
+    PrepareTestDirectories(MountPoint2, CacheDir2);
     if (!std::filesystem::exists(TestFilePath)) {
         CreateTestFile();
     }
@@ -383,17 +409,7 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
     std::stop_source stopSource;
 
     std::jthread serverThread([](std::stop_token stop) {
-        FastTransportContext src(ConnectionAddr("127.0.0.1", ServerPort2));
-        const IConnection::Ptr srcConnection = src.Accept(stop);
-        if (srcConnection == nullptr) {
-            return;
-        }
-        srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
-        srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
-        FileTree fileTree("/tmp", CacheDir2);
-        TaskScheduler scheduler(*srcConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-        scheduler.Wait(stop);
+        RunServer(stop, ServerPort2, "/tmp", CacheDir2);
     });
 
     std::this_thread::sleep_for(500ms);
@@ -411,30 +427,19 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
-        std::jthread readThread([&testResult, &stopSource](std::stop_token /*stop*/) {
-            const std::string mntFile = std::string(MountPoint2) + "/" + TestFileName;
+        const std::string mntFile = std::string(MountPoint2) + "/" + TestFileName;
+        jprocess proc([&mntFile](jprocess::stop_token /*stop*/) -> bool {
             const bool result = RandomReadComparison(TestFilePath, mntFile, TestFileSize);
             if (!result) {
                 std::cerr << "[test] random read comparison failed\n";
             }
-            testResult = result;
-            stopSource.request_stop();
-            // Unmount MountPoint2
-            const pid_t pid = fork();
-            if (pid == 0) {
-                std::string prog = "fusermount3";
-                std::string arg1 = "-u";
-                std::string arg2 = MountPoint2;
-                std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
-                execvp(args[0], args.data());
-                _exit(1);
-            }
-            if (pid > 0) {
-                waitpid(pid, nullptr, 0);
-            }
+            return result;
         });
+        testResult = proc.join();
 
-        readThread.join();
+        stopSource.request_stop();
+        UnmountAt(MountPoint2);
+
         scheduler->Wait(stop);
         scheduler.reset();
         filesystem.reset();
@@ -459,34 +464,19 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
 
 TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-function-cognitive-complexity)
 {
-    std::filesystem::create_directories(MountPoint3);
-    std::filesystem::remove_all(CacheDir3);
-    std::filesystem::create_directories(CacheDir3);
-    Unmount3();
+    PrepareTestDirectories(MountPoint3, CacheDir3);
     CreateTestTree();
 
-    std::atomic<int> failures { 0 };
+    std::atomic<bool> testResult { false };
     std::stop_source stopSource;
 
-    // Server: serves files from TestTreeRoot
     std::jthread serverThread([](std::stop_token stop) {
-        FastTransportContext src(ConnectionAddr("127.0.0.1", ServerPort3));
-        const IConnection::Ptr srcConnection = src.Accept(stop);
-        if (srcConnection == nullptr) {
-            return;
-        }
-        srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
-        srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
-        FileTree fileTree(TestTreeRoot, CacheDir3);
-        TaskScheduler scheduler(*srcConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-        scheduler.Wait(stop);
+        RunServer(stop, ServerPort3, TestTreeRoot, CacheDir3);
     });
 
     std::this_thread::sleep_for(10ms);
 
-    // Client: mounts FUSE, then spawns parallel threads
-    std::jthread clientThread([&failures, &stopSource](std::stop_token stop) {
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
         FastTransportContext dst(ConnectionAddr("127.0.0.1", ClientPort3));
         const IConnection::Ptr dstConnection = dst.Connect(ConnectionAddr("127.0.0.1", ServerPort3));
         dstConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
@@ -500,109 +490,42 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
         filesystem->Start(stop);
 
         const std::string mntRoot = MountPoint3;
+        const std::string origA = std::string(TestTreeRoot) + "/subdir_a/file_a.bin";
+        const std::string mntA = mntRoot + "/subdir_a/file_a.bin";
+        const std::string origB = std::string(TestTreeRoot) + "/subdir_b/file_b.bin";
+        const std::string mntB = mntRoot + "/subdir_b/file_b.bin";
+        const std::string origRootFile = std::string(TestTreeRoot) + "/file_root.bin";
+        const std::string mntRootFile = mntRoot + "/file_root.bin";
 
-        // Thread 1: list directories recursively until stopped
-        std::jthread listThread([&failures, &mntRoot](std::stop_token stop) {
-            auto listDir = [&failures](const std::string& path, auto& self) -> void {
-                DIR* dir = opendir(path.c_str());
-                if (dir == nullptr) {
-                    std::cerr << "[test] opendir failed: " << path << "\n";
-                    ++failures;
-                    return;
-                }
-                while (struct dirent* entry = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
-                    const std::string name = entry->d_name;
-                    if (name == "." || name == "..") {
-                        continue;
-                    }
-                    const std::string fullPath = path + "/" + name;
-                    std::cerr << "[test] listed: " << fullPath << "\n";
-                    if (entry->d_type == DT_DIR) {
-                        self(fullPath, self);
-                    }
-                }
-                closedir(dir);
-            };
-            int iteration = 0;
-            while (!stop.stop_requested()) {
-                listDir(mntRoot, listDir);
-                ++iteration;
-            }
-            std::cerr << "[test] listThread did " << iteration << " iterations\n";
+        // Each operation runs in its own child process so all proceed in parallel.
+        jprocess procList([&mntRoot](jprocess::stop_token stop) -> bool {
+            return ListDirectoriesLoop(mntRoot, stop);
         });
-
-        // Thread 2: read file_a.bin (300 MB) until stopped
-        std::jthread readAThread([&failures, &mntRoot](std::stop_token stop) {
-            const std::string origPath = std::string(TestTreeRoot) + "/subdir_a/file_a.bin";
-            const std::string mntPath = mntRoot + "/subdir_a/file_a.bin";
-            int iteration = 0;
-            while (!stop.stop_requested()) {
-                if (!CompareFiles(origPath, mntPath, FileASize)) {
-                    std::cerr << "[test] file_a.bin comparison failed\n";
-                    ++failures;
-                    return;
-                }
-
-                LOGGER() << "[test] readAThread iteration " << iteration << " succeeded\n";
-                ++iteration;
-            }
-            std::cerr << "[test] readAThread did " << iteration << " iterations\n";
+        jprocess procFileA([&origA, &mntA](jprocess::stop_token stop) -> bool {
+            return ReadFileComparisonLoop(origA, mntA, FileASize, "file_a.bin", stop);
         });
-
-        // Thread 3: read file_b.bin (200 MB) until stopped
-        std::jthread readBThread([&failures, &mntRoot](std::stop_token stop) {
-            const std::string origPath = std::string(TestTreeRoot) + "/subdir_b/file_b.bin";
-            const std::string mntPath = mntRoot + "/subdir_b/file_b.bin";
-            int iteration = 0;
-            while (!stop.stop_requested()) {
-                if (!CompareFiles(origPath, mntPath, FileBSize)) {
-                    std::cerr << "[test] file_b.bin comparison failed\n";
-                    ++failures;
-                    return;
-                }
-                LOGGER() << "[test] readBThread iteration " << iteration << " succeeded\n";
-                ++iteration;
-            }
-            std::cerr << "[test] readBThread did " << iteration << " iterations\n";
+        jprocess procFileB([&origB, &mntB](jprocess::stop_token stop) -> bool {
+            return ReadFileComparisonLoop(origB, mntB, FileBSize, "file_b.bin", stop);
         });
-
-        // Thread 4: read file_root.bin (100 MB) until stopped
-        std::jthread readRootThread([&failures, &mntRoot](std::stop_token stop) {
-            const std::string origPath = std::string(TestTreeRoot) + "/file_root.bin";
-            const std::string mntPath = mntRoot + "/file_root.bin";
-            int iteration = 0;
-            while (!stop.stop_requested()) {
-                if (!CompareFiles(origPath, mntPath, FileRootSize)) {
-                    std::cerr << "[test] file_root.bin comparison failed\n";
-                    ++failures;
-                    return;
-                }
-                LOGGER() << "[test] readRootThread iteration " << iteration << " succeeded\n";
-                ++iteration;
-            }
-            std::cerr << "[test] readRootThread did " << iteration << " iterations\n";
+        jprocess procRoot([&origRootFile, &mntRootFile](jprocess::stop_token stop) -> bool {
+            return ReadFileComparisonLoop(origRootFile, mntRootFile, FileRootSize, "file_root.bin", stop);
         });
 
         std::this_thread::sleep_for(5s);
-        listThread.request_stop();
-        readAThread.request_stop();
-        readBThread.request_stop();
-        readRootThread.request_stop();
 
-        LOGGER() << "[test] requested stop for all threads, waiting for them to finish...\n";
-        listThread.join();
-        LOGGER() << "[test] listThread stopped\n";
-        readAThread.join();
-        LOGGER() << "[test] readAThread stopped\n";
-        readBThread.join();
-        LOGGER() << "[test] readBThread stopped\n";
-        readRootThread.join();
-        LOGGER() << "[test] all threads stopped\n";
+        procList.request_stop();
+        procFileA.request_stop();
+        procFileB.request_stop();
+        procRoot.request_stop();
 
+        const bool listOk = procList.join();
+        const bool fileAOk = procFileA.join();
+        const bool fileBOk = procFileB.join();
+        const bool fileRootOk = procRoot.join();
+        testResult = listOk && fileAOk && fileBOk && fileRootOk;
 
-        std::this_thread::sleep_for(1s);
         stopSource.request_stop();
-        Unmount3();
+        UnmountAt(MountPoint3);
 
         scheduler->Wait(stop);
         scheduler.reset();
@@ -616,7 +539,7 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
     if (!stopSource.stop_requested()) {
         stopSource.request_stop();
-        Unmount3();
+        UnmountAt(MountPoint3);
     }
 
     serverThread.request_stop();
@@ -624,7 +547,7 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
     clientThread.join();
     serverThread.join();
 
-    EXPECT_EQ(failures.load(), 0) << "Parallel list/read test had failures";
+    EXPECT_TRUE(testResult) << "Parallel list/read test had failures";
 }
 
 #endif // __linux__
