@@ -4,6 +4,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseGetAttrInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -23,7 +24,7 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskSch
              << " request: " << request;
 
     if (error != 0) {
-        fuse_reply_err(request, error);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
         return {};
     }
 
@@ -36,7 +37,7 @@ ResponseInFuseNetworkJob::Message ResponseGetAttrInJob::ExecuteResponse(ITaskSch
     reader >> stbuf.st_gid;
     reader >> stbuf.st_mtim;
 
-    error = fuse_reply_attr(request, &stbuf, 1.0);
+    error = FUSE_ASSERT_REPLY(fuse_reply_attr(FUSE_UNTRACK(request), &stbuf, 1.0));
 
     TRACER() << "Reply with attributes"
              << " request: " << request

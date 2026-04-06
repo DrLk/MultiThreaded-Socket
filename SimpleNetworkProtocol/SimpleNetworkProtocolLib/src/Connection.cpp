@@ -112,6 +112,16 @@ IPacket::List Connection::GetFreeSendPackets(std::stop_token stop)
     return result;
 }
 
+IPacket::List Connection::TryGetFreeSendPackets()
+{
+    IPacket::List result;
+    _freeUserSendPackets.LockedSwap(result);
+    for (auto& packet : result) {
+        packet->SetPayloadSize(MaxPayloadSize);
+    }
+    return result;
+}
+
 void Connection::Send(IPacket::List&& data)
 {
     ZoneScopedN("Connection::Send");
@@ -138,7 +148,7 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
     }
 
     for (auto& packet : result) {
-        packet->SetPayloadSize(1300);
+        packet->SetPayloadSize(MaxPayloadSize);
     }
 
     return result;
@@ -188,7 +198,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }
@@ -197,7 +207,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 void Connection::AddFreeSendPackets(IPacket::List&& freePackets)
 {
     for (auto& packet : freePackets) {
-        packet->SetPayloadSize(1300);
+        packet->SetPayloadSize(MaxPayloadSize);
     }
     _freeUserSendPackets.LockedSplice(std::move(freePackets));
 }
@@ -256,7 +266,7 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
 
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
 
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
@@ -398,7 +408,7 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
 
         _freeUserSendPackets.LockedSplice(std::move(freePackets));

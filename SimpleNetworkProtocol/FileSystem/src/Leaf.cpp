@@ -351,4 +351,24 @@ std::vector<std::unique_ptr<IPendingJob>> Leaf::TakePendingJobs(size_t blockInde
     return result;
 }
 
+void Leaf::CancelAllPendingJobs()
+{
+    // Iterative breadth-first traversal to avoid recursion (misc-no-recursion).
+    std::vector<Leaf*> queue = { this };
+    while (!queue.empty()) {
+        Leaf* current = queue.back();
+        queue.pop_back();
+        for (auto& [blockIndex, jobs] : current->_pendingJobs) {
+            TRACER() << "Cancelling " << jobs.size() << " pending jobs for block index " << blockIndex << " of file " << current->GetFullPath();
+            for (auto& job : jobs) {
+                job->Cancel();
+            }
+        }
+        current->_pendingJobs.clear();
+        for (auto& [name, child] : current->children) {
+            queue.push_back(&child);
+        }
+    }
+}
+
 } // namespace FastTransport::FileSystem

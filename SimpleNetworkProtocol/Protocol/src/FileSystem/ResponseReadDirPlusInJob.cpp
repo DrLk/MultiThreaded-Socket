@@ -5,6 +5,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReadDirPlusJobIn] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -40,7 +41,7 @@ ResponseInFuseNetworkJob::Message ResponseReadDirPlusInJob::ExecuteResponse(ITas
     }
     buffVector->count = data.size();
 
-    fuse_reply_data(request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_SPLICE_MOVE);
+    FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(request), buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_SPLICE_MOVE));
 
     return data;
 }

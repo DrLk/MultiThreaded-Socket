@@ -56,6 +56,10 @@ public:
     static constexpr int MaxCachePackets = 10000;
 
     FileCache::FileCache& GetFileCache();
+    // Cancel all pending jobs across the entire file tree. Must be called after
+    // stopping the scheduler (so no new jobs are being added) and before destroying
+    // the filesystem session (so fuse_reply_err can still be called).
+    void CancelAllPendingJobs();
 
 private:
     LeafPtr _root;

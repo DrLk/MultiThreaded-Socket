@@ -19,12 +19,10 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
-    const fuse_file_info* fileInfo = nullptr;
-    int flags = 0;
+    fuse_file_info fileInfo {};
     reader >> request;
     reader >> inode;
     reader >> fileInfo;
-    reader >> flags;
 
     TRACER() << "Execute"
              << " request: " << request;

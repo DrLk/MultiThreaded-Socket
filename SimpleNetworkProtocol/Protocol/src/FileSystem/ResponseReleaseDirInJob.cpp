@@ -4,6 +4,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseDirInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -25,13 +26,13 @@ ResponseInFuseNetworkJob::Message ResponseReleaseDirInJob::ExecuteResponse(ITask
              << " request: " << request;
 
     if (error != 0) {
-        fuse_reply_err(request, error);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
         return {};
     }
 
     delete handle; // NOLINT(cppcoreguidelines-owning-memory)
 
-    fuse_reply_err(request, error);
+    FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
 
     return {};
 }

@@ -3,6 +3,7 @@
 
 #include <bit>
 
+#include "FuseRequestTracker.hpp"
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 
@@ -44,7 +45,7 @@ FuseReplyJob::Message FuseReplyJob::ExecuteResponse(TaskQueue::ITaskScheduler& s
     ZoneScopedN("FuseReplyJob::ExecuteResponse");
     TRACER() << "Execute request=" << _request;
     PrepareBuffer();
-    fuse_reply_data(_request, _buffer, fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(_request), _buffer, fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE));
     scheduler.ReturnFreeDiskPackets(std::move(_packets));
     return {};
 }

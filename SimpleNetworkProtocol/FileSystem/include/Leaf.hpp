@@ -72,6 +72,10 @@ public:
     bool SetInFlight(size_t blockIndex);
     void AddPendingJob(size_t blockIndex, std::unique_ptr<IPendingJob> job);
     std::vector<std::unique_ptr<IPendingJob>> TakePendingJobs(size_t blockIndex);
+    // Cancel all pending jobs in this leaf and all descendant leaves.
+    // Call this before destroying the FUSE session so that held fuse_req_t handles
+    // receive an EIO reply instead of being abandoned silently.
+    void CancelAllPendingJobs();
 
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set

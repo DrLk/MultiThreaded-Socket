@@ -76,6 +76,9 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
         auto messages = connection.Recv(stop, IPacket::List());
         TRACER() << "Recv Lost: " << connection.GetStatistics().GetLostPackets()
                  << " Duplicate: " << connection.GetStatistics().GetDuplicatePackets();
+        if (stop.stop_requested()) {
+            return;
+        }
         _messages.splice(std::move(messages));
         scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
         return;

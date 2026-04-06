@@ -13,7 +13,7 @@ namespace FastTransport::TaskQueue {
 RequestOpenJob::RequestOpenJob(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
     : _request(request)
     , _inode(inode)
-    , _fileInfo(fileInfo)
+    , _fileInfo(*fileInfo)
 {
     TRACER() << "Create";
 }
@@ -24,13 +24,12 @@ FuseNetworkJob::Message RequestOpenJob::ExecuteMain(std::stop_token /*stop*/, Wr
     TRACER() << "Execute"
              << " request: " << _request
              << " inode: " << _inode
-             << " fileInfo: " << _fileInfo;
+             << " fileInfo: " << &_fileInfo;
 
     writer << MessageType::RequestOpen;
     writer << _request;
     writer << _inode;
     writer << _fileInfo;
-    writer << _fileInfo->flags;
 
     return {};
 }

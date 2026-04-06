@@ -25,7 +25,6 @@
 #ifdef __linux__
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "MessageTypeReadJob.hpp"
-#include "NativeFile.hpp"
 #include "TaskScheduler.hpp"
 #endif
 

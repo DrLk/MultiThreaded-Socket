@@ -7,6 +7,7 @@
 #include <sys/types.h>
 
 #include "ApplyBlockCacheJob.hpp"
+#include "FuseRequestTracker.hpp"
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 
@@ -41,7 +42,7 @@ ResponseInFuseNetworkJob::Message ResponseReadFileInJob::ExecuteResponse(ITaskSc
 
     if (error != 0) {
         if (request != nullptr) {
-            fuse_reply_err(request, error);
+            FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
         }
         return {};
     }

@@ -45,6 +45,23 @@ bool jprocess::join() noexcept
     return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
 
+std::optional<bool> jprocess::tryJoin() noexcept
+{
+    if (pid_ <= 0 || joined_) {
+        return false;
+    }
+    int status = 0;
+    const pid_t result = waitpid(pid_, &status, WNOHANG);
+    if (result == 0) {
+        return std::nullopt; // still running
+    }
+    joined_ = true;
+    if (result < 0) {
+        return false;
+    }
+    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
 jprocess::stop_token jprocess::get_stop_token() noexcept
 {
     return stop_token { stopFlag_ };

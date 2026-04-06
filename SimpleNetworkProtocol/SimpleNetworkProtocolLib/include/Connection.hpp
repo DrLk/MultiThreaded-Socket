@@ -56,6 +56,7 @@ public:
     [[nodiscard]] ConnectionContext& GetContext() override;
 
     [[nodiscard]] IPacket::List GetFreeSendPackets(std::stop_token stop) override;
+    [[nodiscard]] IPacket::List TryGetFreeSendPackets() override;
     void Send(IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Send2(std::stop_token stop, IPacket::List&& data) override;
     [[nodiscard]] IPacket::List Recv(std::stop_token stop, IPacket::List&& freePackets) override;

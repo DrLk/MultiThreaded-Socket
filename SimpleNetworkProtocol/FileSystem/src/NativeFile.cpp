@@ -79,13 +79,13 @@ NativeFile::IPacket::List NativeFile::Read(IPacket::List& packets, std::size_t s
     std::vector<iovec> iovecs(blocks);
     auto packet = packets.begin();
     for (int i = 0; i < blocks; i++) {
+        (*packet)->SetPayloadSize(blockSize);
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
-        assert(blockSize == (*packet)->GetPayload().size() && i != blocks - 1);
         ++packet;
     }
 
-    std::size_t readed;
+    std::size_t readed = 0;
     {
         ZoneScopedN("NativeFile::preadv");
         readed = preadv(_file, iovecs.data(), blocks, offset);
@@ -120,7 +120,6 @@ void NativeFile::Write(IPacket::List& packets, size_t size, off_t offset)
     for (int i = 0; i < blocks; i++) {
         iovecs[i].iov_base = (*packet)->GetPayload().data();
         iovecs[i].iov_len = blockSize;
-        assert(blockSize == (*packet)->GetPayload().size() && i != blocks - 1);
         ++packet;
     }
 

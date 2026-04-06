@@ -3,6 +3,7 @@
 #ifdef __linux__
 
 #include <atomic>
+#include <optional>
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <type_traits>
@@ -47,7 +48,7 @@ public:
         requires(!std::is_same_v<std::remove_cvref_t<Func>, jprocess>)
     explicit jprocess(Func&& func)
     {
-        void* mem = mmap(nullptr, sizeof(std::atomic<bool>),
+        void* mem = mmap(nullptr, sizeof(std::atomic<bool>), // NOLINT(misc-const-correctness)
             PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (mem == MAP_FAILED) {
             return;
@@ -79,6 +80,11 @@ public:
     // Waits for the child to exit; returns true iff it exited with status 0.
     // Safe to call multiple times; subsequent calls return false immediately.
     bool join() noexcept;
+
+    // Non-blocking check. Returns the exit result if the child already exited,
+    // or std::nullopt if it is still running. Marks as joined on success so that
+    // a subsequent join() returns immediately without a second waitpid.
+    std::optional<bool> tryJoin() noexcept;
 
     [[nodiscard]] stop_token get_stop_token() noexcept;
 

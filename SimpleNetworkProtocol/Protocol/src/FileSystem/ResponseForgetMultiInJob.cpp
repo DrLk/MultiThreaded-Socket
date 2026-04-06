@@ -5,6 +5,7 @@
 #include <stop_token>
 #include <sys/types.h>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseForgetMultiInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -21,7 +22,7 @@ FuseNetworkJob::Message ResponseForgetMultiInJob::ExecuteMain(std::stop_token /*
     TRACER() << "Execute"
              << " request: " << request;
 
-    fuse_reply_none(request);
+    fuse_reply_none(FUSE_UNTRACK(request));
     return {};
 }
 

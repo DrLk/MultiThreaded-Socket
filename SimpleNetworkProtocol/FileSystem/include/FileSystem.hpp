@@ -28,6 +28,11 @@ public:
     FileSystem& operator=(FileSystem&&) = delete;
     ~FileSystem();
     void Start(std::stop_token stop);
+    // Stop the FUSE session loop and wait for the fuse thread to exit.
+    // Must be called before destroying the scheduler that handles FUSE callbacks,
+    // otherwise the fuse_session_loop thread races against the scheduler's destructor
+    // (FUSE callbacks keep calling scheduler->Schedule() while queues are being torn down).
+    void RequestStopAndWait();
 
 protected:
     // NOLINTBEGIN

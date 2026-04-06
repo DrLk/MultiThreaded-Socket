@@ -6,6 +6,7 @@
 
 #include "FileCache/PinnedFuseBufVec.hpp"
 #include "FreeRecvPacketsJob.hpp"
+#include "FuseRequestTracker.hpp"
 #include "ITaskScheduler.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
@@ -47,7 +48,7 @@ void ApplyBlockCacheJob::ExecuteCachedTree(ITaskScheduler& scheduler, std::stop_
         auto bufView = tree.GetData(_inode, _offset, replySize);
         auto buffVector = FileSystem::FileCache::buildPinnedBufVec(std::move(bufView));
         TRACER() << "reply replySize=" << replySize << " buffCount=" << buffVector->count;
-        fuse_reply_data(_request, buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+        FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(_request), buffVector.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE));
     }
 
     const size_t blockIndex = static_cast<size_t>(_offset + _skipped) / static_cast<size_t>(FileSystem::Leaf::BlockSize);

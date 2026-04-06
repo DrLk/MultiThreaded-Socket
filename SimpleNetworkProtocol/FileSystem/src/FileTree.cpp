@@ -143,4 +143,12 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
     }
 }
 
+void FileTree::CancelAllPendingJobs()
+{
+    LOGGER() << "Cancelling pending jobs for all leaves";
+    if (_root != nullptr) {
+        _root->CancelAllPendingJobs();
+    }
+}
+
 } // namespace FastTransport::FileSystem
