@@ -32,27 +32,27 @@ public:
 
     void Track(fuse_req_t req, std::string_view operation)
     {
-        const std::lock_guard lock(_mutex);
+        const std::scoped_lock lock(_mutex);
         _pending.emplace(req, std::string(operation));
     }
 
     fuse_req_t Untrack(fuse_req_t req)
     {
-        const std::lock_guard lock(_mutex);
+        const std::scoped_lock lock(_mutex);
         _pending.erase(req);
         return req;
     }
 
     void DumpPending() const
     {
-        const std::lock_guard lock(_mutex);
+        const std::scoped_lock lock(_mutex);
         if (_pending.empty()) {
             LOGGER() << "[FuseRequestTracker] No pending unreplied requests";
             return;
         }
         LOGGER() << "[FuseRequestTracker] " << _pending.size() << " unreplied request(s) at session exit:";
-        for (const auto& [req, op] : _pending) {
-            LOGGER() << "[FuseRequestTracker]   req=" << req << " op=" << op;
+        for (const auto& [req, operation] : _pending) {
+            LOGGER() << "[FuseRequestTracker]   req=" << req << " op=" << operation;
         }
     }
 
