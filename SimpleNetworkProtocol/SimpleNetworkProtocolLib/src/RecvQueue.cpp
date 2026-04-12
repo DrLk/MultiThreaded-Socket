@@ -1,5 +1,6 @@
 #include "RecvQueue.hpp"
 
+#include <Tracy.hpp>
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -7,6 +8,7 @@
 
 #include "HeaderTypes.hpp"
 #include "IPacket.hpp"
+#include "Logger.hpp"
 #include "RecvQueueStatus.hpp"
 
 namespace FastTransport::Protocol {
@@ -18,6 +20,7 @@ RecvQueue::RecvQueue()
 
 std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("RecvQueue::AddPacket");
     const SeqNumberType packetNumber = packet->GetSeqNumber();
 
     if (packetNumber == ~SeqNumberType {}) {
@@ -34,6 +37,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
     }
 
     if (packetNumber - _beginFullRecievedAck >= QueueSize) {
+        LOGGER() << "[RecvQueue] Full seq=" << packetNumber << " begin=" << _beginFullRecievedAck;
         return { RecvQueueStatus::Full, std::move(packet) };
     }
 
@@ -53,6 +57,7 @@ std::pair<RecvQueueStatus, IPacket::Ptr> RecvQueue::AddPacket(IPacket::Ptr&& pac
 
 void RecvQueue::ProccessUnorderedPackets()
 {
+    ZoneScopedN("RecvQueue::ProccessUnorderedPackets");
     IPacket::List data;
     while (true) {
         auto& nextPacket = _queue[_beginFullRecievedAck % QueueSize];

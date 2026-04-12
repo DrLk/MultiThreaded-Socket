@@ -63,7 +63,11 @@ IPacket::List UDPQueue::Recv(std::stop_token stop, IPacket::List&& freeBuffers)
 
     IPacket::List result;
     {
+        ZoneScopedN("UDPQueue::Recv::WaitFor");
         _recvQueue.WaitFor(stop);
+    }
+    {
+        ZoneScopedN("UDPQueue::Recv::LockedSwap");
         _recvQueue.LockedSwap(result);
     }
 
@@ -137,7 +141,10 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
 #ifdef __linux__
 
         IPacket::List freePackets = socket.RecvMsg(recvQueue, index);
-        recvThreadQueue._recvThreadQueue.splice(std::move(recvQueue));
+        {
+            ZoneScopedN("ReadThread::SpliceToThreadQueue");
+            recvThreadQueue._recvThreadQueue.splice(std::move(recvQueue));
+        }
         recvQueue = std::move(freePackets);
 #else
 
@@ -162,7 +169,7 @@ void UDPQueue::ReadThread(std::stop_token stop, UDPQueue& udpQueue, RecvThreadQu
 #endif
 
         if (!recvThreadQueue._recvThreadQueue.empty()) {
-            ZoneScopedN("RecvThreadQueueEmpty");
+            ZoneScopedN("ReadThread::LockedSpliceToRecvQueue");
             IPacket::List queue;
             queue.swap(recvThreadQueue._recvThreadQueue);
             udpQueue._recvQueue.LockedSplice(std::move(queue));

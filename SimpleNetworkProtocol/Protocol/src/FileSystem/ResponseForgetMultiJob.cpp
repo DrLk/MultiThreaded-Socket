@@ -1,4 +1,5 @@
 #include "ResponseForgetMultiJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -14,6 +15,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseFuseNetworkJob::Message ResponseForgetMultiJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseForgetMultiJob::ExecuteResponse");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     std::vector<fuse_forget_data> forgets;

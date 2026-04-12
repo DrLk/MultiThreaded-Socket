@@ -34,7 +34,7 @@ target_include_directories(FileSystem
 )
 
 target_compile_definitions(FileSystem PUBLIC
-    FUSE_USE_VERSION=35
+    FUSE_USE_VERSION=312
 )
 
 if(ENABLE_PRECOMPILE_HEADERS)

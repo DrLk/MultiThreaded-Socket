@@ -1,4 +1,5 @@
 #include "WriteFileCacheJob.hpp"
+#include <Tracy.hpp>
 
 #include "FileCache/FileCache.hpp"
 #include "ITaskScheduler.hpp"
@@ -19,6 +20,7 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
 
 WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& fileTree)
 {
+    ZoneScopedN("WriteFileCacheJob::ExecuteResponse");
     TRACER() << "Execute"
              << " inode=" << _inode
              << " size=" << _size

@@ -1,4 +1,5 @@
 #include "RequestReleaseDirJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -20,6 +21,7 @@ RequestReleaseDirJob::RequestReleaseDirJob(fuse_req_t request, fuse_ino_t inode,
 
 FuseNetworkJob::Message RequestReleaseDirJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestReleaseDirJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request;
 

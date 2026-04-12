@@ -15,6 +15,6 @@ public:
 private:
     fuse_req_t _request;
     fuse_ino_t _inode;
-    fuse_file_info* _fileInfo;
+    fuse_file_info _fileInfo;
 };
 } // namespace FastTransport::TaskQueue

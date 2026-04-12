@@ -1,4 +1,5 @@
 #include "ResponseGetAttrJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
@@ -15,6 +16,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseGetAttrJob::ExecuteResponse");
     TRACER() << "Execute";
 
     auto& reader = GetReader();

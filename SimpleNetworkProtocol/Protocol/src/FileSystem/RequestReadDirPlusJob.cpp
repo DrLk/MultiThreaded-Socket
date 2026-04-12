@@ -1,4 +1,5 @@
 #include "RequestReadDirPlusJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 
@@ -22,6 +23,7 @@ RequestReadDirPlusJob::RequestReadDirPlusJob(fuse_req_t request, fuse_ino_t inod
 
 FuseNetworkJob::Message RequestReadDirPlusJob::ExecuteMain(std::stop_token /*stop*/, Writer& writer)
 {
+    ZoneScopedN("RequestReadDirPlusJob::ExecuteMain");
     TRACER() << "Execute"
              << " request: " << _request;
 

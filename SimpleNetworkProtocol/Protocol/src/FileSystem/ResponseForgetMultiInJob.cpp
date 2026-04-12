@@ -1,9 +1,11 @@
 #include "ResponseForgetMultiInJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 #include <sys/types.h>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseForgetMultiInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -12,7 +14,7 @@ namespace FastTransport::TaskQueue {
 
 FuseNetworkJob::Message ResponseForgetMultiInJob::ExecuteMain(std::stop_token /*stop*/, Writer& /*writer*/)
 {
-
+    ZoneScopedN("ResponseForgetMultiInJob::ExecuteMain");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     reader >> request;
@@ -20,7 +22,7 @@ FuseNetworkJob::Message ResponseForgetMultiInJob::ExecuteMain(std::stop_token /*
     TRACER() << "Execute"
              << " request: " << request;
 
-    fuse_reply_none(request);
+    fuse_reply_none(FUSE_UNTRACK(request));
     return {};
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tracy.hpp>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
@@ -358,6 +359,7 @@ MultiList<T>& MultiList<T>::operator=(MultiList&& that) noexcept
 template <class T>
 MultiList<T> MultiList<T>::TryGenerate(std::size_t size)
 {
+    ZoneScopedN("MultiList::TryGenerate");
     MultiList list;
 
     while (!_lists.empty() && size) {
@@ -408,6 +410,7 @@ void MultiList<T>::push_back(T&& element)
 template <class T>
 void MultiList<T>::splice(MultiList<T>&& that) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
+    ZoneScopedN("MultiList::splice(&&)");
     if (!_lists.empty() && !that._lists.empty()) {
         auto& list = _lists.back();
         auto& thatList = that._lists.front();
@@ -436,19 +439,15 @@ size_t MultiList<T>::SpliceInternalList(std::list<T>& list, std::list<T>::const_
 template <class T>
 void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
 {
+    ZoneScopedN("MultiList::splice(range)");
     size_t moved = 0;
-    for (auto it = begin; it != end; ++it) {
-        moved++;
-    }
 
     if (begin._it1 == end._it1) {
         if (begin._it2 == begin._it1->begin() && end._it2 == begin._it1->end()) {
+            moved = begin._it1->size();
             _lists.splice(_lists.end(), that._lists, begin._it1);
-        }
-
-        if (begin._it2 != end._it2) {
-
-            SpliceInternalList(*begin._it1, begin._it2, end._it2);
+        } else if (begin._it2 != end._it2) {
+            moved = SpliceInternalList(*begin._it1, begin._it2, end._it2);
         }
         _size += moved;
         that._size -= moved;
@@ -458,11 +457,11 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
     {
         if (begin._it2 == begin._it1->begin()) {
             auto it1 = begin._it1;
+            moved += it1->size();
             begin._it1++;
             _lists.splice(_lists.end(), that._lists, it1);
         } else {
-
-            SpliceInternalList(*begin._it1, begin._it2, begin._it1->end());
+            moved += SpliceInternalList(*begin._it1, begin._it2, begin._it1->end());
             begin._it1++;
         }
     }
@@ -482,7 +481,7 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
             return;
         }
 
-        SpliceInternalList(*begin._it1, begin._it1->begin(), end._it2);
+        moved += SpliceInternalList(*begin._it1, begin._it1->begin(), end._it2);
         _size += moved;
         that._size -= moved;
         return;
@@ -490,6 +489,9 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
 
     {
         if (end._it1 == that._lists.end()) {
+            for (auto it = begin._it1; it != end._it1; ++it) {
+                moved += it->size();
+            }
             _lists.splice(_lists.end(), that._lists, begin._it1, end._it1);
             _size += moved;
             that._size -= moved;
@@ -497,10 +499,13 @@ void MultiList<T>::splice(MultiList<T>& that, Iterator begin, Iterator end)
         }
 
         auto preEnd = end._it1;
+        for (auto it = begin._it1; it != preEnd; ++it) {
+            moved += it->size();
+        }
         _lists.splice(_lists.end(), that._lists, begin._it1, preEnd);
 
         if (end._it2 != end._it1->begin()) {
-            SpliceInternalList(*end._it1, end._it1->begin(), end._it2);
+            moved += SpliceInternalList(*end._it1, end._it1->begin(), end._it2);
         }
     }
     _size += moved;

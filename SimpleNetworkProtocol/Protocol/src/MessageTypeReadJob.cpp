@@ -1,4 +1,5 @@
 #include "MessageTypeReadJob.hpp"
+#include <Tracy.hpp>
 
 #include <cstring>
 #include <memory>
@@ -53,12 +54,14 @@ MessageTypeReadJob::MessageTypeReadJob(FastTransport::FileSystem::FileTree& file
 
 void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler& scheduler, Protocol::IConnection& connection)
 {
+    ZoneScopedN("MessageTypeReadJob::ExecuteReadNetwork");
     TRACER() << "Execute";
 
     while (_messages.empty()) {
         if (stop.stop_requested()) {
             return;
         }
+        ZoneScopedN("MessageTypeReadJob::RecvFirst");
         auto messages = connection.Recv(stop, IPacket::List());
         _messages.splice(std::move(messages));
     }
@@ -69,9 +72,13 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
 
     TRACER() << "messageSize: " << messageSize << " messageSize: " << _messages.size();
     if (messageSize > _messages.size()) {
+        ZoneScopedN("MessageTypeReadJob::RecvMore");
         auto messages = connection.Recv(stop, IPacket::List());
         TRACER() << "Recv Lost: " << connection.GetStatistics().GetLostPackets()
                  << " Duplicate: " << connection.GetStatistics().GetDuplicatePackets();
+        if (stop.stop_requested()) {
+            return;
+        }
         _messages.splice(std::move(messages));
         scheduler.Schedule(MessageTypeReadJob::Create(_fileTree, std::move(_messages)));
         return;

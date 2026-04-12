@@ -1,8 +1,10 @@
 #include "ResponseOpenDirInJob.hpp"
+#include <Tracy.hpp>
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenDirInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -11,7 +13,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseInFuseNetworkJob::Message ResponseOpenDirInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*fileTree*/)
 {
-
+    ZoneScopedN("ResponseOpenDirInJob::ExecuteResponse");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     int error = 0;
@@ -22,16 +24,16 @@ ResponseInFuseNetworkJob::Message ResponseOpenDirInJob::ExecuteResponse(ITaskSch
              << " request: " << request;
 
     if (error != 0) {
-        fuse_reply_err(request, error);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
         return {};
     }
 
-    fuse_file_info* fileInfo = nullptr;
+    fuse_file_info fileInfo {};
     reader >> fileInfo;
-    fileInfo->fh = reinterpret_cast<std::uint64_t>(new FileHandle()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    reader >> GetFileHandle(fileInfo).remoteFile;
+    fileInfo.fh = reinterpret_cast<std::uint64_t>(new FileHandle()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    reader >> GetFileHandle(&fileInfo).remoteFile;
 
-    fuse_reply_open(request, fileInfo);
+    FUSE_ASSERT_REPLY(fuse_reply_open(FUSE_UNTRACK(request), &fileInfo));
     return {};
 }
 

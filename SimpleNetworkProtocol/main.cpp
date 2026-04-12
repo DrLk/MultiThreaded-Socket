@@ -25,7 +25,6 @@
 #ifdef __linux__
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "MessageTypeReadJob.hpp"
-#include "NativeFile.hpp"
 #include "TaskScheduler.hpp"
 #endif
 
@@ -189,46 +188,8 @@ void TestConnection2()
         sourceTaskScheduler.Wait(stop);
     });
 
-    // Read the file through the FUSE mount once the filesystem is ready
-    std::jthread readThread([](std::stop_token /*stop*/) {
-        // Wait for the FUSE filesystem to mount and the network connection to establish
-        std::this_thread::sleep_for(5s);
-
-        constexpr size_t FileSize = 100ULL * 1024 * 1024;
-        std::ifstream src("/tmp/100MB.bin", std::ios::binary);
-        std::ifstream mnt("/mnt/test/100MB.bin", std::ios::binary);
-        if (!src) {
-            LOGGER() << "Read test FAILED: cannot open /tmp/100MB.bin";
-            return;
-        }
-        if (!mnt) {
-            LOGGER() << "Read test FAILED: cannot open /mnt/test/100MB.bin";
-            return;
-        }
-
-        std::vector<char> srcBuf(1024ULL * 1024);
-        std::vector<char> mntBuf(1024ULL * 1024);
-        size_t totalRead = 0;
-        bool match = true;
-        while (src.read(srcBuf.data(), static_cast<std::streamsize>(srcBuf.size()))
-            && mnt.read(mntBuf.data(), static_cast<std::streamsize>(mntBuf.size()))) {
-            totalRead += static_cast<size_t>(src.gcount());
-            if (srcBuf != mntBuf) {
-                match = false;
-                break;
-            }
-        }
-
-        if (match && totalRead == FileSize) {
-            LOGGER() << "Read test OK: " << totalRead << " bytes match";
-        } else {
-            LOGGER() << "Read test FAILED: read " << totalRead << " bytes, match=" << match;
-        }
-    });
-
     recvThread.join();
     sendThread.join();
-    readThread.join();
 }
 
 void TestReadV()

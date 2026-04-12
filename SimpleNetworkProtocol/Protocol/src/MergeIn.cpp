@@ -1,4 +1,5 @@
 #include "MergeIn.hpp"
+#include <Tracy.hpp>
 
 #include <memory>
 #include <stop_token>
@@ -30,6 +31,7 @@ MergeIn::MergeIn(FastTransport::FileSystem::FileTree& fileTree, MessageReader&& 
 
 void MergeIn::ExecuteMainRead(std::stop_token /*stop*/, ITaskScheduler& scheduler)
 {
+    ZoneScopedN("MergeIn::ExecuteMainRead");
     TRACER() << "Execute";
 
     Protocol::MessageReader reader(std::move(_reader));

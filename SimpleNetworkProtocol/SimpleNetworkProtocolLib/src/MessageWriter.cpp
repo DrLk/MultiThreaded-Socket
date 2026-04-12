@@ -1,4 +1,5 @@
 #include "MessageWriter.hpp"
+#include <Tracy.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -29,6 +30,7 @@ MessageWriter& MessageWriter::operator=(MessageWriter&&) noexcept = default;
 
 MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuchsia-overloaded-operator)
 {
+    ZoneScopedN("MessageWriter::operator<<(List)");
     operator<<(packets.size());
 
     IPacket::List freePackets;
@@ -36,13 +38,22 @@ MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuch
 
     _packet++;
 
-    freePackets.splice(_packets, _packet, _packets.end());
+    {
+        ZoneScopedN("MessageWriter::SpliceTail");
+        freePackets.splice(_packets, _packet, _packets.end());
+    }
 
     _writedPacketNumber += packets.size();
-    _packets.splice(std::move(packets));
+    {
+        ZoneScopedN("MessageWriter::SpliceData");
+        _packets.splice(std::move(packets));
+    }
     _packet = _packets.end();
     _packet--;
-    _packets.splice(std::move(freePackets));
+    {
+        ZoneScopedN("MessageWriter::SpliceFree");
+        _packets.splice(std::move(freePackets));
+    }
     _packet++;
 
     _offset = 0;
@@ -105,15 +116,26 @@ IPacket::List MessageWriter::GetWritedPackets()
 
 IPacket::List MessageWriter::GetDataPackets(std::size_t size)
 {
+    ZoneScopedN("MessageWriter::GetDataPackets");
     IPacket::List freePackets;
     auto begin = _packet;
     assert(begin != _packets.end());
     begin++;
-    freePackets.splice(_packets, begin, _packets.end());
+    {
+        ZoneScopedN("GetDataPackets::SpliceTail");
+        freePackets.splice(_packets, begin, _packets.end());
+    }
 
-    IPacket::List result = freePackets.TryGenerate(size);
+    IPacket::List result;
+    {
+        ZoneScopedN("GetDataPackets::TryGenerate");
+        result = freePackets.TryGenerate(size);
+    }
 
-    _packets.splice(std::move(freePackets));
+    {
+        ZoneScopedN("GetDataPackets::SpliceBack");
+        _packets.splice(std::move(freePackets));
+    }
 
     return result;
 }

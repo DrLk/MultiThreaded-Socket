@@ -1,7 +1,6 @@
 #include "FileSystem.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
@@ -11,9 +10,9 @@
 #include <fcntl.h>
 #include <filesystem>
 #include <functional>
+#include <fuse3/fuse_common.h>
 #include <fuse3/fuse_lowlevel.h>
 #include <fuse3/fuse_opt.h>
-#include <poll.h>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
@@ -23,6 +22,7 @@
 
 #include "File.hpp"
 #include "FileTree.hpp"
+#include "FuseRequestTracker.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
@@ -115,45 +115,28 @@ void FileSystem::Start(std::stop_token stop)
         throw std::runtime_error("Failed to fuse_session_mount");
     }
 
-    // FUSE is mounted — start event loop in background thread and return.
+    // FUSE is mounted — start multi-threaded event loop in background thread and return.
     _fuseThread = std::jthread([this, stop = std::move(stop)](std::stop_token threadStop) {
         fuse_daemonize(1);
 
-        const std::stop_callback onStop(stop, [this]() { fuse_session_exit(_session); });
+        const std::stop_callback onStop(stop, [this]() {
+            LOGGER() << "[FileSystem] Stop requested, exiting FUSE session";
+            FUSE_DUMP_PENDING();
+            fuse_session_exit(_session);
+        });
         const std::stop_callback onThreadStop(threadStop, [this]() { fuse_session_exit(_session); });
 
-        // Custom loop with poll() timeout so fuse_session_exit() is checked
-        // periodically without needing to interrupt a blocking read() from
-        // another thread (which would be a data race on the FUSE fd).
-        while (fuse_session_exited(_session) == 0) {
-            struct pollfd pfd = { .fd = fuse_session_fd(_session), .events = POLLIN, .revents = 0 };
-            const int ret = poll(&pfd, 1, 100 /*ms*/);
-            if (ret < 0) {
-                if (errno == EINTR) {
-                    continue;
-                }
-                break;
-            }
-            if (ret == 0) {
-                continue;
-            }
+        struct fuse_loop_config* config = fuse_loop_cfg_create();
+        fuse_loop_cfg_set_clone_fd(config, 1);
 
-            fuse_buf buf { .flags = std::bit_cast<fuse_buf_flags>(0) };
-            const int res = fuse_session_receive_buf(_session, &buf);
-            const std::unique_ptr<void, decltype(&std::free)> memGuard(buf.mem, std::free);
-            if (res == 0) {
-                break;
-            }
-            if (res < 0) {
-                if (res == -EINTR || res == -EAGAIN) {
-                    continue;
-                }
-                LOGGER() << "[FileSystem] fuse_session_receive_buf error: " << res;
-                break;
-            }
-            fuse_session_process_buf(_session, &buf);
+        const int ret = fuse_session_loop_mt(_session, config);
+        LOGGER() << "[FileSystem] fuse_session_loop_mt exited with return code: " << ret;
+        FUSE_DUMP_PENDING();
+        if (ret != 0) {
+            LOGGER() << "[FileSystem] fuse_session_loop_mt exited with error: " << ret;
         }
 
+        fuse_loop_cfg_destroy(config);
         fuse_remove_signal_handlers(_session);
     });
 }
@@ -164,6 +147,18 @@ FileSystem::~FileSystem()
         fuse_session_destroy(_session);
     }
 }
+
+void FileSystem::RequestStopAndWait()
+{
+    // request_stop() triggers the onThreadStop callback → fuse_session_exit(_session)
+    // → fuse_session_loop returns → the fuse thread runs its cleanup and exits.
+    _fuseThread.request_stop();
+    if (_fuseThread.joinable()) {
+        _fuseThread.join();
+    }
+    // After join(), ~jthread() will see !joinable() and skip the second join/request_stop.
+}
+
 // NOLINTBEGIN
 
 void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const Leaf& file)
@@ -188,6 +183,7 @@ void FileSystem::Stat(fuse_ino_t ino, struct stat* stbuf, const Leaf& file)
 
 void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name)
 {
+    FUSE_TRACK(req, "lookup");
     TRACER() << "[lookup]"
              << " request: " << req
              << " parent: " << parentId
@@ -198,7 +194,7 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
     memset(&entry, 0, sizeof(entry));
     auto file = parent.Find(name);
     if (!file || file.value().get().IsDeleted()) {
-        fuse_reply_err(req, ENOENT);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), ENOENT));
     } else {
         (*file).get().AddRef();
 
@@ -207,12 +203,13 @@ void FileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* nam
         entry.entry_timeout = 1.0;
         Stat(entry.ino, &entry.attr, file.value());
 
-        fuse_reply_entry(req, &entry);
+        FUSE_ASSERT_REPLY(fuse_reply_entry(FUSE_UNTRACK(req), &entry));
     }
 }
 
 void FileSystem::FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup)
 {
+    FUSE_TRACK(req, "forget");
     TRACER() << "[forget]"
              << " request: " << req
              << " inode: " << inode
@@ -220,11 +217,12 @@ void FileSystem::FuseForget(fuse_req_t req, fuse_ino_t inode, uint64_t nlookup)
 
     auto& file = GetLeaf(inode, req);
     file.ReleaseRef(nlookup);
-    fuse_reply_none(req);
+    fuse_reply_none(FUSE_UNTRACK(req));
 }
 
 void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "getattr");
     TRACER() << "[getattr]"
              << " request: " << req
              << " inode: " << inode;
@@ -236,7 +234,7 @@ void FileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
     auto& file = GetLeaf(inode, req);
     memset(&stbuf, 0, sizeof(stbuf));
     Stat(inode, &stbuf, file);
-    fuse_reply_attr(req, &stbuf, 1.0);
+    FUSE_ASSERT_REPLY(fuse_reply_attr(FUSE_UNTRACK(req), &stbuf, 1.0));
 }
 
 struct dirbuf {
@@ -265,6 +263,12 @@ void FileSystem::FuseInit(void* userdata, struct fuse_conn_info* conn)
     if ((conn->capable & FUSE_CAP_SPLICE_MOVE) != 0U) {
         conn->want |= FUSE_CAP_SPLICE_MOVE;
     }
+
+    if ((conn->capable & FUSE_CAP_ASYNC_READ) != 0U) {
+        conn->want |= FUSE_CAP_ASYNC_READ;
+    }
+
+    conn->max_readahead = 4 * 1024 * 1024;
 }
 
 void FileSystem::BufferAddFile(fuse_req_t req, struct dirbuf* buffer, const char* name,
@@ -283,14 +287,15 @@ int FileSystem::ReplyBufferLimited(fuse_req_t req, const char* buffer, size_t bu
     off_t off, size_t maxSize)
 {
     if (off < bufferSize) {
-        return fuse_reply_buf(req, buffer + off,
-            std::min(bufferSize - off, maxSize));
+        return FUSE_ASSERT_REPLY(fuse_reply_buf(FUSE_UNTRACK(req), buffer + off,
+            std::min(bufferSize - off, maxSize)));
     }
-    return fuse_reply_buf(req, nullptr, 0);
+    return FUSE_ASSERT_REPLY(fuse_reply_buf(FUSE_UNTRACK(req), nullptr, 0));
 }
 
 void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "readdir");
     TRACER() << "[readdir]"
              << " request: " << req
              << " inode: " << inode
@@ -323,6 +328,7 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
 
 void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "open");
     TRACER() << "[open]"
              << " request: " << req
              << " inode: " << inode;
@@ -339,7 +345,7 @@ void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* file
 
     const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
     if (file == -1) {
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
@@ -350,7 +356,7 @@ void FileSystem::FuseOpen(fuse_req_t req, fuse_ino_t inode, fuse_file_info* file
     if ((fileInfo->flags & O_DIRECT) != 0)
         fileInfo->direct_io = 1;
 
-    fuse_reply_open(req, fileInfo);
+    FUSE_ASSERT_REPLY(fuse_reply_open(FUSE_UNTRACK(req), fileInfo));
 }
 
 static fuse_buf_flags operator|(fuse_buf_flags flag1, fuse_buf_flags flag2) // NOLINT(fuchsia-overloaded-operator)
@@ -360,6 +366,7 @@ static fuse_buf_flags operator|(fuse_buf_flags flag1, fuse_buf_flags flag2) // N
 
 void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "read");
     TRACER() << "[read]"
              << " request: " << req
              << " inode: " << inode
@@ -374,11 +381,12 @@ void FileSystem::FuseRead(fuse_req_t req, fuse_ino_t inode, size_t size, off_t o
     buf.buf[0].fd = fileInfo->fh;
     buf.buf[0].pos = off;
 
-    fuse_reply_data(req, &buf, FUSE_BUF_FORCE_SPLICE);
+    FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(req), &buf, FUSE_BUF_FORCE_SPLICE));
 }
 
 void FileSystem::FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "write_buf");
     TRACER() << "[write_buf]"
              << " request: " << req
              << " inode: " << ino
@@ -393,15 +401,16 @@ void FileSystem::FuseWriteBuf(fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec
     ssize_t written = fuse_buf_copy(&destination, bufv, FUSE_BUF_SPLICE_NONBLOCK);
     if (written < 0) {
         assert(errno == -written);
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
-    fuse_reply_write(req, written);
+    FUSE_ASSERT_REPLY(fuse_reply_write(FUSE_UNTRACK(req), written));
 }
 
 void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "opendir");
     TRACER() << "[opendir]"
              << " request: " << req
              << " inode: " << inode;
@@ -412,32 +421,34 @@ void FileSystem::FuseOpendir(fuse_req_t req, fuse_ino_t inode, fuse_file_info* f
 
     const int file = open(path.c_str(), fileInfo->flags & ~O_NOFOLLOW); // NOLINT(hicpp-signed-bitwise, hicpp-vararg, cppcoreguidelines-pro-type-vararg)
     if (file == -1) {
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
     fileInfo->fh = file;
 
-    fuse_reply_open(req, fileInfo);
+    FUSE_ASSERT_REPLY(fuse_reply_open(FUSE_UNTRACK(req), fileInfo));
 }
 
 void FileSystem::FuseForgetmulti(fuse_req_t req, size_t count, fuse_forget_data* /*forgets*/)
 {
+    FUSE_TRACK(req, "forgetmulti");
     TRACER() << "[forgetmulti]"
              << " request: " << req
              << " size: " << count;
-    fuse_reply_none(req);
+    fuse_reply_none(FUSE_UNTRACK(req));
 }
 
 void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "release");
     TRACER() << "[release]"
              << " request: " << req
              << " inode: " << inode;
 
     const int error = close(fileInfo->fh);
     if (error != 0) {
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
@@ -447,6 +458,7 @@ void FileSystem::FuseRelease(fuse_req_t req, fuse_ino_t inode, struct fuse_file_
 
 void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "releasedir");
     TRACER() << "[releasedir]"
              << " request: " << req
              << " inode: " << inode;
@@ -457,7 +469,7 @@ void FileSystem::FuseReleasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_fi
 
     const int error = close(fileInfo->fh);
     if (error != 0) {
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
@@ -471,6 +483,7 @@ void FileSystem::FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
     struct fuse_file_info* fi_out, size_t len,
     int flags)
 {
+    FUSE_TRACK(req, "copy_file_range");
     TRACER() << "[copy_file_range]"
              << " request: " << req
              << " ino_in: " << ino_in
@@ -488,11 +501,11 @@ void FileSystem::FuseCopyFileRange(fuse_req_t req, fuse_ino_t ino_in,
     const ssize_t size = copy_file_range(fileIn, &off_in, fileOut, &off_out, len, flags);
     if (size < 0) {
         assert(errno == -size);
-        fuse_reply_err(req, errno);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(req), errno));
         return;
     }
 
-    fuse_reply_write(req, size);
+    FUSE_ASSERT_REPLY(fuse_reply_write(FUSE_UNTRACK(req), size));
 }
 
 // NOLINTEND

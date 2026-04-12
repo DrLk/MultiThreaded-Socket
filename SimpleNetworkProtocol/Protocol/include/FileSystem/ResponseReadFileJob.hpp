@@ -12,6 +12,7 @@ class ResponseReadFileJob : public ResponseFuseNetworkJob {
     using Reader = Protocol::MessageReader;
 
 public:
+    void Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) override;
     ResponseFuseNetworkJob::Message ExecuteResponse(std::stop_token stop, Writer& writer, FileTree& fileTree) override;
 
 private:

@@ -1,4 +1,5 @@
 #include "ResponseLookupJob.hpp"
+#include <Tracy.hpp>
 
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -18,14 +19,21 @@ namespace {
     {
         auto type = std::filesystem::status(path).type();
 
-        std::error_code error;
-        const uintmax_t size = std::filesystem::file_size(path, error);
+        uintmax_t size = 0;
+        if (type == std::filesystem::file_type::regular) {
+            std::error_code error;
+            size = std::filesystem::file_size(path, error);
+            if (error) {
+                size = 0;
+            }
+        }
         return parent.AddChild(path.filename(), type, size);
     }
 } // namespace
 
 ResponseFuseNetworkJob::Message ResponseLookupJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseLookupJob::ExecuteResponse");
     TRACER() << "Execute";
     auto& reader = GetReader();
     fuse_req_t request = nullptr;

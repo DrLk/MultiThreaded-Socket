@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "FuseReadFileJob.hpp"
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 #include "RequestForgetMultiJob.hpp"
 #include "RequestGetAttrJob.hpp"
@@ -46,6 +47,7 @@ RemoteFileSystem::RemoteFileSystem(std::string_view mountPoint)
 
 void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(req, "getattr");
     TRACER() << "[getattr]"
              << " request: " << req
              << " inode: " << inode;
@@ -56,6 +58,7 @@ void RemoteFileSystem::FuseGetattr(fuse_req_t req, fuse_ino_t inode, fuse_file_i
 
 void RemoteFileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const char* name)
 {
+    FUSE_TRACK(req, "lookup");
     TRACER() << "[lookup]"
              << " request: " << req
              << " parent: " << parentId
@@ -66,6 +69,7 @@ void RemoteFileSystem::FuseLookup(fuse_req_t req, fuse_ino_t parentId, const cha
 
 void RemoteFileSystem::FuseOpendir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "opendir");
     TRACER() << "[opendir]"
              << " request: " << request
              << " inode: " << inode
@@ -76,6 +80,7 @@ void RemoteFileSystem::FuseOpendir(fuse_req_t request, fuse_ino_t inode, fuse_fi
 
 void RemoteFileSystem::FuseOpen(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "open");
     TRACER() << "[open]"
              << " request: " << request
              << " inode: " << inode
@@ -86,6 +91,7 @@ void RemoteFileSystem::FuseOpen(fuse_req_t request, fuse_ino_t inode, fuse_file_
 
 void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uint64_t nlookup)
 {
+    FUSE_TRACK(request, "forget");
     TRACER() << "[forget]"
              << " request: " << request
              << " inode: " << inode
@@ -97,6 +103,7 @@ void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uin
 
 void RemoteFileSystem::FuseForgetmulti(fuse_req_t request, size_t count, fuse_forget_data* forgets)
 {
+    FUSE_TRACK(request, "forgetmulti");
     TRACER() << "[forgetmulti]"
              << " request: " << request
              << " count: " << count
@@ -107,6 +114,7 @@ void RemoteFileSystem::FuseForgetmulti(fuse_req_t request, size_t count, fuse_fo
 
 void RemoteFileSystem::FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "release");
     TRACER() << "[release]"
              << " request: " << request
              << " inode: " << inode
@@ -117,6 +125,7 @@ void RemoteFileSystem::FuseRelease(fuse_req_t request, fuse_ino_t inode, fuse_fi
 
 void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "releasedir");
     TRACER() << "[releasedir]"
              << " request: " << request
              << " inode: " << inode
@@ -127,6 +136,7 @@ void RemoteFileSystem::FuseReleaseDir(fuse_req_t request, fuse_ino_t inode, fuse
 
 void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "read");
     TRACER() << "[read]"
              << " request: " << request
              << " inode: " << inode
@@ -139,6 +149,7 @@ void RemoteFileSystem::FuseRead(fuse_req_t request, fuse_ino_t inode, size_t siz
 
 void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "readdir");
     TRACER() << "[readdir]"
              << " request: " << request
              << " inode: " << inode
@@ -151,6 +162,7 @@ void RemoteFileSystem::FuseReadDir(fuse_req_t request, fuse_ino_t inode, size_t 
 
 void RemoteFileSystem::FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, size_t size, off_t offset, fuse_file_info* fileInfo)
 {
+    FUSE_TRACK(request, "readdirplus");
     TRACER() << "[readdir]"
              << " request: " << request
              << " inode: " << inode

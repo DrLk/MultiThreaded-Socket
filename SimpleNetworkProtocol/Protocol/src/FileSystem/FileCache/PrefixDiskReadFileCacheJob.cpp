@@ -1,10 +1,12 @@
 #include "PrefixDiskReadFileCacheJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 #include <memory>
 
 #include <fuse3/fuse_lowlevel.h>
 
+#include "FuseRequestTracker.hpp"
 #include "IPacket.hpp"
 #include "ITaskScheduler.hpp"
 #include "NativeFile.hpp"
@@ -24,6 +26,7 @@ PrefixDiskReadFileCacheJob::PrefixDiskReadFileCacheJob(fuse_req_t request,
 
 TaskQueue::DiskJob::Data PrefixDiskReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
+    ZoneScopedN("PrefixDiskReadFileCacheJob::ExecuteDisk");
     const std::size_t prefixCount = _prefixData->count;
     const std::size_t totalCount = prefixCount + 1;
     const std::size_t allocSize = sizeof(fuse_bufvec) + (prefixCount * sizeof(fuse_buf));
@@ -45,7 +48,7 @@ TaskQueue::DiskJob::Data PrefixDiskReadFileCacheJob::ExecuteDisk(TaskQueue::ITas
     combined->buf[prefixCount].fd = _file->GetHandle(); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     combined->buf[prefixCount].pos = _diskOffset; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
-    fuse_reply_data(_request, combined.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE);
+    FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(_request), combined.get(), fuse_buf_copy_flags::FUSE_BUF_NO_SPLICE));
     // _prefixData destructs here: pin unpins Ranges → blocks can now be evicted to disk.
     return std::move(free);
 }

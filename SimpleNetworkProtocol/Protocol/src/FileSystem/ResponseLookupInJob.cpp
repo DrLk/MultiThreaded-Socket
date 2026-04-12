@@ -1,9 +1,11 @@
 #include "ResponseLookupInJob.hpp"
+#include <Tracy.hpp>
 
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseLookupInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -12,6 +14,7 @@ namespace FastTransport::TaskQueue {
 
 ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& fileTree)
 {
+    ZoneScopedN("ResponseLookupInJob::ExecuteResponse");
     TRACER() << "Execute";
 
     auto& reader = GetReader();
@@ -25,7 +28,7 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskSche
     reader >> error;
 
     if (error != 0) {
-        fuse_reply_err(request, error);
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), error));
         return {};
     }
 
@@ -46,7 +49,7 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskSche
     const uintmax_t size = entry.attr.st_size;
     GetLeaf(parentId, fileTree).AddChild(name, type, size);
 
-    fuse_reply_entry(request, &entry);
+    FUSE_ASSERT_REPLY(fuse_reply_entry(FUSE_UNTRACK(request), &entry));
 
     return {};
 }

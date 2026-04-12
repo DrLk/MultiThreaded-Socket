@@ -1,5 +1,6 @@
 #include "Socket.hpp"
 
+#include <Tracy.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +14,6 @@
 
 #ifdef __linux__
 #include <cassert>
-#include <iterator>
 #include <memory>
 #include <netinet/in.h>
 #include <netinet/udp.h>
@@ -104,6 +104,7 @@ int Socket::SendTo(std::span<const std::byte> buffer, const ConnectionAddr& addr
 
 uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) const
 {
+    ZoneScopedN("Socket::SendMsg");
     std::unordered_map<ConnectionAddr, std::vector<std::reference_wrapper<const IPacket::Ptr>>, ConnectionAddr::HashFunction> packetsByAddress;
     for (const OutgoingPacket& outgoing : packets) {
         auto destination = outgoing.GetPacket()->GetDstAddr();
@@ -159,6 +160,7 @@ uint32_t Socket::SendMsg(const OutgoingPacket::List& packets, size_t index) cons
 
     std::size_t messageIndex = 0;
     while (messageIndex < headers.size()) {
+        ZoneScopedN("sendmmsg");
         const int result = sendmmsg(_socket, &headers[messageIndex], headers.size() - messageIndex, /*MSG_CONFIRM*/ 0);
         if (result < 0) {
             throw std::runtime_error("Failed to sendmmsg");
@@ -190,6 +192,7 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
 
 [[nodiscard]] IPacket::List Socket::RecvMsg(IPacket::List& packets, size_t index) const
 {
+    ZoneScopedN("Socket::RecvMsg");
     IPacket::List freePackets;
     const size_t messagesSize = std::min(packets.size() / UDPMaxSegments, _recvMessages.size());
 
@@ -221,7 +224,11 @@ int Socket::RecvFrom(std::span<std::byte> buffer, ConnectionAddr& connectionAddr
         .tv_sec = 1,
     };
 
-    const int result = recvmmsg(_socket, _recvMessages.data(), messagesSize, MSG_WAITFORONE, &time);
+    int result = 0;
+    {
+        ZoneScopedN("recvmmsg");
+        result = recvmmsg(_socket, _recvMessages.data(), messagesSize, MSG_WAITFORONE, &time);
+    }
     if (result < 0) {
         assert(false);
         freePackets.splice(std::move(packets));

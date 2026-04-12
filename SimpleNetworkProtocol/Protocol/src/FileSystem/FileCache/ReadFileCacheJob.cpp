@@ -1,10 +1,12 @@
 #include "ReadFileCacheJob.hpp"
+#include <Tracy.hpp>
 
 #include <bit>
 #include <memory>
 
 #include <fuse3/fuse_lowlevel.h>
 
+#include "FuseRequestTracker.hpp"
 #include "IPacket.hpp"
 #include "ITaskScheduler.hpp"
 #include "NativeFile.hpp"
@@ -31,6 +33,7 @@ ReadFileCacheJob::ReadFileCacheJob(fuse_req_t request, FileSystem::NativeFile::P
 
 TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler& /*scheduler*/, Protocol::IPacket::List&& free)
 {
+    ZoneScopedN("ReadFileCacheJob::ExecuteDisk");
     if (!_appendData.HasData()) {
         // Zero-copy path: splice directly from cache file fd to FUSE device.
         // fuse_reply_data is thread-safe in libfuse3.
@@ -38,7 +41,7 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
         buf.buf[0].flags = std::bit_cast<fuse_buf_flags>(static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));
         buf.buf[0].fd = _file->GetHandle();
         buf.buf[0].pos = _offset;
-        fuse_reply_data(_request, &buf, FUSE_BUF_SPLICE_MOVE);
+        FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(_request), &buf, FUSE_BUF_SPLICE_MOVE));
         return std::move(free);
     }
 
@@ -70,7 +73,7 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
         combined->buf[1 + i] = _appendData->buf[i]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 
-    fuse_reply_data(_request, combined.get(), FUSE_BUF_SPLICE_MOVE);
+    FUSE_ASSERT_REPLY(fuse_reply_data(FUSE_UNTRACK(_request), combined.get(), FUSE_BUF_SPLICE_MOVE));
     // _appendData destructs here: pin unpins Ranges → blocks can now be evicted to disk.
     return std::move(free);
 }

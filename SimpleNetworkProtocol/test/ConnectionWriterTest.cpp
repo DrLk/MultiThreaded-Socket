@@ -26,6 +26,7 @@ namespace {
         MOCK_METHOD(ConnectionContext&, GetContext, ());
 
         MOCK_METHOD(IPacket::List, GetFreeSendPackets, (std::stop_token));
+        MOCK_METHOD(IPacket::List, TryGetFreeSendPackets, ());
         MOCK_METHOD(void, Send, (IPacket::List&&));
         MOCK_METHOD(IPacket::List, Send2, (std::stop_token, IPacket::List&&));
         MOCK_METHOD(IPacket::List, Recv, (std::stop_token, IPacket::List&&));

@@ -1,4 +1,5 @@
 #include "Connection.hpp"
+#include <Tracy.hpp>
 
 #include <array>
 #include <atomic>
@@ -60,6 +61,7 @@ Connection ::~Connection() = default;
 
 IPacket::List Connection::OnRecvPackets(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("Connection::OnRecvPackets");
     _lastPacketReceive = clock::now();
     auto [connectionState, freePackets] = _states[_connectionState]->OnRecvPackets(std::move(packet), *this);
 
@@ -110,8 +112,19 @@ IPacket::List Connection::GetFreeSendPackets(std::stop_token stop)
     return result;
 }
 
+IPacket::List Connection::TryGetFreeSendPackets()
+{
+    IPacket::List result;
+    _freeUserSendPackets.LockedSwap(result);
+    for (auto& packet : result) {
+        packet->SetPayloadSize(MaxPayloadSize);
+    }
+    return result;
+}
+
 void Connection::Send(IPacket::List&& data)
 {
+    ZoneScopedN("Connection::Send");
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
         NotifySendPacketsEvent();
@@ -120,20 +133,22 @@ void Connection::Send(IPacket::List&& data)
 
 IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 {
+    ZoneScopedN("Connection::Send2");
     if (!data.empty()) {
         _sendUserData.LockedSplice(std::move(data));
-        NotifySendPacketsEvent();
     }
+    NotifySendPacketsEvent();
 
     IPacket::List result;
     {
+        ZoneScopedN("Connection::Send2::WaitFreePackets");
         if (_freeUserSendPackets.Wait(stop, [this]() { return IsClosed(); })) {
             _freeUserSendPackets.LockedSwap(result);
         }
     }
 
     for (auto& packet : result) {
-        packet->SetPayloadSize(1300);
+        packet->SetPayloadSize(MaxPayloadSize);
     }
 
     return result;
@@ -141,12 +156,14 @@ IPacket::List Connection::Send2(std::stop_token stop, IPacket::List&& data)
 
 IPacket::List Connection::Recv(std::stop_token stop, IPacket::List&& freePackets)
 {
+    ZoneScopedN("Connection::Recv");
     if (!freePackets.empty()) {
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }
 
     IPacket::List result;
     {
+        ZoneScopedN("Connection::Recv::WaitUserData");
         LockedList<IPacket::Ptr>& userData = _recvQueue->GetUserData();
         if (userData.Wait(stop, [this]() { return IsClosed(); })) {
             userData.LockedSwap(result);
@@ -181,7 +198,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
         _freeRecvPackets.LockedSplice(std::move(freePackets));
     }
@@ -190,7 +207,7 @@ void Connection::AddFreeRecvPackets(IPacket::List&& freePackets)
 void Connection::AddFreeSendPackets(IPacket::List&& freePackets)
 {
     for (auto& packet : freePackets) {
-        packet->SetPayloadSize(1300);
+        packet->SetPayloadSize(MaxPayloadSize);
     }
     _freeUserSendPackets.LockedSplice(std::move(freePackets));
 }
@@ -219,6 +236,7 @@ const ConnectionKey& Connection::GetConnectionKey() const
 
 OutgoingPacket::List Connection::GetPacketsToSend()
 {
+    ZoneScopedN("Connection::GetPacketsToSend");
     OutgoingPacket::List servicePackets = _sendQueue->GetServicePacketsToSend();
 
     std::size_t size = _inFlightQueue->GetNumberPacketToSend();
@@ -248,7 +266,7 @@ void Connection::ProcessSentPackets(OutgoingPacket::List&& packets)
 
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
 
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
@@ -280,6 +298,7 @@ void Connection::SendDataPackets(IPacket::List&& packets)
 
 IPacket::Ptr Connection::RecvPacket(IPacket::Ptr&& packet)
 {
+    ZoneScopedN("Connection::RecvPacket");
     auto [status, freePacket] = _recvQueue->AddPacket(std::move(packet));
     switch (status) {
     case RecvQueueStatus::Full: {
@@ -389,7 +408,7 @@ void Connection::AddFreeUserSendPackets(IPacket::List&& freePackets)
 {
     if (!freePackets.empty()) {
         for (auto& packet : freePackets) {
-            packet->SetPayloadSize(1300);
+            packet->SetPayloadSize(MaxPayloadSize);
         }
 
         _freeUserSendPackets.LockedSplice(std::move(freePackets));
@@ -406,6 +425,7 @@ void Connection::NotifySendPacketsEvent() const
 
 void Connection::Run()
 {
+    ZoneScopedN("Connection::Run");
     const auto& connectionState = _states[_connectionState];
     if (clock::now() - _lastPacketReceive.load() > connectionState->GetTimeout()) {
         _connectionState = connectionState->OnTimeOut(*this);

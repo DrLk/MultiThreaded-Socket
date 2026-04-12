@@ -24,7 +24,7 @@ case "$COMMAND" in
       -u 1000 \
       --mount type=bind,src="$HOST_SRC",dst=/build \
       clang-tidy-image -c "
-        CC=clang CXX=clang++ cmake -S /build/SimpleNetworkProtocol -B /build/SimpleNetworkProtocol/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        CC=clang CXX=clang++ cmake -S /build/SimpleNetworkProtocol -B /build/SimpleNetworkProtocol/build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
       "
     ;;
   build)
