@@ -47,7 +47,10 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskSche
 
     const std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
     const uintmax_t size = entry.attr.st_size;
-    GetLeaf(parentId, fileTree).AddChild(name, type, size);
+    Leaf& newLeaf = GetLeaf(parentId, fileTree).AddChild(name, type, size);
+    newLeaf.SetServerInode(entry.attr.st_ino);
+    entry.ino = reinterpret_cast<fuse_ino_t>(&newLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    entry.attr.st_ino = entry.ino;
 
     FUSE_ASSERT_REPLY(fuse_reply_entry(FUSE_UNTRACK(request), &entry));
 

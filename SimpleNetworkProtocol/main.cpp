@@ -38,6 +38,8 @@ using namespace FastTransport::Protocol; // NOLINT
 
 constexpr int Source = 1;
 constexpr int Destination = 2;
+constexpr int FileServer = 3;
+constexpr int FuseClient = 4;
 
 void RunSourceConnection(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort, std::optional<size_t> sendSpeed)
 {
@@ -115,6 +117,76 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 }
 
 #ifdef __linux__
+void RunFileServer(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort, std::string_view shareDir, std::string_view cacheDir)
+{
+    using FastTransport::TaskQueue::MessageTypeReadJob;
+    using FastTransport::TaskQueue::TaskScheduler;
+
+    std::jthread thread([srcAddress, srcPort, dstAddress, dstPort, shareDir, cacheDir](std::stop_token stop) {
+        FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
+        const ConnectionAddr dstAddr(dstAddress, dstPort);
+
+        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        srcConnection->AddFreeRecvPackets(std::move(recvPackets));
+        srcConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        std::filesystem::path shareP(shareDir);
+        std::filesystem::path cacheP(cacheDir);
+        if (!std::filesystem::exists(cacheP)) {
+            std::filesystem::create_directories(cacheP);
+        }
+
+        FileTree fileTree(std::move(shareP), std::move(cacheP));
+        TaskScheduler scheduler(*srcConnection, fileTree);
+        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        scheduler.Wait(stop);
+    });
+
+    thread.join();
+}
+
+void RunFuseClient(std::string_view bindAddress, uint16_t bindPort, std::string_view mountPoint, std::string_view cacheDir)
+{
+    using FastTransport::TaskQueue::MessageTypeReadJob;
+    using FastTransport::TaskQueue::RemoteFileSystem;
+    using FastTransport::TaskQueue::TaskScheduler;
+
+    std::jthread thread([bindAddress, bindPort, mountPoint, cacheDir](std::stop_token stop) {
+        FastTransportContext dst(ConnectionAddr(bindAddress, bindPort));
+
+        const IConnection::Ptr dstConnection = dst.Accept(stop);
+        if (dstConnection == nullptr) {
+            throw std::runtime_error("Accept returned nullptr");
+        }
+
+        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+        dstConnection->AddFreeRecvPackets(std::move(recvPackets));
+        dstConnection->AddFreeSendPackets(std::move(sendPackets));
+
+        std::filesystem::path cacheRoot { cacheDir };
+        std::filesystem::path cacheFolder { cacheDir };
+        if (!std::filesystem::exists(cacheFolder)) {
+            std::filesystem::create_directories(cacheFolder);
+        }
+
+        FileTree fileTree(std::move(cacheRoot), std::move(cacheFolder));
+        TaskScheduler destinationScheduler(*dstConnection, fileTree);
+        destinationScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+
+        RemoteFileSystem filesystem(mountPoint);
+        RemoteFileSystem::scheduler = &destinationScheduler;
+        filesystem.Start(stop);
+
+        destinationScheduler.Wait(stop);
+    });
+
+    thread.join();
+}
+
 void TestConnection2()
 {
     using FastTransport::TaskQueue::MessageTypeReadJob;
@@ -214,10 +286,6 @@ void TestReadV()
 
 int main(int argc, char** argv)
 try {
-#ifdef __linux__
-    TestConnection2();
-    TestReadV();
-#endif
 #ifdef WIN32
     WSADATA wsaData;
     int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -226,30 +294,70 @@ try {
     }
 #endif
     if (argc == 1) {
+#ifdef __linux__
+        TestConnection2();
+        TestReadV();
+#endif
         TestConnection();
         return 0;
     }
     auto args = std::span(argv, argc);
 
     const int version = std::stoi(args[1]);
-    const std::string_view srcAddress = args[2];
-    const uint16_t srcPort = std::stoi(args[3]);
-    const std::string_view dstAddress = args[4];
-    const uint16_t dstPort = std::stoi(args[5]);
-    std::optional<size_t> sendSpeed;
-    if (argc > 6) {
-        sendSpeed = std::stoi(args[6]);
-    }
 
     switch (version) {
     case Source: {
+        if (argc < 6) {
+            return 1;
+        }
+        const std::string_view srcAddress = args[2];
+        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const std::string_view dstAddress = args[4];
+        const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[5]));
+        std::optional<size_t> sendSpeed;
+        if (argc > 6) {
+            sendSpeed = std::stoi(args[6]);
+        }
         RunSourceConnection(srcAddress, srcPort, dstAddress, dstPort, sendSpeed);
         break;
     }
     case Destination: {
+        if (argc < 4) {
+            return 1;
+        }
+        const std::string_view srcAddress = args[2];
+        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
         RunDestinationConnection(srcAddress, srcPort);
         break;
     }
+#ifdef __linux__
+    case FileServer: {
+        // args: <bind_addr> <bind_port> <dst_addr> <dst_port> <share_dir> <cache_dir>
+        if (argc < 8) {
+            return 1;
+        }
+        const std::string_view srcAddress = args[2];
+        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const std::string_view dstAddress = args[4];
+        const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[5]));
+        const std::string_view shareDir = args[6];
+        const std::string_view cacheDir = args[7];
+        RunFileServer(srcAddress, srcPort, dstAddress, dstPort, shareDir, cacheDir);
+        break;
+    }
+    case FuseClient: {
+        // args: <bind_addr> <bind_port> <mount_point> <cache_dir>
+        if (argc < 6) {
+            return 1;
+        }
+        const std::string_view bindAddress = args[2];
+        const uint16_t bindPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const std::string_view mountPoint = args[4];
+        const std::string_view cacheDir = args[5];
+        RunFuseClient(bindAddress, bindPort, mountPoint, cacheDir);
+        break;
+    }
+#endif
     default:
         return 1;
     }

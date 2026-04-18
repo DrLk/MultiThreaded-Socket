@@ -77,6 +77,19 @@ public:
     // receive an EIO reply instead of being abandoned silently.
     void CancelAllPendingJobs();
 
+    Leaf* GetParent() const noexcept { return _parent; }
+    void SetServerInode(std::uint64_t inode) noexcept { _serverInode = inode; }
+    // Returns the inode this Leaf has on the remote server.
+    // On the server itself _serverInode is never set, so it falls back to
+    // reinterpret_cast<uint64_t>(this) — the same value GetINode() would return.
+    std::uint64_t GetServerInode() const noexcept
+    {
+        if (_serverInode != 0) {
+            return _serverInode;
+        }
+        return reinterpret_cast<std::uint64_t>(this); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    }
+
 private:
     std::map<std::string, Leaf> children; // TODO: use std::set
     std::filesystem::path _name;
@@ -84,6 +97,7 @@ private:
     uintmax_t _size;
     Leaf* _parent;
     mutable std::uint64_t _nlookup = 0;
+    std::uint64_t _serverInode = 0;
 
     std::unordered_map<size_t, std::set<FileCache::Range>> _data;
     std::shared_ptr<PiecesStatus> _piecesStatus;

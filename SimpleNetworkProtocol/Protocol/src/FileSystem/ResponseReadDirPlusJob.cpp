@@ -20,11 +20,13 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     ZoneScopedN("ResponseReadDirPlusJob::ExecuteResponse");
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
+    fuse_ino_t clientInode = 0;
     fuse_ino_t inode = 0;
     size_t size = 0;
     off_t offset = 0;
     const FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
+    reader >> clientInode;
     reader >> inode;
     reader >> size;
     reader >> offset;
@@ -39,6 +41,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
 
     writer << MessageType::ResponseReadDirPlus;
     writer << request;
+    writer << clientInode;
 
     Protocol::DirectoryEntryWriter direcotoryWriter(writer.GetDataPackets(99));
 
