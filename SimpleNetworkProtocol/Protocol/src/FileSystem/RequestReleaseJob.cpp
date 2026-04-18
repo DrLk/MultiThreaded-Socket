@@ -6,6 +6,7 @@
 #include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "ServerInode.hpp"
 
 #define TRACER() LOGGER() << "[RequestReleaseJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -27,7 +28,7 @@ FuseNetworkJob::Message RequestReleaseJob::ExecuteMain(std::stop_token /*stop*/,
 
     writer << MessageType::RequestRelease;
     writer << _request;
-    writer << _inode;
+    writer << ToServerInode(_inode);
     writer << _handle->remoteFile;
     writer << _handle;
 

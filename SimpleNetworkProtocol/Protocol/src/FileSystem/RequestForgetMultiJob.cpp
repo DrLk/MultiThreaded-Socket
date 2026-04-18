@@ -5,6 +5,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "ServerInode.hpp"
 
 #define TRACER() LOGGER() << "[RequestForgetMultiJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -27,6 +28,9 @@ FuseNetworkJob::Message RequestForgetMultiJob::ExecuteMain(std::stop_token /*sto
 
     writer << MessageType::RequestForgetMulti;
     writer << _request;
+    for (auto& forget : _forgets) {
+        forget.ino = ToServerInode(forget.ino);
+    }
     writer << std::span(_forgets);
 
     return {};

@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.source https://github.com/DrLk/MultiThreaded-Sock
 RUN apt-get update
 RUN apt-get upgrade -y && apt-get clean
 
-RUN apt-get install -y wget software-properties-common g++-15 clang-tidy-21 clang-format-21 cmake make libssl-dev ninja-build libssl-dev libfuse3-dev python3 linux-headers-generic git time && apt-get clean
+RUN apt-get install -y wget software-properties-common g++-15 clang-tidy-21 clang-format-21 cmake make libssl-dev ninja-build libssl-dev libfuse3-dev fuse3 nfs-kernel-server rpcbind python3 linux-headers-generic git time && apt-get clean
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 10
 RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 10
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 10

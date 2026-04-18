@@ -6,6 +6,7 @@
 #include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "ServerInode.hpp"
 
 #define TRACER() LOGGER() << "[RequestReadDirPlusJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -30,6 +31,7 @@ FuseNetworkJob::Message RequestReadDirPlusJob::ExecuteMain(std::stop_token /*sto
     writer << MessageType::RequestReadDirPlus;
     writer << _request;
     writer << _inode;
+    writer << ToServerInode(_inode);
     writer << _size;
     writer << _off;
     writer << _remoteFile;

@@ -5,6 +5,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "ServerInode.hpp"
 
 #define TRACER() LOGGER() << "[RequestLookupJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -26,7 +27,7 @@ FuseNetworkJob::Message RequestLookupJob::ExecuteMain(std::stop_token /*stop*/, 
 
     writer << MessageType::RequestLookup;
     writer << _request;
-    writer << _parent;
+    writer << ToServerInode(_parent);
     writer << _name;
 
     return {};

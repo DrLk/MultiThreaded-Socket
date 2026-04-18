@@ -21,9 +21,11 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
 
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
+    fuse_ino_t clientInode = 0;
     fuse_ino_t inode = 0;
     FileSystem::RemoteFileHandle* remoteFile = nullptr;
     reader >> request;
+    reader >> clientInode;
     reader >> inode;
     reader >> remoteFile;
 
@@ -35,7 +37,7 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
 
     if (inode == FUSE_ROOT_ID) {
         writer << error;
-        writer << inode;
+        writer << clientInode;
         writer << (S_IFDIR | 0755);
         writer << 2;
         writer << stbuf.st_size;
@@ -54,7 +56,7 @@ ResponseFuseNetworkJob::Message ResponseGetAttrJob::ExecuteResponse(std::stop_to
     writer << error;
 
     if (error == 0) {
-        writer << inode;
+        writer << clientInode;
         writer << stbuf.st_mode;
         writer << stbuf.st_nlink;
         writer << stbuf.st_size;

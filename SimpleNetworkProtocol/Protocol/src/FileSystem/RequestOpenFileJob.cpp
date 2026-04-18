@@ -5,6 +5,7 @@
 
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "ServerInode.hpp"
 
 #define TRACER() LOGGER() << "[RequestOpenJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -28,7 +29,7 @@ FuseNetworkJob::Message RequestOpenJob::ExecuteMain(std::stop_token /*stop*/, Wr
 
     writer << MessageType::RequestOpen;
     writer << _request;
-    writer << _inode;
+    writer << ToServerInode(_inode);
     writer << _fileInfo;
 
     return {};

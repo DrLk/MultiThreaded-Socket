@@ -4,12 +4,14 @@
 #include <Ws2tcpip.h>
 #else
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #endif
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 namespace FastTransport::Protocol {
@@ -34,6 +36,27 @@ public:
         } else if (inet_pton(AF_INET6, addrStr.c_str(), &(reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET6;
             (reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        } else {
+            addrinfo hints {};
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_socktype = SOCK_DGRAM;
+            addrinfo* result = nullptr;
+            if (getaddrinfo(addrStr.c_str(), nullptr, &hints, &result) != 0 || result == nullptr) {
+                throw std::runtime_error("ConnectionAddr: failed to resolve address: " + addrStr);
+            }
+            if (result->ai_family == AF_INET) {
+                std::memcpy(&_storage, result->ai_addr, result->ai_addrlen);
+                _storage.ss_family = AF_INET;
+                (reinterpret_cast<sockaddr_in*>(&_storage))->sin_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            } else if (result->ai_family == AF_INET6) {
+                std::memcpy(&_storage, result->ai_addr, result->ai_addrlen);
+                _storage.ss_family = AF_INET6;
+                (reinterpret_cast<sockaddr_in6*>(&_storage))->sin6_port = htons(port); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            } else {
+                freeaddrinfo(result);
+                throw std::runtime_error("ConnectionAddr: unsupported address family for: " + addrStr);
+            }
+            freeaddrinfo(result);
         }
     }
 
