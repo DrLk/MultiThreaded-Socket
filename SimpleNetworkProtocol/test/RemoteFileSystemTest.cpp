@@ -65,12 +65,12 @@ constexpr const char* CacheDir3 = "/tmp/rfs_test_cache3";
 // Directory structure for multi-process test:
 // /tmp/rfs_test_tree/
 //   ├── subdir_a/
-//   │   └── file_a.bin   (30 MB)
+//   │   └── file_a.bin   (600 MB)
 //   ├── subdir_b/
-//   │   └── file_b.bin   (30 MB)
-//   └── file_root.bin    (30 MB)
+//   │   └── file_b.bin   (300 MB)
+//   └── file_root.bin    (300 MB)
 constexpr const char* TestTreeRoot = "/tmp/rfs_test_tree";
-constexpr size_t FileASize = 300ULL * 1024 * 1024;
+constexpr size_t FileASize = 600ULL * 1024 * 1024;
 constexpr size_t FileBSize = 300ULL * 1024 * 1024;
 constexpr size_t FileRootSize = 300ULL * 1024 * 1024;
 
@@ -334,29 +334,36 @@ bool ListDirectoriesIterative(const std::string& root)
 
 bool ListDirectoriesLoop(const std::string& root, jprocess::stop_token stop)
 {
-    int iteration = 0;
-    while (!stop.stop_requested()) {
-        if (!ListDirectoriesIterative(root)) {
+    constexpr int NumIterations = 10;
+    for (int iteration = 0; iteration < NumIterations; ++iteration) {
+        if (stop.stop_requested()) {
+            std::cerr << "[test] listProcess stopped at iteration " << iteration << "\n";
             return false;
         }
-        ++iteration;
+        if (!ListDirectoriesIterative(root)) {
+            std::cerr << "[test] listProcess failed at iteration " << iteration << "\n";
+            return false;
+        }
     }
-    std::cerr << "[test] listProcess did " << iteration << " iterations\n";
+    std::cerr << "[test] listProcess completed " << NumIterations << " iterations\n";
     return true;
 }
 
 bool ReadFileComparisonLoop(const std::string& orig, const std::string& mnt,
     size_t size, const char* name, jprocess::stop_token stop)
 {
-    int iteration = 0;
-    while (!stop.stop_requested()) {
+    constexpr int NumIterations = 5;
+    for (int iteration = 0; iteration < NumIterations; ++iteration) {
+        if (stop.stop_requested()) {
+            std::cerr << "[test] " << name << " stopped at iteration " << iteration << "\n";
+            return false;
+        }
         if (!CompareFiles(orig, mnt, size, stop)) {
             std::cerr << "[test] " << name << " comparison failed at iteration " << iteration << "\n";
             return false;
         }
-        ++iteration;
     }
-    std::cerr << "[test] " << name << " process did " << iteration << " iterations\n";
+    std::cerr << "[test] " << name << " completed " << NumIterations << " iterations\n";
     return true;
 }
 
@@ -503,7 +510,6 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
 
 TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-function-cognitive-complexity)
 {
-    return;
     PrepareTestDirectories(MountPoint3, CacheDir3);
     CreateTestTree();
 
@@ -551,28 +557,15 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
             return ReadFileComparisonLoop(origRootFile, mntRootFile, FileRootSize, "file_root.bin", stop);
         });
 
-        std::this_thread::sleep_for(20s);
-
-        std::cerr << "[shutdown] requesting stop for all child processes\n";
-        procList.request_stop();
-        procFileA.request_stop();
-        procFileB.request_stop();
-        procRoot.request_stop();
-
-        std::this_thread::sleep_for(1s);
-
-        // Poll all children together so we wait at most GracePeriod total, not per-child.
-        // If any child is stuck in a FUSE syscall (e.g. readdir waiting for a response that
-        // never arrives), it cannot exit via the stop flag alone. After the grace period,
-        // we do a lazy FUSE unmount which sends EIO to all blocked FUSE syscalls so those
-        // children can exit immediately.
-        static constexpr auto GracePeriod = std::chrono::seconds(10);
+        // All processes run a fixed number of iterations and exit on their own.
+        // Wait for all four to complete (with a safety timeout).
+        static constexpr auto TestTimeout = std::chrono::seconds(120);
         std::optional<bool> listResult;
         std::optional<bool> fileAResult;
         std::optional<bool> fileBResult;
         std::optional<bool> fileRootResult;
-        const auto graceDeadline = std::chrono::steady_clock::now() + GracePeriod;
-        while (std::chrono::steady_clock::now() < graceDeadline) {
+        const auto testDeadline = std::chrono::steady_clock::now() + TestTimeout;
+        while (std::chrono::steady_clock::now() < testDeadline) {
             if (!listResult) {
                 listResult = procList.tryJoin();
             }
@@ -593,43 +586,27 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
         const bool anyStuck = !listResult || !fileAResult || !fileBResult || !fileRootResult;
         if (anyStuck) {
-            // Children are stuck in FUSE syscalls waiting for replies that will never come
-            // (e.g. a readdirplus response that was lost on the network). The stop flag is
-            // invisible to a process blocked inside a kernel FUSE wait. Lazy unmount does
-            // not help either — it detaches the mountpoint but keeps the session alive,
-            // so the kernel still waits for fuse_reply_*. The only way to unblock the
-            // children is to close the /dev/fuse file descriptor, which causes the FUSE
-            // kernel module to abort all pending requests with ENODEV.
+            // A process is stuck in a FUSE syscall (e.g. read waiting for a block that
+            // never arrives). The stop flag cannot unblock a process waiting inside the
+            // kernel. Close the FUSE session fd to send ENODEV to all blocked syscalls.
             //
-            // fuse_session_destroy() closes that fd, but it must not race with any
-            // concurrent fuse_reply_*() calls from scheduler threads. So: stop the
-            // scheduler first (all threads exit via stop tokens), then destroy the
-            // filesystem session. After that the children unblock and join() returns.
+            // Order matters: stop FUSE callbacks first so they don't race with scheduler
+            // teardown, then drain the scheduler, cancel pending requests, destroy the fd.
             std::cerr << "[shutdown] stuck:"
                       << (!listResult ? " procList" : "")
                       << (!fileAResult ? " procFileA" : "")
                       << (!fileBResult ? " procFileB" : "")
                       << (!fileRootResult ? " procRoot" : "")
-                      << " — stopping scheduler\n";
-            // Step 1: stop fuse_session_loop so no more FUSE callbacks call
-            // scheduler->Schedule(). Without this, the FUSE thread races against
-            // the scheduler destructor: it keeps adding tasks to queues that are
-            // simultaneously being torn down.
-            std::cerr << "[shutdown] stuck: stopping FUSE session loop\n";
+                      << " — forcing shutdown\n";
+            // Signal stuck processes to exit via stop token before we tear down FUSE.
+            procList.request_stop();
+            procFileA.request_stop();
+            procFileB.request_stop();
+            procRoot.request_stop();
             filesystem->RequestStopAndWait();
-            // Step 2: stop all scheduler threads — safe now, no more concurrent callbacks.
-            std::cerr << "[shutdown] stuck: stopping scheduler\n";
             scheduler.reset();
-            // Step 3: reply EIO to every pending fuse_req_t stored in leaf nodes.
-            // This unblocks children that are waiting for file-read blocks that will never arrive.
-            std::cerr << "[shutdown] stuck: cancelling pending FUSE requests (EIO)\n";
             fileTree.CancelAllPendingJobs();
-            // Step 4: close the FUSE session fd. This aborts any remaining in-flight FUSE
-            // requests (e.g. readdirplus whose response was lost on the network) at the kernel
-            // level, so the child processes blocking in those syscalls get ENODEV and can exit.
-            std::cerr << "[shutdown] stuck: destroying filesystem (closes /dev/fuse)\n";
             filesystem.reset();
-            std::cerr << "[shutdown] stuck: /dev/fuse closed, children should unblock now\n";
         }
 
         std::cerr << "[shutdown] joining procList\n";
@@ -653,35 +630,23 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
                   << " (list=" << listOk << " fileA=" << fileAOk
                   << " fileB=" << fileBOk << " fileRoot=" << fileRootOk << ")\n";
 
-        std::cerr << "[shutdown] requesting stopSource stop\n";
         stopSource.request_stop();
 
         if (!anyStuck) {
-            std::cerr << "[shutdown] unmounting FUSE\n";
             UnmountAt(MountPoint3);
-
-            std::cerr << "[shutdown] waiting for scheduler\n";
             scheduler->Wait(stop);
-
-            std::cerr << "[shutdown] resetting scheduler\n";
             scheduler.reset();
-
-            std::cerr << "[shutdown] resetting filesystem\n";
             filesystem.reset();
         }
-
-        std::cerr << "[shutdown] clientThread lambda done\n";
     });
 
-    auto deadline = std::chrono::steady_clock::now() + 50s;
+    auto deadline = std::chrono::steady_clock::now() + 130s;
     while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(100ms);
     }
 
     if (!stopSource.stop_requested()) {
-        // 300s deadline hit — the client thread's 10s grace path should have already
-        // handled stuck children via scheduler.reset()+filesystem.reset(). This path
-        // is a last-resort fallback in case the client thread itself is stuck.
+        // Safety fallback: the client thread is stuck (should not happen normally).
         std::cerr << "[shutdown] deadline exceeded\n";
         stopSource.request_stop();
         LazyUnmountAt(MountPoint3);

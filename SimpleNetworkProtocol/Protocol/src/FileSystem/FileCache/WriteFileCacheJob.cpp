@@ -1,7 +1,10 @@
 #include "WriteFileCacheJob.hpp"
 #include <Tracy.hpp>
 
+#include <memory>
+
 #include "FileCache/FileCache.hpp"
+#include "FreeRecvPacketsJob.hpp"
 #include "ITaskScheduler.hpp"
 #include "Logger.hpp"
 #include "NativeFile.hpp"
@@ -32,7 +35,7 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskSc
     file->Write(_data, _size, _offset);
     assert(_size <= Leaf::BlockSize);
     leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
-    scheduler.ReturnFreeDiskPackets(std::move(_data));
+    scheduler.ScheduleReadNetworkJob(std::make_unique<TaskQueue::FreeRecvPacketsJob>(std::move(_data)));
     return {};
 }
 
