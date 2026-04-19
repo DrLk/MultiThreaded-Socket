@@ -11,7 +11,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo" AND NOT ENABLE_TSAN)
+if(ENABLE_TSAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(TSAN_ACTIVE TRUE)
+else()
+  set(TSAN_ACTIVE FALSE)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo" AND NOT TSAN_ACTIVE)
   add_compile_options(-flto=thin)
   add_link_options(-flto=thin)
   if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "fuse-ld")
@@ -24,7 +30,7 @@ if(MSVC)
   add_compile_options(/MP)
 endif()
 
-if(ENABLE_TSAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(TSAN_ACTIVE)
   add_compile_options(-fsanitize=thread)
   add_link_options(-fsanitize=thread)
 endif()
