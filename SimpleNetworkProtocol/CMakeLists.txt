@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
-option(ENABLE_TSAN "Enable Thread Sanitizer for tests" OFF)
+option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
 
 project(SimpleNetworkProtocol)
 
@@ -11,9 +11,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo")
+if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo" AND NOT ENABLE_TSAN)
   add_compile_options(-flto=thin)
-  add_link_options(-flto=thin -fuse-ld=lld)
+  add_link_options(-flto=thin)
+  if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "fuse-ld")
+    add_link_options(-fuse-ld=lld)
+  endif()
 endif()
 
 
@@ -21,7 +24,7 @@ if(MSVC)
   add_compile_options(/MP)
 endif()
 
-if(ENABLE_TSAN)
+if(ENABLE_TSAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-fsanitize=thread)
   add_link_options(-fsanitize=thread)
 endif()
