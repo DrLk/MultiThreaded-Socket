@@ -70,7 +70,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     for (; inodeIndex <= offset && child != children.end(); ++inodeIndex, ++child) {
     }
 
-    for (; writedSize + direcotoryWriter.GetEntryPlusSize(child->first) < size && child != children.end(); ++inodeIndex, ++child) {
+    for (; child != children.end() && writedSize + direcotoryWriter.GetEntryPlusSize(child->first) < size; ++inodeIndex, ++child) {
         if (child->second.IsDeleted()) {
             continue;
         }

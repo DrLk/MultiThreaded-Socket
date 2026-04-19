@@ -56,7 +56,7 @@ public:
     {
         if (_request != nullptr) {
             LOGGER() << "FuseReadFilePendingJob cancelled before execution, replying EIO to unblock client";
-            FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(_request), EIO));
+            FUSE_REPLY_SHUTDOWN(fuse_reply_err(FUSE_UNTRACK(_request), EIO));
             _request = nullptr;
         }
     }
@@ -101,9 +101,10 @@ FuseReadFileJob::~FuseReadFileJob()
 {
     // Reply with EIO if this job is destroyed without executing (e.g. scheduler shut down
     // while the job was queued). Prevents the FUSE client from blocking indefinitely.
+    // -ENOENT is expected: the requesting process may have died before we could reply.
     if (_request != nullptr) {
         LOGGER() << "FuseReadFileJob destroyed without executing, replying EIO to unblock client";
-        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(_request), EIO));
+        FUSE_REPLY_SHUTDOWN(fuse_reply_err(FUSE_UNTRACK(_request), EIO));
     }
 }
 

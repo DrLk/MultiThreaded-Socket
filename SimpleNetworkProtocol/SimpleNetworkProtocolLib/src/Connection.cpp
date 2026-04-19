@@ -4,7 +4,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <chrono>
 #include <cstddef>
 #include <span>
 #include <stdexcept>

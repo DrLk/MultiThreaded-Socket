@@ -70,6 +70,14 @@ inline int FuseReplyAssert(int result)
     return result;
 }
 
+// Like FuseReplyAssert but tolerates -ENOENT (kernel freed the request because
+// the requesting process was killed). Use only in Cancel()/destructor shutdown paths.
+inline int FuseReplyShutdown(int result)
+{
+    assert(result == 0 || result == -ENOENT);
+    return result;
+}
+
 } // namespace FastTransport::FileSystem
 
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
@@ -77,6 +85,7 @@ inline int FuseReplyAssert(int result)
 #define FUSE_UNTRACK(req) FastTransport::FileSystem::FuseRequestTracker::Instance().Untrack(req)
 #define FUSE_DUMP_PENDING() FastTransport::FileSystem::FuseRequestTracker::Instance().DumpPending()
 #define FUSE_ASSERT_REPLY(call) FastTransport::FileSystem::FuseReplyAssert(call)
+#define FUSE_REPLY_SHUTDOWN(call) FastTransport::FileSystem::FuseReplyShutdown(call)
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
 #else
@@ -86,6 +95,7 @@ inline int FuseReplyAssert(int result)
 #define FUSE_UNTRACK(req) (req)
 #define FUSE_DUMP_PENDING() ((void)0)
 #define FUSE_ASSERT_REPLY(call) (call)
+#define FUSE_REPLY_SHUTDOWN(call) (call)
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
 #endif
