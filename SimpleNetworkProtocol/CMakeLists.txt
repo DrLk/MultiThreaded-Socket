@@ -11,6 +11,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo")
+  add_compile_options(-flto=thin)
+  add_link_options(-flto=thin -fuse-ld=lld)
+endif()
+
 
 if(MSVC)
   add_compile_options(/MP)
