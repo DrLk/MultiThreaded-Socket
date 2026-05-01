@@ -47,6 +47,7 @@ public:
     bool IsDeleted() const;
     Leaf& AddChild(std::filesystem::path&& name, std::filesystem::file_type type, uintmax_t size);
     Leaf& AddChild(Leaf&& leaf);
+    void RemoveChild(const std::string& name);
 
     void AddRef() const;
     void ReleaseRef() const;
@@ -72,6 +73,7 @@ public:
     bool SetInFlight(size_t blockIndex);
     void AddPendingJob(size_t blockIndex, std::unique_ptr<IPendingJob> job);
     std::vector<std::unique_ptr<IPendingJob>> TakePendingJobs(size_t blockIndex);
+    void InvalidateDataCache();
     // Cancel all pending jobs in this leaf and all descendant leaves.
     // Call this before destroying the FUSE session so that held fuse_req_t handles
     // receive an EIO reply instead of being abandoned silently.

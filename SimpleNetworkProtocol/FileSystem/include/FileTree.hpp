@@ -59,6 +59,7 @@ public:
     // Cancel all pending jobs across the entire file tree. Must be called after
     // stopping the scheduler (so no new jobs are being added) and before destroying
     // the filesystem session (so fuse_reply_err can still be called).
+    Leaf* FindLeafByServerInode(std::uint64_t serverInode);
     void CancelAllPendingJobs();
 
 private:

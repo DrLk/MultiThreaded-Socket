@@ -13,6 +13,7 @@
 #include "FreeRecvPacketsJob.hpp"
 #include "FuseNetworkJob.hpp"
 #include "ITaskScheduler.hpp"
+#include "InotifyWatcherJob.hpp"
 #include "Job.hpp"
 #include "Logger.hpp"
 #include "MainJob.hpp"
@@ -45,6 +46,7 @@ TaskScheduler::~TaskScheduler()
     for (auto& cacheQueue : _cacheTreeQueues) {
         cacheQueue.RequestStop();
     }
+    _inotifyQueue.RequestStop();
     _mainQueue.RequestStop();
     _readNetworkQueue.RequestStop();
     _writeNetworkQueue.RequestStop();
@@ -61,6 +63,7 @@ TaskScheduler::~TaskScheduler()
     for (auto& cacheQueue : _cacheTreeQueues) {
         cacheQueue.Join();
     }
+    _inotifyQueue.Join();
 }
 
 void TaskScheduler::Schedule(std::unique_ptr<Job>&& job)
@@ -257,6 +260,14 @@ void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
     _cacheTreeQueues.at(idx).Async([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
         job->ExecuteCachedTree(*this, stop, _fileTree);
+    });
+}
+
+void TaskScheduler::ScheduleInotifyWatcherJob(std::unique_ptr<InotifyWatcherJob>&& job)
+{
+    _inotifyQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleInotifyWatcherJob");
+        job->ExecuteMainRead(stop, *this);
     });
 }
 

@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include "FileSystem/NotifyInvalEntryJob.hpp"
+#include "FileSystem/NotifyInvalInodeJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "IConnection.hpp"
 #include "IStatistics.hpp"
@@ -212,6 +214,18 @@ void MessageTypeReadJob::ExecuteReadNetwork(std::stop_token stop, ITaskScheduler
     }
     case MessageType::ResponseReadDirPlus: {
         auto job = std::make_unique<ResponseReadDirPlusInJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::NotifyInvalInode: {
+        auto job = std::make_unique<NotifyInvalInodeJob>();
+        job->InitReader(std::move(reader));
+        scheduler.Schedule(std::move(job));
+        break;
+    }
+    case MessageType::NotifyInvalEntry: {
+        auto job = std::make_unique<NotifyInvalEntryJob>();
         job->InitReader(std::move(reader));
         scheduler.Schedule(std::move(job));
         break;

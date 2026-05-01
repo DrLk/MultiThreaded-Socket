@@ -24,6 +24,7 @@
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
+#include "InotifyWatcherJob.hpp"
 #include "Logger.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "TaskScheduler.hpp"
@@ -73,6 +74,24 @@ constexpr const char* TestTreeRoot = "/tmp/rfs_test_tree";
 constexpr size_t FileASize = 600ULL * 1024 * 1024;
 constexpr size_t FileBSize = 300ULL * 1024 * 1024;
 constexpr size_t FileRootSize = 300ULL * 1024 * 1024;
+
+constexpr uint16_t ServerPort4 = 31700;
+constexpr uint16_t ClientPort4 = 31800;
+constexpr const char* MountPoint4 = "/tmp/mnt_notify_create";
+constexpr const char* CacheDir4 = "/tmp/notify_create_cache";
+constexpr const char* ServerRoot4 = "/tmp/notify_create_server";
+
+constexpr uint16_t ServerPort5 = 31900;
+constexpr uint16_t ClientPort5 = 32000;
+constexpr const char* MountPoint5 = "/tmp/mnt_notify_delete";
+constexpr const char* CacheDir5 = "/tmp/notify_delete_cache";
+constexpr const char* ServerRoot5 = "/tmp/notify_delete_server";
+
+constexpr uint16_t ServerPort6 = 32100;
+constexpr uint16_t ClientPort6 = 32200;
+constexpr const char* MountPoint6 = "/tmp/mnt_notify_modify";
+constexpr const char* CacheDir6 = "/tmp/notify_modify_cache";
+constexpr const char* ServerRoot6 = "/tmp/notify_modify_server";
 
 // Block size must match Leaf::BlockSize (1000 * 1300)
 constexpr size_t FuseBlockSize = 1000UL * 1300UL;
@@ -295,6 +314,40 @@ void RunServer(std::stop_token stop, uint16_t port, const char* root, const char
     TaskScheduler scheduler(*srcConnection, fileTree);
     scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
     scheduler.Wait(stop);
+}
+
+void RunServerWithInotify(std::stop_token stop, uint16_t port, const char* root, const char* cacheDir)
+{
+    FastTransportContext src(ConnectionAddr("127.0.0.1", port));
+    const IConnection::Ptr srcConnection = src.Accept(stop);
+    if (srcConnection == nullptr) {
+        return;
+    }
+    srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+    srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
+    FileTree fileTree(root, cacheDir);
+    TaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    scheduler.Schedule(std::make_unique<FastTransport::TaskQueue::InotifyWatcherJob>(root, fileTree, scheduler));
+    scheduler.Wait(stop);
+}
+
+size_t CountDirEntries(const std::string& path)
+{
+    size_t count = 0;
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        return 0;
+    }
+    while (struct dirent* entry = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
+        const std::string_view name(entry->d_name);
+        if (name != "." && name != "..") {
+            ++count;
+        }
+    }
+    closedir(dir);
+    return count;
 }
 
 // ── directory listing helper ──────────────────────────────────────────────────
@@ -666,6 +719,259 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
     std::cerr << "[shutdown] serverThread joined\n";
 
     EXPECT_TRUE(testResult) << "Parallel list/read test had failures";
+}
+
+namespace {
+
+// Helper: sets up client (connect, FUSE start, session), runs body(stop), then tears down.
+// body should signal stopSource when done.
+template <typename Body>
+void RunClientWithNotify(std::stop_token stop, uint16_t port, const char* mountPoint, const char* cacheDir,
+    const char* serverRoot, std::stop_source& stopSource, std::atomic<bool>& result, Body&& body)
+{
+    FastTransportContext dst(ConnectionAddr("127.0.0.1", port));
+    const IConnection::Ptr dstConnection = dst.Connect(ConnectionAddr("127.0.0.1", static_cast<uint16_t>(port - 100)));
+    dstConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
+    dstConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
+
+    FileTree fileTree(serverRoot, cacheDir);
+    auto filesystem = std::make_unique<RemoteFileSystem>(mountPoint);
+    auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
+    scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    RemoteFileSystem::scheduler = scheduler.get();
+    filesystem->Start(stop);
+    RemoteFileSystem::session = filesystem->GetSession();
+
+    result = std::forward<Body>(body)(stop, fileTree, mountPoint);
+
+    RemoteFileSystem::session = nullptr;
+    stopSource.request_stop();
+    UnmountAt(mountPoint);
+    scheduler->Wait(stop);
+    scheduler.reset();
+    filesystem.reset();
+}
+
+} // namespace
+
+TEST(RemoteFileSystemTest, NotifyInvalEntryOnFileCreate) // NOLINT(readability-function-cognitive-complexity)
+{
+    std::filesystem::remove_all(ServerRoot4);
+    std::filesystem::create_directories(std::string(ServerRoot4) + "/watched");
+    PrepareTestDirectories(MountPoint4, CacheDir4);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServerWithInotify(stop, ServerPort4, ServerRoot4, CacheDir4);
+    });
+
+    std::this_thread::sleep_for(10ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort4, MountPoint4, CacheDir4, ServerRoot4, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                const std::string watchedMount = std::string(mountPoint) + "/watched";
+
+                // Initial ls: watched/ should be empty (also seeds serverInode for watched/).
+                jprocess checkEmpty([&watchedMount](jprocess::stop_token /*s*/) -> bool {
+                    return CountDirEntries(watchedMount) == 0;
+                });
+                if (!checkEmpty.join()) {
+                    std::cerr << "[test] initial listing was not empty\n";
+                    return false;
+                }
+
+                // Create a file on the server inside watched/.
+                {
+                    std::ofstream(ServerRoot4 + std::string("/watched/new_file.txt")) << "hello";
+                }
+
+                // Poll until the client mount reflects the new entry.
+                constexpr auto Timeout = std::chrono::seconds(3);
+                const auto deadline = std::chrono::steady_clock::now() + Timeout;
+                jprocess poll([deadline, &watchedMount](jprocess::stop_token pollStop) -> bool {
+                    while (std::chrono::steady_clock::now() < deadline && !pollStop.stop_requested()) {
+                        if (CountDirEntries(watchedMount) == 1) {
+                            return true;
+                        }
+                        std::this_thread::sleep_for(50ms);
+                    }
+                    return false;
+                });
+                return poll.join();
+            });
+    });
+
+    auto deadline = std::chrono::steady_clock::now() + 30s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint4);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "File created on server was not visible via FUSE mount within timeout";
+}
+
+TEST(RemoteFileSystemTest, NotifyInvalEntryOnFileDelete) // NOLINT(readability-function-cognitive-complexity)
+{
+    std::filesystem::remove_all(ServerRoot5);
+    std::filesystem::create_directories(std::string(ServerRoot5) + "/watched");
+    {
+        std::ofstream(std::string(ServerRoot5) + "/watched/existing.txt") << "data";
+    }
+    PrepareTestDirectories(MountPoint5, CacheDir5);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServerWithInotify(stop, ServerPort5, ServerRoot5, CacheDir5);
+    });
+
+    std::this_thread::sleep_for(10ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort5, MountPoint5, CacheDir5, ServerRoot5, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                const std::string watchedMount = std::string(mountPoint) + "/watched";
+
+                // Initial ls: 1 entry, also seeds serverInode for watched/ and existing.txt.
+                jprocess checkOne([&watchedMount](jprocess::stop_token /*s*/) -> bool {
+                    return CountDirEntries(watchedMount) == 1;
+                });
+                if (!checkOne.join()) {
+                    std::cerr << "[test] initial listing did not have 1 entry\n";
+                    return false;
+                }
+
+                // Delete the file on the server.
+                std::filesystem::remove(std::string(ServerRoot5) + "/watched/existing.txt");
+
+                // Poll until the client mount reflects the deletion.
+                constexpr auto Timeout = std::chrono::seconds(3);
+                const auto deadline = std::chrono::steady_clock::now() + Timeout;
+                jprocess poll([deadline, &watchedMount](jprocess::stop_token pollStop) -> bool {
+                    while (std::chrono::steady_clock::now() < deadline && !pollStop.stop_requested()) {
+                        if (CountDirEntries(watchedMount) == 0) {
+                            return true;
+                        }
+                        std::this_thread::sleep_for(50ms);
+                    }
+                    return false;
+                });
+                return poll.join();
+            });
+    });
+
+    auto deadline = std::chrono::steady_clock::now() + 30s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint5);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "File deleted on server was not removed from FUSE mount within timeout";
+}
+
+TEST(RemoteFileSystemTest, NotifyInvalInodeOnFileModify) // NOLINT(readability-function-cognitive-complexity)
+{
+    constexpr size_t FileSize = 4096;
+    std::filesystem::remove_all(ServerRoot6);
+    std::filesystem::create_directories(std::string(ServerRoot6) + "/watched");
+    {
+        std::ofstream file(std::string(ServerRoot6) + "/watched/data.bin", std::ios::binary);
+        const std::vector<char> zeros(FileSize, '\0');
+        file.write(zeros.data(), static_cast<std::streamsize>(FileSize));
+    }
+    PrepareTestDirectories(MountPoint6, CacheDir6);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServerWithInotify(stop, ServerPort6, ServerRoot6, CacheDir6);
+    });
+
+    std::this_thread::sleep_for(10ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort6, MountPoint6, CacheDir6, ServerRoot6, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                const std::string dataFile = std::string(mountPoint) + "/watched/data.bin";
+                constexpr size_t FileSize = 4096;
+
+                // Initial read: seeds serverInodes for watched/ and data.bin, verifies zeros.
+                jprocess checkZeros([&dataFile](jprocess::stop_token /*s*/) -> bool {
+                    std::ifstream file(dataFile, std::ios::binary);
+                    if (!file) {
+                        return false;
+                    }
+                    std::vector<char> buf(FileSize);
+                    if (!file.read(buf.data(), static_cast<std::streamsize>(FileSize))) {
+                        return false;
+                    }
+                    return buf[0] == '\0' && buf[FileSize - 1] == '\0';
+                });
+                if (!checkZeros.join()) {
+                    std::cerr << "[test] initial content was not zeros\n";
+                    return false;
+                }
+
+                // Overwrite the file with ones on the server.
+                {
+                    std::ofstream file(std::string(ServerRoot6) + "/watched/data.bin", std::ios::binary);
+                    const std::vector<char> ones(FileSize, '\x01');
+                    file.write(ones.data(), static_cast<std::streamsize>(FileSize));
+                }
+
+                // Poll until the client reads the new content.
+                constexpr auto Timeout = std::chrono::seconds(3);
+                const auto deadline = std::chrono::steady_clock::now() + Timeout;
+                jprocess poll([deadline, &dataFile](jprocess::stop_token pollStop) -> bool {
+                    while (std::chrono::steady_clock::now() < deadline && !pollStop.stop_requested()) {
+                        std::ifstream file(dataFile, std::ios::binary);
+                        if (file) {
+                            std::vector<char> buf(FileSize);
+                            if (file.read(buf.data(), static_cast<std::streamsize>(FileSize)) && buf[0] == '\x01') {
+                                return true;
+                            }
+                        }
+                        std::this_thread::sleep_for(100ms);
+                    }
+                    return false;
+                });
+                return poll.join();
+            });
+    });
+
+    auto deadline = std::chrono::steady_clock::now() + 30s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint6);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "Modified file content was not visible via FUSE mount within timeout";
 }
 
 #endif // __linux__

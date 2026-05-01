@@ -24,4 +24,6 @@ enum class MessageType {
     ResponseReadDir = 26,
     RequestReadDirPlus = 27,
     ResponseReadDirPlus = 28,
+    NotifyInvalInode = 29,
+    NotifyInvalEntry = 30,
 };

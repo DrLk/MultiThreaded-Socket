@@ -42,6 +42,11 @@ Leaf& Leaf::AddChild(Leaf&& leaf)
     return insertedLeaf->second;
 }
 
+void Leaf::RemoveChild(const std::string& name)
+{
+    children.erase(name);
+}
+
 const std::filesystem::path& Leaf::GetName() const
 {
     return _name;
@@ -349,6 +354,12 @@ std::vector<std::unique_ptr<IPendingJob>> Leaf::TakePendingJobs(size_t blockInde
     auto result = std::move(iter->second);
     _pendingJobs.erase(iter);
     return result;
+}
+
+void Leaf::InvalidateDataCache()
+{
+    _data.clear();
+    _piecesStatus = std::make_shared<PiecesStatus>((_size / BlockSize) + 1);
 }
 
 void Leaf::CancelAllPendingJobs()

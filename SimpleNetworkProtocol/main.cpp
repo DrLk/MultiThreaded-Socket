@@ -24,6 +24,7 @@
 
 #ifdef __linux__
 #include "FileSystem/RemoteFileSystem.hpp"
+#include "InotifyWatcherJob.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "TaskScheduler.hpp"
 #endif
@@ -139,9 +140,11 @@ void RunFileServer(std::string_view srcAddress, uint16_t srcPort, std::string_vi
             std::filesystem::create_directories(cacheP);
         }
 
+        const std::filesystem::path watchRoot = shareP;
         FileTree fileTree(std::move(shareP), std::move(cacheP));
         TaskScheduler scheduler(*srcConnection, fileTree);
         scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        scheduler.Schedule(std::make_unique<FastTransport::TaskQueue::InotifyWatcherJob>(watchRoot, fileTree, scheduler));
         scheduler.Wait(stop);
     });
 
@@ -180,6 +183,7 @@ void RunFuseClient(std::string_view bindAddress, uint16_t bindPort, std::string_
         RemoteFileSystem filesystem(mountPoint);
         RemoteFileSystem::scheduler = &destinationScheduler;
         filesystem.Start(stop);
+        RemoteFileSystem::session = filesystem.GetSession();
 
         destinationScheduler.Wait(stop);
     });
@@ -228,6 +232,7 @@ void TestConnection2()
         RemoteFileSystem filesystem("/mnt/test");
         RemoteFileSystem::scheduler = &destinationTaskScheduler;
         filesystem.Start(stop);
+        RemoteFileSystem::session = filesystem.GetSession();
 
         destinationTaskScheduler.Wait(stop);
     });
@@ -277,7 +282,7 @@ void TestReadV()
     iovecs[1].iov_base = buffer2.data();
     iovecs[1].iov_len = buffer2.size();
 
-    const std::int64_t result = preadv(file, iovecs.data(), blocks, 11);
+    const std::int64_t result = preadv(file, iovecs.data(), blocks, 11); // NOLINT(clang-analyzer-deadcode.DeadStores)
     assert(result != -1);
 }
 #endif

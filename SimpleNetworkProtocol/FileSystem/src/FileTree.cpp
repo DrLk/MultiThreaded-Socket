@@ -143,6 +143,26 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
     }
 }
 
+namespace {
+    Leaf* DfsFind(Leaf& node, std::uint64_t serverInode) // NOLINT(misc-no-recursion)
+    {
+        if (node.GetServerInode() == serverInode) {
+            return &node;
+        }
+        for (const auto& [name, child] : node.GetChildren()) {
+            if (auto* const found = DfsFind(const_cast<Leaf&>(child), serverInode)) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
+                return found;
+            }
+        }
+        return nullptr;
+    }
+} // namespace
+
+Leaf* FileTree::FindLeafByServerInode(std::uint64_t serverInode)
+{
+    return DfsFind(*_root, serverInode);
+}
+
 void FileTree::CancelAllPendingJobs()
 {
     LOGGER() << "Cancelling pending jobs for all leaves";
