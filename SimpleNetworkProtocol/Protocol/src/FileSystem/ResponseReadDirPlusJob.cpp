@@ -52,21 +52,21 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
         memset(&stbuf, 0, sizeof(stbuf));
         stat(parent.GetFullPath().c_str(), &stbuf);
         stbuf.st_ino = inode;
-        writedSize += direcotoryWriter.AddDirectoryEntryPlus(".", &stbuf, 0);
+        writedSize += direcotoryWriter.AddDirectoryEntryPlus(".", &stbuf, 1);
     }
 
     if (offset < 2) {
         struct stat stbuf {};
         memset(&stbuf, 0, sizeof(stbuf));
         stbuf.st_ino = 1;
-        writedSize += direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 1);
+        writedSize += direcotoryWriter.AddDirectoryEntryPlus("..", &stbuf, 2);
     }
 
     parent.Rescan();
     const auto& children = parent.GetChildren();
 
     auto child = children.begin();
-    off_t inodeIndex = 2;
+    off_t inodeIndex = 3;
     for (; inodeIndex <= offset && child != children.end(); ++inodeIndex, ++child) {
     }
 

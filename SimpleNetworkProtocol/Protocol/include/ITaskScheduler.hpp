@@ -17,6 +17,7 @@ class FuseNetworkJob;
 class ResponseFuseNetworkJob;
 class ResponseReadFileJob;
 class CacheTreeJob;
+class InotifyWatcherJob;
 
 class ITaskScheduler {
 public:
@@ -40,6 +41,7 @@ public:
     virtual void ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>&& job) = 0;
     virtual void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) = 0;
     virtual void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) = 0;
+    virtual void ScheduleInotifyWatcherJob(std::unique_ptr<InotifyWatcherJob>&& job) = 0;
     virtual void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) = 0;
 };
 

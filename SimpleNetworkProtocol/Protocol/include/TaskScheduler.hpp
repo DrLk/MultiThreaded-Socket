@@ -38,6 +38,7 @@ public:
     void ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>&& job) override;
     void ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job) override;
     void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) override;
+    void ScheduleInotifyWatcherJob(std::unique_ptr<InotifyWatcherJob>&& job) override;
     void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) override;
 
 private:
@@ -63,6 +64,8 @@ private:
     // Keeps leaf/tree operations off the mainQueue so network responses are
     // processed without stalling behind fuse_reply_data calls.
     std::array<TaskQueue, CacheTreeThreadCount> _cacheTreeQueues;
+    // Dedicated queue for InotifyWatcherJob so it doesn't block the mainQueue.
+    TaskQueue _inotifyQueue;
 };
 
 } // namespace FastTransport::TaskQueue

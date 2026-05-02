@@ -24,6 +24,7 @@
 
 #ifdef __linux__
 #include "FileSystem/RemoteFileSystem.hpp"
+#include "InotifyWatcherJob.hpp"
 #include "MessageTypeReadJob.hpp"
 #include "TaskScheduler.hpp"
 #endif
@@ -117,74 +118,70 @@ void RunDestinationConnection(std::string_view srcAddress, uint16_t srcPort)
 }
 
 #ifdef __linux__
-void RunFileServer(std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort, std::string_view shareDir, std::string_view cacheDir)
+void RunFileServer(std::stop_token stop, std::string_view srcAddress, uint16_t srcPort, std::string_view dstAddress, uint16_t dstPort, std::string_view shareDir, std::string_view cacheDir)
 {
     using FastTransport::TaskQueue::MessageTypeReadJob;
     using FastTransport::TaskQueue::TaskScheduler;
 
-    std::jthread thread([srcAddress, srcPort, dstAddress, dstPort, shareDir, cacheDir](std::stop_token stop) {
-        FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
-        const ConnectionAddr dstAddr(dstAddress, dstPort);
+    FastTransportContext src(ConnectionAddr(srcAddress, srcPort));
+    const ConnectionAddr dstAddr(dstAddress, dstPort);
 
-        const IConnection::Ptr srcConnection = src.Connect(dstAddr);
+    const IConnection::Ptr srcConnection = src.Connect(dstAddr);
 
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
-        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
-        srcConnection->AddFreeRecvPackets(std::move(recvPackets));
-        srcConnection->AddFreeSendPackets(std::move(sendPackets));
+    IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+    IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+    srcConnection->AddFreeRecvPackets(std::move(recvPackets));
+    srcConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        std::filesystem::path shareP(shareDir);
-        std::filesystem::path cacheP(cacheDir);
-        if (!std::filesystem::exists(cacheP)) {
-            std::filesystem::create_directories(cacheP);
-        }
+    std::filesystem::path shareP(shareDir);
+    std::filesystem::path cacheP(cacheDir);
+    if (!std::filesystem::exists(cacheP)) {
+        std::filesystem::create_directories(cacheP);
+    }
 
-        FileTree fileTree(std::move(shareP), std::move(cacheP));
-        TaskScheduler scheduler(*srcConnection, fileTree);
-        scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
-        scheduler.Wait(stop);
-    });
-
-    thread.join();
+    const std::filesystem::path watchRoot = shareP;
+    FileTree fileTree(std::move(shareP), std::move(cacheP));
+    TaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    scheduler.Schedule(std::make_unique<FastTransport::TaskQueue::InotifyWatcherJob>(watchRoot, fileTree, scheduler));
+    scheduler.Wait(stop);
 }
 
-void RunFuseClient(std::string_view bindAddress, uint16_t bindPort, std::string_view mountPoint, std::string_view cacheDir)
+void RunFuseClient(std::stop_token stop, std::string_view bindAddress, uint16_t bindPort, std::string_view mountPoint, std::string_view cacheDir)
 {
     using FastTransport::TaskQueue::MessageTypeReadJob;
     using FastTransport::TaskQueue::RemoteFileSystem;
     using FastTransport::TaskQueue::TaskScheduler;
 
-    std::jthread thread([bindAddress, bindPort, mountPoint, cacheDir](std::stop_token stop) {
-        FastTransportContext dst(ConnectionAddr(bindAddress, bindPort));
+    FastTransportContext dst(ConnectionAddr(bindAddress, bindPort));
 
-        const IConnection::Ptr dstConnection = dst.Accept(stop);
-        if (dstConnection == nullptr) {
-            throw std::runtime_error("Accept returned nullptr");
-        }
+    const IConnection::Ptr dstConnection = dst.Accept(stop);
+    if (dstConnection == nullptr) {
+        throw std::runtime_error("Accept returned nullptr");
+    }
 
-        IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
-        IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
-        dstConnection->AddFreeRecvPackets(std::move(recvPackets));
-        dstConnection->AddFreeSendPackets(std::move(sendPackets));
+    IPacket::List recvPackets = UDPQueue::CreateBuffers(260000);
+    IPacket::List sendPackets = UDPQueue::CreateBuffers(200000);
+    dstConnection->AddFreeRecvPackets(std::move(recvPackets));
+    dstConnection->AddFreeSendPackets(std::move(sendPackets));
 
-        std::filesystem::path cacheRoot { cacheDir };
-        std::filesystem::path cacheFolder { cacheDir };
-        if (!std::filesystem::exists(cacheFolder)) {
-            std::filesystem::create_directories(cacheFolder);
-        }
+    std::filesystem::path cacheRoot { cacheDir };
+    std::filesystem::path cacheFolder { cacheDir };
+    if (!std::filesystem::exists(cacheFolder)) {
+        std::filesystem::create_directories(cacheFolder);
+    }
 
-        FileTree fileTree(std::move(cacheRoot), std::move(cacheFolder));
-        TaskScheduler destinationScheduler(*dstConnection, fileTree);
-        destinationScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    FileTree fileTree(std::move(cacheRoot), std::move(cacheFolder));
+    TaskScheduler destinationScheduler(*dstConnection, fileTree);
+    destinationScheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
 
-        RemoteFileSystem filesystem(mountPoint);
-        RemoteFileSystem::scheduler = &destinationScheduler;
-        filesystem.Start(stop);
+    RemoteFileSystem filesystem(mountPoint);
+    RemoteFileSystem::scheduler = &destinationScheduler;
+    filesystem.Init();
+    RemoteFileSystem::session = filesystem.GetSession();
+    filesystem.Start(stop);
 
-        destinationScheduler.Wait(stop);
-    });
-
-    thread.join();
+    destinationScheduler.Wait(stop);
 }
 
 void TestConnection2()
@@ -227,6 +224,8 @@ void TestConnection2()
         using FastTransport::TaskQueue::RemoteFileSystem;
         RemoteFileSystem filesystem("/mnt/test");
         RemoteFileSystem::scheduler = &destinationTaskScheduler;
+        filesystem.Init();
+        RemoteFileSystem::session = filesystem.GetSession();
         filesystem.Start(stop);
 
         destinationTaskScheduler.Wait(stop);
@@ -277,10 +276,19 @@ void TestReadV()
     iovecs[1].iov_base = buffer2.data();
     iovecs[1].iov_len = buffer2.size();
 
-    const std::int64_t result = preadv(file, iovecs.data(), blocks, 11);
+    const std::int64_t result = preadv(file, iovecs.data(), blocks, 11); // NOLINT(clang-analyzer-deadcode.DeadStores)
     assert(result != -1);
 }
 #endif
+
+uint16_t ParsePort(std::string_view arg)
+{
+    const int value = std::stoi(std::string(arg));
+    if (value < 0 || value > UINT16_MAX) {
+        throw std::out_of_range("port out of range: " + std::string(arg));
+    }
+    return static_cast<uint16_t>(value);
+}
 
 } // namespace
 
@@ -311,9 +319,9 @@ try {
             return 1;
         }
         const std::string_view srcAddress = args[2];
-        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const uint16_t srcPort = ParsePort(args[3]);
         const std::string_view dstAddress = args[4];
-        const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[5]));
+        const uint16_t dstPort = ParsePort(args[5]);
         std::optional<size_t> sendSpeed;
         if (argc > 6) {
             sendSpeed = std::stoi(args[6]);
@@ -326,7 +334,7 @@ try {
             return 1;
         }
         const std::string_view srcAddress = args[2];
-        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const uint16_t srcPort = ParsePort(args[3]);
         RunDestinationConnection(srcAddress, srcPort);
         break;
     }
@@ -337,12 +345,12 @@ try {
             return 1;
         }
         const std::string_view srcAddress = args[2];
-        const uint16_t srcPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const uint16_t srcPort = ParsePort(args[3]);
         const std::string_view dstAddress = args[4];
-        const uint16_t dstPort = static_cast<uint16_t>(std::stoi(args[5]));
+        const uint16_t dstPort = ParsePort(args[5]);
         const std::string_view shareDir = args[6];
         const std::string_view cacheDir = args[7];
-        RunFileServer(srcAddress, srcPort, dstAddress, dstPort, shareDir, cacheDir);
+        RunFileServer(std::stop_token {}, srcAddress, srcPort, dstAddress, dstPort, shareDir, cacheDir);
         break;
     }
     case FuseClient: {
@@ -351,10 +359,10 @@ try {
             return 1;
         }
         const std::string_view bindAddress = args[2];
-        const uint16_t bindPort = static_cast<uint16_t>(std::stoi(args[3]));
+        const uint16_t bindPort = ParsePort(args[3]);
         const std::string_view mountPoint = args[4];
         const std::string_view cacheDir = args[5];
-        RunFuseClient(bindAddress, bindPort, mountPoint, cacheDir);
+        RunFuseClient(std::stop_token {}, bindAddress, bindPort, mountPoint, cacheDir);
         break;
     }
 #endif

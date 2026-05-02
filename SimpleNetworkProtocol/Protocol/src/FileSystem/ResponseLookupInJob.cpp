@@ -5,7 +5,9 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FileTree.hpp"
 #include "FuseRequestTracker.hpp"
+#include "Leaf.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[ResponseLookupInJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -47,7 +49,16 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskSche
 
     const std::filesystem::file_type type = S_ISDIR(entry.attr.st_mode) ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
     const uintmax_t size = entry.attr.st_size;
-    Leaf& newLeaf = GetLeaf(parentId, fileTree).AddChild(name, type, size);
+
+    FileSystem::Leaf* parentLeaf = parentId == FUSE_ROOT_ID
+        ? &fileTree.GetRoot()
+        : fileTree.FindLeafByServerInode(parentId);
+    if (parentLeaf == nullptr) {
+        FUSE_ASSERT_REPLY(fuse_reply_err(FUSE_UNTRACK(request), ENOENT));
+        return {};
+    }
+
+    Leaf& newLeaf = parentLeaf->AddChild(name, type, size);
     newLeaf.SetServerInode(entry.attr.st_ino);
     entry.ino = reinterpret_cast<fuse_ino_t>(&newLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     entry.attr.st_ino = entry.ino;
