@@ -15,6 +15,12 @@ RequestForgetMultiJob::RequestForgetMultiJob(fuse_req_t request, std::span<fuse_
     : _request(request)
     , _forgets(forgets.begin(), forgets.end())
 {
+    // Translate client inodes (= Leaf*) to server inodes synchronously, while we
+    // are still on the FUSE thread that delivered the forget. By the time
+    // ExecuteMain runs on a worker, the Leaf may have been destroyed.
+    for (auto& forget : _forgets) {
+        forget.ino = ToServerInode(forget.ino);
+    }
     TRACER() << "Create";
 }
 
@@ -28,9 +34,6 @@ FuseNetworkJob::Message RequestForgetMultiJob::ExecuteMain(std::stop_token /*sto
 
     writer << MessageType::RequestForgetMulti;
     writer << _request;
-    for (auto& forget : _forgets) {
-        forget.ino = ToServerInode(forget.ino);
-    }
     writer << std::span(_forgets);
 
     return {};
