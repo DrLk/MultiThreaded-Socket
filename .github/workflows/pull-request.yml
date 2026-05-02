@@ -23,7 +23,7 @@ jobs:
             - name: Run clang-format on changed files
               run: |
                 BASE="origin/${{ github.base_ref }}"
-                CHANGED_FILES=$(git diff --name-only $BASE...HEAD \
+                CHANGED_FILES=$(git diff --name-only --diff-filter=d $BASE...HEAD \
                   | grep -E '\.(cpp|cxx|cc|c|hpp|hxx|h)$' || true)
                 if [ -z "$CHANGED_FILES" ]; then
                   echo "No C/C++ files changed."
