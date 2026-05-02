@@ -33,7 +33,7 @@ TaskScheduler::TaskScheduler(IConnection& connection, FileTree& fileTree)
 {
 }
 
-TaskScheduler::~TaskScheduler()
+TaskScheduler::~TaskScheduler() // NOLINT(bugprone-exception-escape)
 {
     TRACER() << "Stopping TaskScheduler";
     // Phase 1: signal all workers to stop simultaneously.

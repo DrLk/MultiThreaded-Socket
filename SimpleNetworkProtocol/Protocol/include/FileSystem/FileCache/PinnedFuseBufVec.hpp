@@ -46,7 +46,7 @@ private:
     fvec->idx = 0;
     fvec->off = 0;
     for (std::size_t i = 0; i < count; ++i) {
-        fvec->buf[i] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+        fvec->buf[i] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index, bugprone-invalid-enum-default-initialization)
         fvec->buf[i].mem = const_cast<void*>(static_cast<const void*>(view.spans[i].data)); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-type-const-cast)
         fvec->buf[i].size = view.spans[i].size; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         fvec->buf[i].flags = std::bit_cast<fuse_buf_flags>(0); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)

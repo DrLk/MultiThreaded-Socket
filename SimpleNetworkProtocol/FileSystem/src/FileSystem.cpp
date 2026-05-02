@@ -19,6 +19,7 @@
 #include <string_view>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "File.hpp"
 #include "FileTree.hpp"
