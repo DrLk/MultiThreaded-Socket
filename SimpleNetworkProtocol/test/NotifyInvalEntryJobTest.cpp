@@ -2,6 +2,8 @@
 
 #ifdef __linux__
 
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <stop_token>
@@ -49,7 +51,10 @@ IPacket::List MakeFreePackets(int count)
 {
     IPacket::List packets;
     for (int i = 0; i < count; i++) {
-        packets.push_back(std::make_unique<Packet>(1500));
+        auto packet = std::make_unique<Packet>(1500);
+        std::array<std::byte, 1000> payload {};
+        packet->SetPayload(payload);
+        packets.push_back(std::move(packet));
     }
     return packets;
 }

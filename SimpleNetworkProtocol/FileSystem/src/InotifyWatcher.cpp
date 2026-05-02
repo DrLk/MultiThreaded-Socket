@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cerrno>
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
