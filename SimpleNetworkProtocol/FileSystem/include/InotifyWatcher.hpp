@@ -45,6 +45,7 @@ private:
     std::filesystem::path _root;
     WatchCallback _callback;
     int _inotifyFd = -1;
+    int _stopFd = -1;
     std::unordered_map<int, std::filesystem::path> _wdToPath;
     std::unordered_map<std::string, int> _pathToWd;
 };

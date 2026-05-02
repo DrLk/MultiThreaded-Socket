@@ -23,11 +23,38 @@ FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFo
     , _cacheFolder(std::move(cacheFolder))
     , _fileCache(std::make_unique<FileCache::FileCache>())
 {
+    _root->SetTree(this);
 }
 
-FileTree::FileTree(FileTree&& that) noexcept = default;
+FileTree::FileTree(FileTree&& that) noexcept
+    : _serverInodeIndex(std::move(that._serverInodeIndex))
+    , _root(std::move(that._root))
+    , _cacheFolder(std::move(that._cacheFolder))
+    , _cache(std::move(that._cache))
+    , _totalCachedPackets(that._totalCachedPackets)
+    , _fileCache(std::move(that._fileCache))
+{
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+}
 
-FileTree& FileTree::operator=(FileTree&& that) noexcept = default;
+FileTree& FileTree::operator=(FileTree&& that) noexcept
+{
+    if (this == &that) {
+        return *this;
+    }
+    _serverInodeIndex = std::move(that._serverInodeIndex);
+    _root = std::move(that._root);
+    _cacheFolder = std::move(that._cacheFolder);
+    _cache = std::move(that._cache);
+    _totalCachedPackets = that._totalCachedPackets;
+    _fileCache = std::move(that._fileCache);
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+    return *this;
+}
 
 FileTree::~FileTree() = default;
 
@@ -143,24 +170,26 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
     }
 }
 
-namespace {
-    Leaf* DfsFind(Leaf& node, std::uint64_t serverInode) // NOLINT(misc-no-recursion)
-    {
-        if (node.GetServerInode() == serverInode) {
-            return &node;
-        }
-        for (const auto& [name, child] : node.GetChildren()) {
-            if (auto* const found = DfsFind(const_cast<Leaf&>(child), serverInode)) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
-                return found;
-            }
-        }
-        return nullptr;
-    }
-} // namespace
-
 Leaf* FileTree::FindLeafByServerInode(std::uint64_t serverInode)
 {
-    return DfsFind(*_root, serverInode);
+    if (serverInode == _root->GetServerInode()) {
+        return _root.get();
+    }
+    auto entry = _serverInodeIndex.find(serverInode);
+    if (entry == _serverInodeIndex.end()) {
+        return nullptr;
+    }
+    return entry->second;
+}
+
+void FileTree::RegisterLeaf(std::uint64_t serverInode, Leaf* leaf)
+{
+    _serverInodeIndex[serverInode] = leaf;
+}
+
+void FileTree::UnregisterLeaf(std::uint64_t serverInode)
+{
+    _serverInodeIndex.erase(serverInode);
 }
 
 void FileTree::CancelAllPendingJobs()

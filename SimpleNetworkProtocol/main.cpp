@@ -182,8 +182,9 @@ void RunFuseClient(std::string_view bindAddress, uint16_t bindPort, std::string_
 
         RemoteFileSystem filesystem(mountPoint);
         RemoteFileSystem::scheduler = &destinationScheduler;
-        filesystem.Start(stop);
+        filesystem.Init();
         RemoteFileSystem::session = filesystem.GetSession();
+        filesystem.Start(stop);
 
         destinationScheduler.Wait(stop);
     });
@@ -231,8 +232,9 @@ void TestConnection2()
         using FastTransport::TaskQueue::RemoteFileSystem;
         RemoteFileSystem filesystem("/mnt/test");
         RemoteFileSystem::scheduler = &destinationTaskScheduler;
-        filesystem.Start(stop);
+        filesystem.Init();
         RemoteFileSystem::session = filesystem.GetSession();
+        filesystem.Start(stop);
 
         destinationTaskScheduler.Wait(stop);
     });

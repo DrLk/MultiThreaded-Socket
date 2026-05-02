@@ -2,10 +2,12 @@
 
 #include <array>
 #include <cerrno>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <poll.h>
 #include <stdexcept>
+#include <sys/eventfd.h>
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <vector>
@@ -18,7 +20,6 @@ namespace FastTransport::FileSystem {
 
 namespace {
     constexpr uint32_t WatchMask = IN_MODIFY | IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB;
-    constexpr int PollTimeoutMs = 100;
     constexpr size_t EventBufSize = 16U * (sizeof(inotify_event) + NAME_MAX + 1U);
 
     std::string ErrnoToString(int err)
@@ -33,9 +34,17 @@ InotifyWatcher::InotifyWatcher(std::filesystem::path root, WatchCallback callbac
     : _root(std::move(root))
     , _callback(std::move(callback))
     , _inotifyFd(inotify_init1(IN_NONBLOCK | IN_CLOEXEC))
+    , _stopFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC))
 {
     if (_inotifyFd < 0) {
+        if (_stopFd >= 0) {
+            close(_stopFd);
+        }
         throw std::runtime_error(std::string("inotify_init1 failed: ") + ErrnoToString(errno));
+    }
+    if (_stopFd < 0) {
+        close(_inotifyFd);
+        throw std::runtime_error(std::string("eventfd failed: ") + ErrnoToString(errno));
     }
     AddWatch(_root);
 }
@@ -44,6 +53,9 @@ InotifyWatcher::~InotifyWatcher()
 {
     if (_inotifyFd >= 0) {
         close(_inotifyFd);
+    }
+    if (_stopFd >= 0) {
+        close(_stopFd);
     }
 }
 
@@ -89,6 +101,16 @@ void InotifyWatcher::ProcessEvent(const inotify_event* event)
     if (dirIt == _wdToPath.end()) {
         return;
     }
+
+    // Kernel signals that the watch has been removed (target deleted, unmounted,
+    // or auto-removed by the kernel). Drop the bookkeeping entries; do not call
+    // inotify_rm_watch — the descriptor is already invalid.
+    if ((static_cast<uint32_t>(event->mask) & static_cast<uint32_t>(IN_IGNORED)) != 0U) {
+        _pathToWd.erase(dirIt->second.string());
+        _wdToPath.erase(dirIt);
+        return;
+    }
+
     const std::filesystem::path& dir = dirIt->second;
     const bool isDir = (static_cast<uint32_t>(event->mask) & static_cast<uint32_t>(IN_ISDIR)) != 0U;
     std::filesystem::path name;
@@ -127,10 +149,20 @@ void InotifyWatcher::ProcessEvent(const inotify_event* event)
 void InotifyWatcher::Run(std::stop_token stop)
 {
     std::array<char, EventBufSize> buf {};
-    pollfd pfd { .fd = _inotifyFd, .events = POLLIN, .revents = 0 };
+    std::array<pollfd, 2> pfds {
+        pollfd { .fd = _inotifyFd, .events = POLLIN, .revents = 0 },
+        pollfd { .fd = _stopFd, .events = POLLIN, .revents = 0 },
+    };
+
+    // When stop is requested, write to _stopFd so poll() wakes immediately
+    // instead of polling on a short timeout.
+    const std::stop_callback wakeup(stop, [this] {
+        const std::uint64_t one = 1;
+        [[maybe_unused]] const ssize_t written = write(_stopFd, &one, sizeof(one));
+    });
 
     while (!stop.stop_requested()) {
-        const int ready = poll(&pfd, 1, PollTimeoutMs);
+        const int ready = poll(pfds.data(), pfds.size(), -1);
         if (ready < 0) {
             if (errno == EINTR) {
                 continue;
@@ -138,7 +170,13 @@ void InotifyWatcher::Run(std::stop_token stop)
             TRACER() << "poll failed: " << ErrnoToString(errno);
             break;
         }
-        if (ready == 0) {
+
+        if ((static_cast<unsigned>(pfds[1].revents) & POLLIN) != 0U) {
+            // Stop signalled — exit promptly without draining inotify.
+            break;
+        }
+
+        if ((static_cast<unsigned>(pfds[0].revents) & POLLIN) == 0U) {
             continue;
         }
 

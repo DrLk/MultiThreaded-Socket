@@ -6,7 +6,9 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "FileTree.hpp"
 #include "IPacket.hpp"
 #include "Logger.hpp"
 
@@ -33,18 +35,67 @@ Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type ty
 {
     Leaf leaf(std::move(name), type, size, this);
     auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
-    return insertedLeaf->second;
+    Leaf& child = insertedLeaf->second;
+    child._tree = _tree;
+    if (_tree != nullptr && result) {
+        _tree->RegisterLeaf(child.GetServerInode(), &child);
+    }
+    return child;
 }
 
 Leaf& Leaf::AddChild(Leaf&& leaf)
 {
     auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
-    return insertedLeaf->second;
+    Leaf& child = insertedLeaf->second;
+    if (_tree != nullptr && result) {
+        // Walk the freshly-spliced subtree, fix up _tree, and register every node.
+        std::vector<Leaf*> queue { &child };
+        while (!queue.empty()) {
+            Leaf* current = queue.back();
+            queue.pop_back();
+            current->_tree = _tree;
+            _tree->RegisterLeaf(current->GetServerInode(), current);
+            for (auto& [childName, grandchild] : current->children) {
+                queue.push_back(&grandchild);
+            }
+        }
+    } else {
+        child._tree = _tree;
+    }
+    return child;
 }
 
 void Leaf::RemoveChild(const std::string& name)
 {
-    children.erase(name);
+    auto entry = children.find(name);
+    if (entry == children.end()) {
+        return;
+    }
+    if (_tree != nullptr) {
+        // Unregister the entire subtree before erasing so no stale pointers
+        // remain in the index.
+        std::vector<Leaf*> queue { &entry->second };
+        while (!queue.empty()) {
+            Leaf* current = queue.back();
+            queue.pop_back();
+            _tree->UnregisterLeaf(current->GetServerInode());
+            for (auto& [childName, grandchild] : current->children) {
+                queue.push_back(&grandchild);
+            }
+        }
+    }
+    children.erase(entry);
+}
+
+void Leaf::SetServerInode(std::uint64_t inode)
+{
+    if (_tree != nullptr) {
+        _tree->UnregisterLeaf(GetServerInode());
+    }
+    _serverInode = inode;
+    if (_tree != nullptr) {
+        _tree->RegisterLeaf(GetServerInode(), this);
+    }
 }
 
 const std::filesystem::path& Leaf::GetName() const
@@ -125,6 +176,15 @@ std::optional<std::reference_wrapper<const Leaf>> Leaf::Find(const std::string& 
     }
 
     return {};
+}
+
+Leaf* Leaf::FindChild(const std::string& name)
+{
+    auto file = children.find(name);
+    if (file == children.end()) {
+        return nullptr;
+    }
+    return &file->second;
 }
 
 std::filesystem::path Leaf::GetFullPath() const

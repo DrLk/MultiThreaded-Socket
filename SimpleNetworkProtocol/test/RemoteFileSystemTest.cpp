@@ -739,8 +739,9 @@ void RunClientWithNotify(std::stop_token stop, uint16_t port, const char* mountP
     auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
     scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
     RemoteFileSystem::scheduler = scheduler.get();
-    filesystem->Start(stop);
+    filesystem->Init();
     RemoteFileSystem::session = filesystem->GetSession();
+    filesystem->Start(stop);
 
     result = std::forward<Body>(body)(stop, fileTree, mountPoint);
 

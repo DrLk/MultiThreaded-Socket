@@ -27,6 +27,12 @@ public:
     FileSystem& operator=(const FileSystem&) = delete;
     FileSystem& operator=(FileSystem&&) = delete;
     ~FileSystem();
+    // Synchronously creates the FUSE session and mounts the filesystem.
+    // After Init() returns, GetSession() yields a valid pointer. Idempotent.
+    // Allows callers to wire the session into other subsystems before Start()
+    // launches the event loop, avoiding races where requests arrive before
+    // dependent globals are set.
+    void Init();
     void Start(std::stop_token stop);
     [[nodiscard]] fuse_session* GetSession() const noexcept { return _session; }
     // Stop the FUSE session loop and wait for the fuse thread to exit.

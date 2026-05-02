@@ -39,6 +39,13 @@ ResponseInFuseNetworkJob::Message NotifyInvalEntryJob::ExecuteResponse(ITaskSche
             const auto fileType = isDir ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
             FileSystem::Leaf& newLeaf = parentLeaf->AddChild(std::filesystem::path(name), fileType, static_cast<std::uintmax_t>(size));
             newLeaf.SetServerInode(serverInode);
+            // Invalidate any negative dentry cached by the kernel for this name,
+            // otherwise lookup will keep returning ENOENT until the TTL expires.
+            fuse_session* const session = RemoteFileSystem::session;
+            if (session != nullptr) {
+                const auto parentClientInode = reinterpret_cast<fuse_ino_t>(parentLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+                fuse_lowlevel_notify_inval_entry(session, parentClientInode, name.c_str(), name.size());
+            }
         } else if (eventType == FileSystem::WatchEventType::Deleted || eventType == FileSystem::WatchEventType::MovedFrom) {
             parentLeaf->RemoveChild(name);
             fuse_session* const session = RemoteFileSystem::session;

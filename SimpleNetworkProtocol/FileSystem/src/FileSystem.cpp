@@ -72,8 +72,12 @@ FileSystem::FileSystem(std::string_view mountpoint)
 {
 }
 
-void FileSystem::Start(std::stop_token stop)
+void FileSystem::Init()
 {
+    if (_session != nullptr) {
+        return;
+    }
+
     _fuseOperations = {
         .init = FuseInit,
         .lookup = *_lookup.target<void (*)(fuse_req_t, fuse_ino_t, const char*)>(),
@@ -114,6 +118,11 @@ void FileSystem::Start(std::stop_token stop)
         _session = nullptr;
         throw std::runtime_error("Failed to fuse_session_mount");
     }
+}
+
+void FileSystem::Start(std::stop_token stop)
+{
+    Init();
 
     // FUSE is mounted — start multi-threaded event loop in background thread and return.
     _fuseThread = std::jthread([this, stop = std::move(stop)](std::stop_token threadStop) {
