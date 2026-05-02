@@ -13,8 +13,8 @@ class NativeFile;
 namespace FastTransport::FileSystem::FileCache {
 
 class FileCache {
-    constexpr static int MaxFiles = 100;
-    constexpr static int CleanupFiles = 50;
+    static constexpr int MaxFiles = 100;
+    static constexpr int CleanupFiles = 50;
 
 public:
     std::shared_ptr<NativeFile> GetFile(const std::filesystem::path& path);

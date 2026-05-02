@@ -11,7 +11,7 @@ void Deserialize(InputByteStream<Stream>& in)
 }
 
 template <OutputStream Stream>
-void Serialize(OutputByteStream<Stream>& stream) const
+void Serialize(OutputByteStream<Stream>& stream)
 {
     //_root.Serialize(stream);
 }
