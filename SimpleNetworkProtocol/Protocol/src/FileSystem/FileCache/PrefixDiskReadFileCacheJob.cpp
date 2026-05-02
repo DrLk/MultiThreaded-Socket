@@ -41,7 +41,7 @@ TaskQueue::DiskJob::Data PrefixDiskReadFileCacheJob::ExecuteDisk(TaskQueue::ITas
     }
 
     // Entry n: disk portion for block B+1.
-    combined->buf[prefixCount] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    combined->buf[prefixCount] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index,bugprone-invalid-enum-default-initialization)
     combined->buf[prefixCount].size = _diskSize; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     combined->buf[prefixCount].flags = std::bit_cast<fuse_buf_flags>( // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));

@@ -174,5 +174,6 @@ void RemoteFileSystem::FuseReadDirPlus(fuse_req_t request, fuse_ino_t inode, siz
 }
 
 ITaskScheduler* RemoteFileSystem::scheduler = nullptr; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+fuse_session* RemoteFileSystem::session = nullptr; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace FastTransport::TaskQueue

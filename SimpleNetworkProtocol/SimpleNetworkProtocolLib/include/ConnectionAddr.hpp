@@ -26,9 +26,15 @@ public:
     explicit ConnectionAddr(const sockaddr_storage& addr)
         : _storage(addr) { };
 
+    // NOTE: when addr is not a numeric IP literal, this constructor performs a
+    // synchronous DNS lookup via getaddrinfo and may block. Empty addresses are
+    // rejected outright to avoid getaddrinfo("") returning a confusing error.
     ConnectionAddr(std::string_view addr, uint16_t port)
     {
         std::memset(&_storage, 0, sizeof(_storage));
+        if (addr.empty()) {
+            throw std::runtime_error("ConnectionAddr: empty address");
+        }
         const std::string addrStr(addr);
         if (inet_pton(AF_INET, addrStr.c_str(), &(reinterpret_cast<sockaddr_in*>(&_storage))->sin_addr) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             _storage.ss_family = AF_INET;

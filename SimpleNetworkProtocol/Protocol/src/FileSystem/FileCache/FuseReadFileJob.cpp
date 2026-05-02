@@ -97,7 +97,7 @@ FuseReadFileJob::FuseReadFileJob(fuse_req_t request, fuse_ino_t inode, size_t si
 {
 }
 
-FuseReadFileJob::~FuseReadFileJob()
+FuseReadFileJob::~FuseReadFileJob() // NOLINT(bugprone-exception-escape)
 {
     // Reply with EIO if this job is destroyed without executing (e.g. scheduler shut down
     // while the job was queued). Prevents the FUSE client from blocking indefinitely.

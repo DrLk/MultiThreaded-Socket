@@ -28,14 +28,28 @@ fuse_ino_t ResolveClientInode(std::string_view name, fuse_ino_t parentInode, Fas
             ? FUSE_ROOT_ID
             : reinterpret_cast<fuse_ino_t>(grandparent); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     }
-    const auto type = (S_ISDIR(entry->entry_out.attr.mode) != 0)
-        ? std::filesystem::file_type::directory
-        : std::filesystem::file_type::regular;
-    FastTransport::FileSystem::Leaf& childLeaf = parentLeaf.AddChild(std::filesystem::path(std::string(name)), type, entry->entry_out.attr.size);
-    childLeaf.SetServerInode(entry->entry_out.nodeid);
-    return reinterpret_cast<fuse_ino_t>(&childLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // readdirplus may be issued repeatedly for the same directory. Reuse the
+    // existing Leaf if we have already learned about this name — otherwise the
+    // kernel-visible inode (= Leaf*) would change between readdirplus calls and
+    // invalidate previously handed-out references.
+    const std::string nameStr(name);
+    FastTransport::FileSystem::Leaf* childLeaf = parentLeaf.FindChild(nameStr);
+    if (childLeaf == nullptr) {
+        const auto type = (S_ISDIR(entry->entry_out.attr.mode) != 0)
+            ? std::filesystem::file_type::directory
+            : std::filesystem::file_type::regular;
+        childLeaf = &parentLeaf.AddChild(std::filesystem::path(nameStr), type, entry->entry_out.attr.size);
+        childLeaf->SetServerInode(entry->entry_out.nodeid);
+    }
+    return reinterpret_cast<fuse_ino_t>(childLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
+// WARNING: This walker decodes the kernel FUSE wire layout (struct fuse_direntplus
+// from <linux/fuse.h>). The server constructs these buffers via fuse_add_direntry_plus
+// from libfuse, which encodes the same layout. The two sides therefore stay in
+// sync only as long as both are built against compatible libfuse/kernel headers.
+// If libfuse ever switches to a non-public encoding, this code will silently
+// produce garbage. Keep this parser the only place that touches the raw layout.
 void PopulateTreeAndPatchInodes(fuse_ino_t parentInode, FastTransport::FileSystem::Leaf& parentLeaf, std::span<std::byte> payload)
 {
     constexpr size_t kNameOff = offsetof(::fuse_direntplus, dirent.name);

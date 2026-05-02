@@ -1,10 +1,11 @@
 #include "DirectoryEntryWriter.hpp"
 
+#include <array>
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <cstring>
 #include <fuse3/fuse_lowlevel.h>
-#include <string>
 #include <string_view>
 #include <unistd.h>
 #include <utility>
@@ -12,6 +13,26 @@
 #include "IPacket.hpp"
 
 namespace FastTransport::Protocol {
+
+namespace {
+    // fuse_add_direntry* needs a null-terminated name. NAME_MAX (255 on Linux)
+    // covers any single filename component, so we can avoid the per-entry heap
+    // allocation a std::string copy would cost on this hot path.
+    class NullTerminatedName {
+    public:
+        explicit NullTerminatedName(std::string_view name)
+        {
+            assert(name.size() <= NAME_MAX);
+            std::memcpy(_buf.data(), name.data(), name.size());
+            _buf.at(name.size()) = '\0';
+        }
+        [[nodiscard]] const char* c_str() const noexcept { return _buf.data(); }
+
+    private:
+        std::array<char, NAME_MAX + 1> _buf {};
+    };
+} // namespace
+
 DirectoryEntryWriter::DirectoryEntryWriter(IPacket::List&& packets)
     : _packets(std::move(packets))
     , _packet(_packets.begin())
@@ -24,7 +45,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
     stbuf.st_ino = static_cast<ino_t>(inode);
     stbuf.st_mode = mode;
 
-    const std::string nameStr(name);
+    const NullTerminatedName nameStr(name);
     const size_t entlen_padded = fuse_add_direntry(nullptr, nullptr, 0, nameStr.c_str(), &stbuf, off);
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {
@@ -41,7 +62,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntry(std::string_view name, fuse_ino_t
 
 size_t DirectoryEntryWriter::GetEntryPlusSize(std::string_view name)
 {
-    const std::string nameStr(name);
+    const NullTerminatedName nameStr(name);
     return fuse_add_direntry_plus(nullptr, nullptr, 0, nameStr.c_str(), nullptr, 0);
 }
 
@@ -53,7 +74,7 @@ size_t DirectoryEntryWriter::AddDirectoryEntryPlus(std::string_view name, const 
     entry.entry_timeout = 1.0;
     entry.attr_timeout = 1.0;
 
-    const std::string nameStr(name);
+    const NullTerminatedName nameStr(name);
     const size_t entlen_padded = fuse_add_direntry_plus(nullptr, nullptr, 0, nameStr.c_str(), &entry, off);
 
     if (entlen_padded > GetPacket().GetPayload().size() - _offset) {

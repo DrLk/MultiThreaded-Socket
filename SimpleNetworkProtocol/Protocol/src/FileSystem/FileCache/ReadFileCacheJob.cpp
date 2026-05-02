@@ -61,7 +61,7 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
     combined->off = 0;
 
     // Entry 0: disk portion via fd splice.
-    combined->buf[0] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    combined->buf[0] = {}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index,bugprone-invalid-enum-default-initialization)
     combined->buf[0].size = diskSize; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     combined->buf[0].flags = std::bit_cast<fuse_buf_flags>( // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         static_cast<unsigned int>(FUSE_BUF_IS_FD) | static_cast<unsigned int>(FUSE_BUF_FD_SEEK));

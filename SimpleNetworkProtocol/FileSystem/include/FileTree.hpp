@@ -59,9 +59,22 @@ public:
     // Cancel all pending jobs across the entire file tree. Must be called after
     // stopping the scheduler (so no new jobs are being added) and before destroying
     // the filesystem session (so fuse_reply_err can still be called).
+    Leaf* FindLeafByServerInode(std::uint64_t serverInode);
+
+    // Index maintenance hooks invoked by Leaf when the tree is mutated.
+    // RegisterLeaf inserts the (serverInode, leaf) pair; UnregisterLeaf removes
+    // by the inode the leaf currently reports. Callers must invoke them with
+    // matching pre/post values when SetServerInode rekeys an entry.
+    void RegisterLeaf(std::uint64_t serverInode, Leaf* leaf);
+    void UnregisterLeaf(std::uint64_t serverInode);
+
     void CancelAllPendingJobs();
 
 private:
+    // _serverInodeIndex must outlive _root: when ~FileTree destroys _root,
+    // the cascading Leaf destructors (RemoveChild paths) still need a live
+    // index to update.
+    std::unordered_map<std::uint64_t, Leaf*> _serverInodeIndex;
     LeafPtr _root;
     std::filesystem::path _cacheFolder;
 

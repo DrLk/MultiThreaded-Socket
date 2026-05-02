@@ -36,7 +36,7 @@ jobs:
                 else
                   BASE="origin/master"
                 fi
-                CHANGED_FILES=$(git diff --name-only $BASE...HEAD \
+                CHANGED_FILES=$(git diff --name-only --diff-filter=d $BASE...HEAD \
                   | grep -E '\.(cpp|cxx|cc|c|hpp|hxx|h)$' || true)
                 if [ -z "$CHANGED_FILES" ]; then
                   echo "No C/C++ files changed."

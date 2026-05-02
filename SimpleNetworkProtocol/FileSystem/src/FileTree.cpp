@@ -23,11 +23,38 @@ FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFo
     , _cacheFolder(std::move(cacheFolder))
     , _fileCache(std::make_unique<FileCache::FileCache>())
 {
+    _root->SetTree(this);
 }
 
-FileTree::FileTree(FileTree&& that) noexcept = default;
+FileTree::FileTree(FileTree&& that) noexcept
+    : _serverInodeIndex(std::move(that._serverInodeIndex))
+    , _root(std::move(that._root))
+    , _cacheFolder(std::move(that._cacheFolder))
+    , _cache(std::move(that._cache))
+    , _totalCachedPackets(that._totalCachedPackets)
+    , _fileCache(std::move(that._fileCache))
+{
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+}
 
-FileTree& FileTree::operator=(FileTree&& that) noexcept = default;
+FileTree& FileTree::operator=(FileTree&& that) noexcept
+{
+    if (this == &that) {
+        return *this;
+    }
+    _serverInodeIndex = std::move(that._serverInodeIndex);
+    _root = std::move(that._root);
+    _cacheFolder = std::move(that._cacheFolder);
+    _cache = std::move(that._cache);
+    _totalCachedPackets = that._totalCachedPackets;
+    _fileCache = std::move(that._fileCache);
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+    return *this;
+}
 
 FileTree::~FileTree() = default;
 
@@ -141,6 +168,28 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
         TRACER() << "Error: " << e.what();
         return;
     }
+}
+
+Leaf* FileTree::FindLeafByServerInode(std::uint64_t serverInode)
+{
+    if (serverInode == _root->GetServerInode()) {
+        return _root.get();
+    }
+    auto entry = _serverInodeIndex.find(serverInode);
+    if (entry == _serverInodeIndex.end()) {
+        return nullptr;
+    }
+    return entry->second;
+}
+
+void FileTree::RegisterLeaf(std::uint64_t serverInode, Leaf* leaf)
+{
+    _serverInodeIndex[serverInode] = leaf;
+}
+
+void FileTree::UnregisterLeaf(std::uint64_t serverInode)
+{
+    _serverInodeIndex.erase(serverInode);
 }
 
 void FileTree::CancelAllPendingJobs()

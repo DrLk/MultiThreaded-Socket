@@ -538,4 +538,20 @@ TEST(LeafTest, LeafGetData2MBTest)
     EXPECT_EQ(buf[0], Value1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
+TEST(LeafTest, RemoveChildTest)
+{
+    Leaf root("test", std::filesystem::file_type::directory, 0, nullptr);
+    root.AddChild("file1", std::filesystem::file_type::regular, 100);
+    root.AddChild("file2", std::filesystem::file_type::regular, 200);
+    EXPECT_EQ(root.GetChildren().size(), 2U);
+
+    root.RemoveChild("file1");
+    EXPECT_EQ(root.GetChildren().size(), 1U);
+    EXPECT_EQ(root.GetChildren().count("file1"), 0U);
+    EXPECT_EQ(root.GetChildren().count("file2"), 1U);
+
+    root.RemoveChild("nonexistent");
+    EXPECT_EQ(root.GetChildren().size(), 1U);
+}
+
 } // namespace FastTransport::FileSystem

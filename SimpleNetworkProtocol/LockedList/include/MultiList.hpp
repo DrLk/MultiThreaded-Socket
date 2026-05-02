@@ -44,8 +44,8 @@ public:
     private:
         const MultiList<T>* _container = nullptr;
 
-        std::list<std::list<T>>::iterator _it1;
-        std::list<T>::iterator _it2;
+        std::list<std::list<T>>::iterator _it1 {};
+        std::list<T>::iterator _it2 {};
     };
 
     class ConstIterator {
@@ -75,8 +75,8 @@ public:
     private:
         const MultiList<T>* _container = nullptr;
 
-        std::list<std::list<T>>::const_iterator _it1;
-        std::list<T>::const_iterator _it2;
+        std::list<std::list<T>>::const_iterator _it1 {};
+        std::list<T>::const_iterator _it2 {};
     };
 
     MultiList() = default;
@@ -108,7 +108,7 @@ public:
     void swap(MultiList& that) noexcept;
 
 private:
-    std::list<std::list<T>> _lists;
+    std::list<std::list<T>> _lists {};
     size_t _size = 0;
 
     static constexpr int Size = 10;
