@@ -8,6 +8,7 @@ RUN dnf install -y \
     wget \
     gcc \
     gcc-c++ \
+    libstdc++-static \
     clang \
     clang-tools-extra \
     lld \
