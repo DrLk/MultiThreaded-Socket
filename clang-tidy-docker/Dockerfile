@@ -1,6 +1,6 @@
 FROM fedora:44
 
-LABEL org.opencontainers.image.source https://github.com/DrLk/MultiThreaded-Socket
+LABEL org.opencontainers.image.source=https://github.com/DrLk/MultiThreaded-Socket
 
 RUN dnf upgrade -y && dnf clean all
 
