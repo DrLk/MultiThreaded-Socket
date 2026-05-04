@@ -21,9 +21,9 @@ WriteFileCacheJob::WriteFileCacheJob(fuse_ino_t inode, size_t size, off_t offset
     assert(!_data.empty());
 }
 
-WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& fileTree)
+void WriteFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& fileTree)
 {
-    ZoneScopedN("WriteFileCacheJob::ExecuteResponse");
+    ZoneScopedN("WriteFileCacheJob::ExecuteCachedTree");
     TRACER() << "Execute"
              << " inode=" << _inode
              << " size=" << _size
@@ -36,7 +36,6 @@ WriteFileCacheJob::Message WriteFileCacheJob::ExecuteResponse(TaskQueue::ITaskSc
     assert(_size <= Leaf::BlockSize);
     leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
     scheduler.ScheduleReadNetworkJob(std::make_unique<TaskQueue::FreeRecvPacketsJob>(std::move(_data)));
-    return {};
 }
 
 } // namespace FastTransport::FileCache
