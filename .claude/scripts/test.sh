@@ -19,6 +19,8 @@ docker run --rm \
   --cap-add SYS_ADMIN \
   --mount type=bind,src="$HOST_SRC",dst=/build \
   --mount type=bind,src=/usr/bin/fusermount3,dst=/usr/bin/fusermount3,readonly \
+  --mount type=bind,src=/etc/passwd,dst=/etc/passwd,readonly \
+  --security-opt label=disable \
   clang-tidy-image -c "
     /build/SimpleNetworkProtocol/build/SimpleNetworkProtocolTest $FILTER_ARG
   "

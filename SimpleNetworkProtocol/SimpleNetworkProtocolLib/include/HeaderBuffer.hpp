@@ -151,7 +151,9 @@ public:
     void SetPayload(std::span<const PayloadType> payload)
     {
         Header(_start, _size).SetPayloadSize(payload.size());
-        std::memcpy(std::next(_start, HeaderSize), payload.data(), payload.size());
+        if (!payload.empty()) {
+            std::memcpy(std::next(_start, HeaderSize), payload.data(), payload.size());
+        }
     }
 
     void SetPayloadSize(std::size_t size)

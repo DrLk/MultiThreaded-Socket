@@ -3,6 +3,7 @@
 
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
+#include <unistd.h>
 
 #include "FileHandle.hpp"
 #include "Logger.hpp"
