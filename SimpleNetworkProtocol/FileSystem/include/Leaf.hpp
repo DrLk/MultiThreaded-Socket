@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -56,7 +57,7 @@ public:
 
     void Rescan();
 
-    const std::map<std::string, Leaf>& GetChildren() const;
+    const std::map<std::string, std::unique_ptr<Leaf>>& GetChildren() const;
 
     std::optional<std::reference_wrapper<const Leaf>> Find(const std::string& name) const;
     // Non-const lookup — returns nullptr when not found. Read-only access by name
@@ -99,13 +100,27 @@ public:
 
     void SetTree(FileTree* tree) noexcept { _tree = tree; }
 
+    [[nodiscard]] bool IsTombstoned() const noexcept { return _isTombstoned; }
+    void MarkTombstoned() noexcept { _isTombstoned = true; }
+    [[nodiscard]] std::uint64_t GetNlookup() const noexcept { return _nlookup.load(std::memory_order_relaxed); }
+
 private:
-    std::map<std::string, Leaf> children; // TODO: use std::set
+    // True once the parent has removed this Leaf from its children map but the
+    // kernel still holds nlookup > 0 references. Set by FileTree::Tombstone()
+    // under the tree's tombstone mutex; once true, the Leaf only outlives long
+    // enough for ReleaseRef() to drain _nlookup to zero, at which point it
+    // self-removes from the tree's tombstone list.
+    bool _isTombstoned = false;
+
+    std::map<std::string, std::unique_ptr<Leaf>> children;
     std::filesystem::path _name;
     std::filesystem::file_type _type;
     uintmax_t _size;
     Leaf* _parent;
-    mutable std::uint64_t _nlookup = 0;
+    // _nlookup mirrors the kernel's reference count for this inode. AddRef on
+    // every fuse_lookup, ReleaseRef on every fuse_forget. The Leaf must stay
+    // allocated while _nlookup > 0 even if the parent map has dropped it.
+    mutable std::atomic<std::uint64_t> _nlookup { 0 };
     std::uint64_t _serverInode = 0;
     FileTree* _tree = nullptr;
 

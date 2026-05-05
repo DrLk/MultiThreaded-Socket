@@ -51,7 +51,7 @@ void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-recursio
             break;
         }
 
-        CompareLeaf(child, rightChild->second);
+        CompareLeaf(*child, *rightChild->second);
     }
 }
 

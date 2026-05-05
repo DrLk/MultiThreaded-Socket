@@ -89,7 +89,7 @@ TEST(NotifyInvalEntryJobTest, CreateAddsChildToFileTree)
 
     const auto& children = parentDir.GetChildren();
     EXPECT_EQ(children.count("newfile"), 1U);
-    const Leaf& newLeaf = children.at("newfile");
+    const Leaf& newLeaf = *children.at("newfile");
     EXPECT_EQ(newLeaf.GetType(), std::filesystem::file_type::regular);
     EXPECT_EQ(newLeaf.GetSize(), 100U);
     EXPECT_EQ(newLeaf.GetServerInode(), NewServerInode);
@@ -130,8 +130,8 @@ TEST(NotifyInvalEntryJobTest, CreateDirectoryAddsDirectoryLeaf)
 
     const auto& children = parentDir.GetChildren();
     EXPECT_EQ(children.count("newdir"), 1U);
-    EXPECT_EQ(children.at("newdir").GetType(), std::filesystem::file_type::directory);
-    EXPECT_EQ(children.at("newdir").GetServerInode(), NewDirServerInode);
+    EXPECT_EQ(children.at("newdir")->GetType(), std::filesystem::file_type::directory);
+    EXPECT_EQ(children.at("newdir")->GetServerInode(), NewDirServerInode);
 }
 
 } // namespace

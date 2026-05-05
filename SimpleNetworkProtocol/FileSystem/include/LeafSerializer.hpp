@@ -20,7 +20,7 @@ public:
         const std::uint64_t size = leaf.GetChildren().size();
         stream << size;
         for (const auto& [name, child] : leaf.GetChildren()) {
-            Serialize(child, stream);
+            Serialize(*child, stream);
         }
     }
 

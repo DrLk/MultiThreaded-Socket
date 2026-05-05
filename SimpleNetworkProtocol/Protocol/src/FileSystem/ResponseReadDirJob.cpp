@@ -60,7 +60,7 @@ ResponseFuseNetworkJob::Message ResponseReadDirJob::ExecuteResponse(std::stop_to
     }
 
     for (off_t i = 0; std::cmp_less(i, size) && child != children.end(); ++i, ++child) {
-        direcotoryWriter.AddDirectoryEntry(child->first, GetINode(child->second), 0, i + 2);
+        direcotoryWriter.AddDirectoryEntry(child->first, GetINode(*child->second), 0, i + 2);
     }
 
     writer << direcotoryWriter.GetWritedPackets();

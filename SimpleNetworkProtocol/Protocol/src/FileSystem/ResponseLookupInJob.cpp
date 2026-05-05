@@ -63,6 +63,11 @@ ResponseInFuseNetworkJob::Message ResponseLookupInJob::ExecuteResponse(ITaskSche
     entry.ino = reinterpret_cast<fuse_ino_t>(&newLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     entry.attr.st_ino = entry.ino;
 
+    // The kernel receives this inode via fuse_reply_entry and will hold a
+    // reference until it sends fuse_forget. Track that ourselves so the Leaf
+    // survives any concurrent RemoveChild (NotifyInvalEntry) until the matching
+    // forget arrives.
+    newLeaf.AddRef();
     FUSE_ASSERT_REPLY(fuse_reply_entry(FUSE_UNTRACK(request), &entry));
 
     return {};
