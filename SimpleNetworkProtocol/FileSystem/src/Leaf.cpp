@@ -25,18 +25,51 @@ Leaf::Leaf(std::filesystem::path&& name, std::filesystem::file_type type, uintma
 {
 }
 
-Leaf::Leaf(Leaf&& that) noexcept = default;
+Leaf::Leaf(Leaf&& that) noexcept
+    : _isTombstoned(that._isTombstoned)
+    , children(std::move(that.children))
+    , _name(std::move(that._name))
+    , _type(that._type)
+    , _size(that._size)
+    , _parent(that._parent)
+    , _nlookup(that._nlookup.load(std::memory_order_relaxed))
+    , _serverInode(that._serverInode)
+    , _tree(that._tree)
+    , _data(std::move(that._data))
+    , _piecesStatus(std::move(that._piecesStatus))
+    , _pendingJobs(std::move(that._pendingJobs))
+{
+}
 
-Leaf& Leaf::operator=(Leaf&& that) noexcept = default;
+Leaf& Leaf::operator=(Leaf&& that) noexcept
+{
+    if (this == &that) {
+        return *this;
+    }
+    _isTombstoned = that._isTombstoned;
+    children = std::move(that.children);
+    _name = std::move(that._name);
+    _type = that._type;
+    _size = that._size;
+    _parent = that._parent;
+    _nlookup.store(that._nlookup.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    _serverInode = that._serverInode;
+    _tree = that._tree;
+    _data = std::move(that._data);
+    _piecesStatus = std::move(that._piecesStatus);
+    _pendingJobs = std::move(that._pendingJobs);
+    return *this;
+}
 
 Leaf::~Leaf() = default;
 
 Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type type, uintmax_t size)
 {
-    Leaf leaf(std::move(name), type, size, this);
-    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
-    Leaf& child = insertedLeaf->second;
-    child._tree = _tree;
+    auto leaf = std::make_unique<Leaf>(std::move(name), type, size, this);
+    leaf->_tree = _tree;
+    Leaf* raw = leaf.get();
+    auto [insertedLeaf, result] = children.insert({ raw->GetName().native(), std::move(leaf) });
+    Leaf& child = *insertedLeaf->second;
     if (_tree != nullptr && result) {
         _tree->RegisterLeaf(child.GetServerInode(), &child);
     }
@@ -45,8 +78,9 @@ Leaf& Leaf::AddChild(std::filesystem::path&& name, std::filesystem::file_type ty
 
 Leaf& Leaf::AddChild(Leaf&& leaf)
 {
-    auto [insertedLeaf, result] = children.insert({ leaf.GetName().native(), std::move(leaf) });
-    Leaf& child = insertedLeaf->second;
+    auto owned = std::make_unique<Leaf>(std::move(leaf));
+    auto [insertedLeaf, result] = children.insert({ owned->GetName().native(), std::move(owned) });
+    Leaf& child = *insertedLeaf->second;
     if (_tree != nullptr && result) {
         // Walk the freshly-spliced subtree, fix up _tree, and register every node.
         std::vector<Leaf*> queue { &child };
@@ -56,7 +90,7 @@ Leaf& Leaf::AddChild(Leaf&& leaf)
             current->_tree = _tree;
             _tree->RegisterLeaf(current->GetServerInode(), current);
             for (auto& [childName, grandchild] : current->children) {
-                queue.push_back(&grandchild);
+                queue.push_back(grandchild.get());
             }
         }
     } else {
@@ -74,17 +108,25 @@ void Leaf::RemoveChild(const std::string& name)
     if (_tree != nullptr) {
         // Unregister the entire subtree before erasing so no stale pointers
         // remain in the index.
-        std::vector<Leaf*> queue { &entry->second };
+        std::vector<Leaf*> queue { entry->second.get() };
         while (!queue.empty()) {
             Leaf* current = queue.back();
             queue.pop_back();
             _tree->UnregisterLeaf(current->GetServerInode());
             for (auto& [childName, grandchild] : current->children) {
-                queue.push_back(&grandchild);
+                queue.push_back(grandchild.get());
             }
         }
     }
+    // If the kernel still holds nlookup references to this Leaf, hand it to
+    // the tree's tombstone list so its address stays valid until the matching
+    // FUSE forget arrives.
+    std::unique_ptr<Leaf> removed = std::move(entry->second);
     children.erase(entry);
+    if (_tree != nullptr && removed->_nlookup.load(std::memory_order_acquire) > 0) {
+        removed->MarkTombstoned();
+        _tree->Tombstone(std::move(removed));
+    }
 }
 
 void Leaf::SetServerInode(std::uint64_t inode)
@@ -120,21 +162,23 @@ bool Leaf::IsDeleted() const
 
 void Leaf::AddRef() const
 {
-    _nlookup++;
+    _nlookup.fetch_add(1, std::memory_order_acq_rel);
 }
 
 void Leaf::ReleaseRef() const
 {
-    assert(_nlookup > 0);
-
-    _nlookup--;
+    Leaf::ReleaseRef(1);
 }
 
 void Leaf::ReleaseRef(uint64_t nlookup) const
 {
-    assert(_nlookup >= nlookup);
-
-    _nlookup -= nlookup;
+    const uint64_t prev = _nlookup.fetch_sub(nlookup, std::memory_order_acq_rel);
+    assert(prev >= nlookup);
+    if (prev == nlookup && _isTombstoned && _tree != nullptr) {
+        // We can't delete `this` while still holding a reference path through
+        // it, but RemoveTombstone is the very last thing we do.
+        _tree->RemoveTombstone(const_cast<Leaf*>(this)); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+    }
 }
 
 void Leaf::Rescan()
@@ -163,7 +207,7 @@ void Leaf::Rescan()
     }
 }
 
-const std::map<std::string, Leaf>& Leaf::GetChildren() const
+const std::map<std::string, std::unique_ptr<Leaf>>& Leaf::GetChildren() const
 {
     return children;
 }
@@ -172,7 +216,7 @@ std::optional<std::reference_wrapper<const Leaf>> Leaf::Find(const std::string& 
 {
     auto file = children.find(name);
     if (file != children.end()) {
-        return file->second;
+        return std::cref(*file->second);
     }
 
     return {};
@@ -184,7 +228,7 @@ Leaf* Leaf::FindChild(const std::string& name)
     if (file == children.end()) {
         return nullptr;
     }
-    return &file->second;
+    return file->second.get();
 }
 
 std::filesystem::path Leaf::GetFullPath() const
@@ -432,7 +476,7 @@ void Leaf::CancelAllPendingJobs()
         }
         current->_pendingJobs.clear();
         for (auto& [name, child] : current->children) {
-            queue.push_back(&child);
+            queue.push_back(child.get());
         }
     }
 }

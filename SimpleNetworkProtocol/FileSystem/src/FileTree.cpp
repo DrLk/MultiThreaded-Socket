@@ -193,6 +193,28 @@ void FileTree::UnregisterLeaf(std::uint64_t serverInode)
     _serverInodeIndex.erase(serverInode);
 }
 
+void FileTree::Tombstone(std::unique_ptr<Leaf> leaf)
+{
+    const std::lock_guard<std::mutex> lock(_tombstonesMutex);
+    _tombstones.push_back(std::move(leaf));
+}
+
+void FileTree::RemoveTombstone(Leaf* leaf)
+{
+    std::unique_ptr<Leaf> retired;
+    {
+        const std::lock_guard<std::mutex> lock(_tombstonesMutex);
+        auto found = std::ranges::find_if(_tombstones,
+            [leaf](const std::unique_ptr<Leaf>& candidate) { return candidate.get() == leaf; });
+        if (found == _tombstones.end()) {
+            return;
+        }
+        retired = std::move(*found);
+        _tombstones.erase(found);
+    }
+    // retired's destructor runs here, after the mutex is released.
+}
+
 void FileTree::CancelAllPendingJobs()
 {
     LOGGER() << "Cancelling pending jobs for all leaves";

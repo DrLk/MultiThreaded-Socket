@@ -5,10 +5,13 @@
 #include <cassert>
 #include <cstddef>
 #include <filesystem>
-#include <fuse3/fuse_lowlevel.h>
 #include <functional>
+#include <list>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
+
+#include <fuse3/fuse_lowlevel.h>
 
 #include "FileCache/BufferView.hpp"
 #include "IPacket.hpp"
@@ -81,6 +84,13 @@ public:
     void RegisterLeaf(std::uint64_t serverInode, Leaf* leaf);
     void UnregisterLeaf(std::uint64_t serverInode);
 
+    // Park a removed Leaf whose nlookup is still > 0 so its address stays valid
+    // for the in-flight FUSE forget that the kernel will eventually deliver.
+    // The Leaf removes itself once ReleaseRef brings nlookup to zero.
+    void Tombstone(std::unique_ptr<Leaf> leaf);
+    // Called by Leaf::ReleaseRef when a tombstoned Leaf reaches nlookup == 0.
+    void RemoveTombstone(Leaf* leaf);
+
     void CancelAllPendingJobs();
 
 private:
@@ -97,6 +107,11 @@ private:
     std::array<std::unordered_map<fuse_ino_t, int>, ShardCount> _cachePerShard;
     std::atomic<int> _grandTotalCachedPackets { 0 };
     FileCachePtr _fileCache;
+
+    // Holds Leafs that have been removed from the tree but still have
+    // outstanding FUSE nlookup references. Protected by _tombstonesMutex.
+    mutable std::mutex _tombstonesMutex;
+    std::list<std::unique_ptr<Leaf>> _tombstones;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
 };

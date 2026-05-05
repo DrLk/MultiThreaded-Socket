@@ -41,6 +41,9 @@ fuse_ino_t ResolveClientInode(std::string_view name, fuse_ino_t parentInode, Fas
         childLeaf = &parentLeaf.AddChild(std::filesystem::path(nameStr), type, entry->entry_out.attr.size);
         childLeaf->SetServerInode(entry->entry_out.nodeid);
     }
+    // Each direntplus entry given to the kernel increments its nlookup; track
+    // that locally so the Leaf survives until the matching forget arrives.
+    childLeaf->AddRef();
     return reinterpret_cast<fuse_ino_t>(childLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
