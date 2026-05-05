@@ -52,13 +52,25 @@ private:
     mutable std::atomic<int> _counter { 1 };
 };
 
+// Transparent comparator used by std::set<std::shared_ptr<Range>, ...> so the
+// owning containers (e.g. Leaf::_data) can keep ranges alive via shared_ptr
+// without sacrificing the natural Range ordering.
+struct RangePtrLess {
+    using is_transparent = void;
+    bool operator()(const std::shared_ptr<Range>& lhs, const std::shared_ptr<Range>& rhs) const { return *lhs < *rhs; } // NOLINT(fuchsia-overloaded-operator)
+    bool operator()(const std::shared_ptr<Range>& lhs, const Range& rhs) const { return *lhs < rhs; } // NOLINT(fuchsia-overloaded-operator)
+    bool operator()(const Range& lhs, const std::shared_ptr<Range>& rhs) const { return lhs < *rhs; } // NOLINT(fuchsia-overloaded-operator)
+};
+
 // RAII handle that unpins a set of Ranges when destroyed.
 // Constructed on the cached-tree thread (via Leaf::GetData), destroyed on the
-// disk thread when the owning ReadFileCacheJob finishes.
+// disk thread when the owning ReadFileCacheJob finishes. Owns shared_ptr to
+// keep the Range alive even if Leaf::ExtractBlock evicts the cache entry while
+// the disk thread still holds the pin.
 class RangePin {
 public:
     RangePin() = default;
-    explicit RangePin(std::vector<const Range*> ranges)
+    explicit RangePin(std::vector<std::shared_ptr<const Range>> ranges)
         : _ranges(std::move(ranges))
     {
     }
@@ -68,13 +80,13 @@ public:
     RangePin& operator=(RangePin&&) = default;
     ~RangePin()
     {
-        for (const auto* range : _ranges) {
+        for (const auto& range : _ranges) {
             range->Unpin();
         }
     }
 
 private:
-    std::vector<const Range*> _ranges;
+    std::vector<std::shared_ptr<const Range>> _ranges;
 };
 
 } // namespace FastTransport::FileSystem::FileCache

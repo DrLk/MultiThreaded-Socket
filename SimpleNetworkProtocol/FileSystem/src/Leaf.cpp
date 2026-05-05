@@ -206,74 +206,71 @@ Leaf::Data Leaf::AddData(off_t offset, size_t size, Data&& data)
 {
     auto block = _data.find(offset / BlockSize);
     if (block == _data.end()) {
-        std::set<FileCache::Range> blocks;
-        blocks.insert(FileCache::Range(offset, size, std::move(data)));
+        std::set<std::shared_ptr<FileCache::Range>, FileCache::RangePtrLess> blocks;
+        blocks.insert(std::make_shared<FileCache::Range>(offset, size, std::move(data)));
         _data.insert({ offset / BlockSize, std::move(blocks) });
         _piecesStatus->SetStatus(offset / BlockSize, PieceStatus::InCache);
         return {};
     }
 
-    std::set<FileCache::Range>& blocks = block->second;
+    auto& blocks = block->second;
     auto oldData = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
 
-    if (oldData != blocks.end() && oldData->GetOffset() == offset + size) {
+    if (oldData != blocks.end() && (*oldData)->GetOffset() == offset + size) {
         if (oldData != blocks.begin()) {
-            auto node = blocks.extract(oldData);
-            data.splice(std::move(node.value().GetPackets()));
-            auto prevData = oldData;
-            --prevData;
-            if (prevData->GetOffset() + prevData->GetSize() == offset) {
-                auto prevNode = blocks.extract(prevData);
-                prevNode.value().GetPackets().splice(std::move(data));
-                prevNode.value().SetSize(prevNode.value().GetSize() + size + node.value().GetSize());
-                blocks.insert(std::move(prevNode));
+            auto& nextRange = **oldData;
+            data.splice(std::move(nextRange.GetPackets()));
+            auto prevIt = oldData;
+            --prevIt;
+            if ((*prevIt)->GetOffset() + (*prevIt)->GetSize() == offset) {
+                auto& prevRange = **prevIt;
+                prevRange.GetPackets().splice(std::move(data));
+                prevRange.SetSize(prevRange.GetSize() + size + nextRange.GetSize());
+                blocks.erase(oldData);
                 return {};
             }
         }
-        auto node = blocks.extract(oldData);
-        data.splice(std::move(node.value().GetPackets()));
-        node.value().GetPackets() = std::move(data);
-        node.value().SetSize(node.value().GetSize() + size);
-        node.value().SetOffset(offset);
-        blocks.insert(std::move(node));
+        auto& nextRange = **oldData;
+        data.splice(std::move(nextRange.GetPackets()));
+        nextRange.GetPackets() = std::move(data);
+        nextRange.SetSize(nextRange.GetSize() + size);
+        nextRange.SetOffset(offset);
         return {};
     }
 
     if (oldData == blocks.begin()) {
-        blocks.insert(FileCache::Range(offset, size, std::move(data)));
-        if (oldData->GetOffset() >= offset && oldData->GetOffset() + oldData->GetSize() <= offset + size) {
-            auto removedData = blocks.extract(oldData);
-            return std::move(removedData.value().GetPackets());
+        blocks.insert(std::make_shared<FileCache::Range>(offset, size, std::move(data)));
+        if ((*oldData)->GetOffset() >= offset && (*oldData)->GetOffset() + (*oldData)->GetSize() <= offset + size) {
+            auto removedNode = blocks.extract(oldData);
+            return std::move(removedNode.value()->GetPackets());
         }
         return {};
     }
 
     --oldData;
-    if (oldData->GetOffset() <= offset && offset <= oldData->GetOffset() + oldData->GetSize()) {
-        auto node = blocks.extract(oldData);
+    if ((*oldData)->GetOffset() <= offset && offset <= (*oldData)->GetOffset() + (*oldData)->GetSize()) {
+        auto& prevRange = **oldData;
 
-        if (node.value().GetOffset() + node.value().GetSize() == offset) {
-            node.value().GetPackets().splice(std::move(data));
-            node.value().SetSize(node.value().GetSize() + size);
-            blocks.insert(std::move(node));
+        if (prevRange.GetOffset() + prevRange.GetSize() == offset) {
+            prevRange.GetPackets().splice(std::move(data));
+            prevRange.SetSize(prevRange.GetSize() + size);
             return {};
         }
 
-        assert(node.value().GetOffset() + node.value().GetSize() > offset);
+        assert(prevRange.GetOffset() + prevRange.GetSize() > offset);
 
-        const size_t skipSize = node.value().GetOffset() + node.value().GetSize() - offset;
-        if (node.value().GetPackets().size() > 1) {
-            const size_t blockSize = node.value().GetPackets().front()->GetPayload().size();
+        const size_t skipSize = prevRange.GetOffset() + prevRange.GetSize() - offset;
+        if (prevRange.GetPackets().size() > 1) {
+            const size_t blockSize = prevRange.GetPackets().front()->GetPayload().size();
             auto skipData = data.TryGenerate((skipSize + blockSize - 1) / blockSize);
 
-            node.value().GetPackets().splice(std::move(data));
-            node.value().SetSize(node.value().GetSize() + size - skipSize);
-            blocks.insert(std::move(node));
+            prevRange.GetPackets().splice(std::move(data));
+            prevRange.SetSize(prevRange.GetSize() + size - skipSize);
             return skipData;
         }
     }
 
-    blocks.insert(FileCache::Range(offset, size, std::move(data)));
+    blocks.insert(std::make_shared<FileCache::Range>(offset, size, std::move(data)));
     return {};
 }
 
@@ -288,14 +285,11 @@ std::pair<off_t, Leaf::Data> Leaf::ExtractBlock(size_t index)
 
     _piecesStatus->SetStatus(index, PieceStatus::NotFound);
 
-    std::set<FileCache::Range>& ranges = block->second;
+    auto& ranges = block->second;
 
-    const off_t offset = ranges.begin()->GetOffset();
-    for (auto it = ranges.begin(); it != ranges.end();) {
-        auto extractedIt = it;
-        it++;
-        auto range = ranges.extract(extractedIt);
-        extractedData.splice(std::move(range.value().GetPackets()));
+    const off_t offset = (*ranges.begin())->GetOffset();
+    for (auto& range : ranges) {
+        extractedData.splice(std::move(range->GetPackets()));
     }
 
     _data.erase(block);
@@ -310,7 +304,7 @@ size_t Leaf::GetFirstBlockIndex() const
     size_t minIndex = SIZE_MAX;
     for (const auto& [index, ranges] : _data) {
         const bool anyPinned = std::ranges::any_of(ranges,
-            [](const FileCache::Range& range) { return range.IsPinned(); });
+            [](const std::shared_ptr<FileCache::Range>& range) { return range->IsPinned(); });
         if (!anyPinned) {
             minIndex = std::min(minIndex, index);
         }
@@ -321,7 +315,7 @@ size_t Leaf::GetFirstBlockIndex() const
 FileCache::BufferView Leaf::GetData(off_t offset, size_t size) const
 {
     std::vector<FileCache::Span> spans;
-    std::vector<const FileCache::Range*> pinnedRanges;
+    std::vector<std::shared_ptr<const FileCache::Range>> pinnedRanges;
 
     if (std::cmp_greater_equal(offset, _size)) {
         return {};
@@ -334,26 +328,27 @@ FileCache::BufferView Leaf::GetData(off_t offset, size_t size) const
             return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
-        const std::set<FileCache::Range>& blocks = block->second;
-        auto data = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
-        if (data == blocks.begin()) {
+        const auto& blocks = block->second;
+        auto dataIt = blocks.upper_bound(FileCache::Range(offset, size, Data {}));
+        if (dataIt == blocks.begin()) {
             return { .spans = std::move(spans), .pin = FileCache::RangePin(std::move(pinnedRanges)) };
         }
 
-        --data;
+        --dataIt;
 
-        if (offset >= data->GetOffset() && offset <= data->GetOffset() + data->GetSize()) {
+        const auto& dataRange = **dataIt;
+        if (offset >= dataRange.GetOffset() && offset <= dataRange.GetOffset() + dataRange.GetSize()) {
             // Pin this range so GetFirstBlockIndex skips it until the job is done.
-            data->Pin();
-            pinnedRanges.push_back(&*data);
+            dataRange.Pin();
+            pinnedRanges.push_back(*dataIt);
 
-            const auto& packets = data->GetPackets();
+            const auto& packets = dataRange.GetPackets();
 
             if (packets.empty()) {
                 throw std::runtime_error("Data not found");
             }
 
-            size_t start = offset - data->GetOffset();
+            size_t start = offset - dataRange.GetOffset();
 
             auto packet = packets.begin();
             while (start >= (*packet)->GetPayload().size()) {

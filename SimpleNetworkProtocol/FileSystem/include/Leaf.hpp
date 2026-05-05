@@ -109,7 +109,7 @@ private:
     std::uint64_t _serverInode = 0;
     FileTree* _tree = nullptr;
 
-    std::unordered_map<size_t, std::set<FileCache::Range>> _data;
+    std::unordered_map<size_t, std::set<std::shared_ptr<FileCache::Range>, FileCache::RangePtrLess>> _data;
     std::shared_ptr<PiecesStatus> _piecesStatus;
     std::unordered_map<size_t, std::vector<std::unique_ptr<IPendingJob>>> _pendingJobs;
 };
