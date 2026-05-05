@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <climits>
 #include <cstddef>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -30,8 +29,8 @@ FileTree::FileTree(FileTree&& that) noexcept
     : _serverInodeIndex(std::move(that._serverInodeIndex))
     , _root(std::move(that._root))
     , _cacheFolder(std::move(that._cacheFolder))
-    , _cache(std::move(that._cache))
-    , _totalCachedPackets(that._totalCachedPackets)
+    , _cachePerShard(std::move(that._cachePerShard))
+    , _grandTotalCachedPackets(that._grandTotalCachedPackets.load())
     , _fileCache(std::move(that._fileCache))
 {
     if (_root != nullptr) {
@@ -47,8 +46,8 @@ FileTree& FileTree::operator=(FileTree&& that) noexcept
     _serverInodeIndex = std::move(that._serverInodeIndex);
     _root = std::move(that._root);
     _cacheFolder = std::move(that._cacheFolder);
-    _cache = std::move(that._cache);
-    _totalCachedPackets = that._totalCachedPackets;
+    _cachePerShard = std::move(that._cachePerShard);
+    _grandTotalCachedPackets = that._grandTotalCachedPackets.load();
     _fileCache = std::move(that._fileCache);
     if (_root != nullptr) {
         _root->SetTree(this);
@@ -101,24 +100,26 @@ FileTree::Data FileTree::AddData(fuse_ino_t inode, off_t offset, size_t size, Da
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     auto freePackets = leaf.AddData(offset, size, std::move(data));
     const int added = packetsNumber - static_cast<int>(freePackets.size());
-    auto entry = _cache.find(inode);
-    if (entry != _cache.end()) {
+    auto& shardCache = _cachePerShard.at(ShardForInode(inode));
+    auto entry = shardCache.find(inode);
+    if (entry != shardCache.end()) {
         entry->second += added;
     } else {
-        _cache.insert({ inode, added });
+        shardCache.insert({ inode, added });
     }
-    _totalCachedPackets += added;
+    _grandTotalCachedPackets.fetch_add(added, std::memory_order_relaxed);
 
     return freePackets;
 }
 
-FreeData FileTree::GetFreeData()
+FreeData FileTree::GetFreeData(size_t shardIdx)
 {
-    if (_cache.empty()) {
+    auto& shardCache = _cachePerShard.at(shardIdx);
+    if (shardCache.empty()) {
         return {};
     }
 
-    auto entry = _cache.begin();
+    auto entry = shardCache.begin();
     const fuse_ino_t inode = entry->first;
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     const size_t blockIndex = leaf.GetFirstBlockIndex();
@@ -130,9 +131,9 @@ FreeData FileTree::GetFreeData()
     entry->second -= extracted;
     assert(entry->second >= 0);
     if (entry->second == 0) {
-        _cache.erase(entry);
+        shardCache.erase(entry);
     }
-    _totalCachedPackets -= extracted;
+    _grandTotalCachedPackets.fetch_sub(extracted, std::memory_order_relaxed);
 
     const size_t blockStart = blockIndex * static_cast<size_t>(Leaf::BlockSize);
     const size_t size = static_cast<size_t>(std::min(Leaf::BlockSize, static_cast<ssize_t>(leaf.GetSize()) - static_cast<ssize_t>(blockStart)));
@@ -141,7 +142,7 @@ FreeData FileTree::GetFreeData()
 
 bool FileTree::NeedsEviction() const
 {
-    return _totalCachedPackets > MaxCachePackets;
+    return _grandTotalCachedPackets.load(std::memory_order_relaxed) > MaxCachePackets;
 }
 
 FileCache::FileCache& FileTree::GetFileCache()

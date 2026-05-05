@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "FileCache/PinnedFuseBufVec.hpp"
+#include "FileTree.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "FuseRequestTracker.hpp"
 #include "ITaskScheduler.hpp"
@@ -57,8 +58,9 @@ void ApplyBlockCacheJob::ExecuteCachedTree(ITaskScheduler& scheduler, std::stop_
         pendingJob->Execute();
     }
 
+    const size_t shardIdx = FileSystem::FileTree::ShardForInode(_inode);
     while (tree.NeedsEviction()) {
-        auto [evictInode, evictOffset, evictSize, evictData] = tree.GetFreeData();
+        auto [evictInode, evictOffset, evictSize, evictData] = tree.GetFreeData(shardIdx);
         if (evictData.empty()) {
             break;
         }

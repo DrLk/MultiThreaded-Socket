@@ -1,8 +1,12 @@
 #pragma once
 
+#include <array>
+#include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 
@@ -50,10 +54,19 @@ public:
     FileCache::BufferView GetData(fuse_ino_t inode, off_t offset, size_t size) const;
     FileTree::Data AddData(fuse_ino_t inode, off_t offset, size_t size, Data&& data);
 
-    FreeData GetFreeData();
+    // Eviction is sharded by inode to keep all mutations of a given Leaf on the
+    // same cacheTreeQueue worker. Callers pass their own shard index (the one
+    // they were dispatched on) and only entries belonging to that shard are
+    // considered for eviction.
+    FreeData GetFreeData(size_t shardIdx);
     bool NeedsEviction() const;
 
     static constexpr int MaxCachePackets = 10000;
+    static constexpr size_t ShardCount = 4;
+    static size_t ShardForInode(fuse_ino_t inode) noexcept
+    {
+        return std::hash<fuse_ino_t> {}(inode) % ShardCount;
+    }
 
     FileCache::FileCache& GetFileCache();
     // Cancel all pending jobs across the entire file tree. Must be called after
@@ -78,8 +91,11 @@ private:
     LeafPtr _root;
     std::filesystem::path _cacheFolder;
 
-    std::unordered_map<fuse_ino_t, int> _cache;
-    int _totalCachedPackets = 0;
+    // Per-shard cache index; each shard is owned exclusively by its
+    // corresponding cacheTreeQueue worker, so no cross-shard locking is
+    // required. _grandTotal is summed across shards for NeedsEviction().
+    std::array<std::unordered_map<fuse_ino_t, int>, ShardCount> _cachePerShard;
+    std::atomic<int> _grandTotalCachedPackets { 0 };
     FileCachePtr _fileCache;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
