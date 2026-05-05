@@ -106,8 +106,10 @@ TEST(FileTreeCacheTest, NeedsEvictionTrueOverLimit)
 TEST(FileTreeCacheTest, GetFreeDataEmptyWhenNoCachedData)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
-    auto freeData = tree.GetFreeData();
-    EXPECT_EQ(freeData.data.size(), 0);
+    for (size_t shard = 0; shard < FileTree::ShardCount; ++shard) {
+        auto freeData = tree.GetFreeData(shard);
+        EXPECT_EQ(freeData.data.size(), 0);
+    }
 }
 
 TEST(FileTreeCacheTest, GetFreeDataDecrementsUntilUnderLimit)
@@ -125,7 +127,7 @@ TEST(FileTreeCacheTest, GetFreeDataDecrementsUntilUnderLimit)
     ASSERT_TRUE(tree.NeedsEviction());
 
     while (tree.NeedsEviction()) {
-        auto freeData = tree.GetFreeData();
+        auto freeData = tree.GetFreeData(FileTree::ShardForInode(inode));
         if (freeData.data.empty()) {
             break;
         }
@@ -146,7 +148,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsStatusNotFound)
     auto piecesStatus = file.GetPiecesStatus();
     EXPECT_EQ(piecesStatus->GetStatus(0), PieceStatus::InCache);
 
-    tree.GetFreeData();
+    tree.GetFreeData(FileTree::ShardForInode(inode));
 
     EXPECT_EQ(piecesStatus->GetStatus(0), PieceStatus::NotFound);
 }
@@ -160,7 +162,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsCorrectSizeForFullBlock)
     auto data = MakePackets(100, 0);
     tree.AddData(inode, 0, 100ULL * 1400, std::move(data));
 
-    auto freeData = tree.GetFreeData();
+    auto freeData = tree.GetFreeData(FileTree::ShardForInode(inode));
     ASSERT_GT(freeData.data.size(), 0);
     EXPECT_EQ(freeData.size, static_cast<size_t>(Leaf::BlockSize));
 }
@@ -178,7 +180,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsCorrectSizeForLastBlock)
     const off_t lastBlockOffset = Leaf::BlockSize;
     tree.AddData(inode, lastBlockOffset, LastBlockBytes, std::move(data));
 
-    auto freeData = tree.GetFreeData();
+    auto freeData = tree.GetFreeData(FileTree::ShardForInode(inode));
     ASSERT_GT(freeData.data.size(), 0);
     EXPECT_EQ(freeData.size, LastBlockBytes);
 }
@@ -197,7 +199,7 @@ TEST(FileTreeCacheTest, GetFreeDataEvictsOldestBlock)
     tree.AddData(inode, 2 * Leaf::BlockSize, 1400, std::move(data2));
 
     // GetFreeData should evict block 0 (smallest index)
-    auto freeData = tree.GetFreeData();
+    auto freeData = tree.GetFreeData(FileTree::ShardForInode(inode));
     ASSERT_GT(freeData.data.size(), 0);
     EXPECT_EQ(freeData.offset, 0);
 

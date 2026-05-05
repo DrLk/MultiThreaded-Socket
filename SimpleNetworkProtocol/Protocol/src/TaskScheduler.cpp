@@ -256,7 +256,7 @@ void TaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInF
 
 void TaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
 {
-    const size_t idx = std::hash<fuse_ino_t> {}(job->GetInode()) % CacheTreeThreadCount;
+    const size_t idx = FileSystem::FileTree::ShardForInode(job->GetInode());
     _cacheTreeQueues.at(idx).Async([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
         job->ExecuteCachedTree(*this, stop, _fileTree);
