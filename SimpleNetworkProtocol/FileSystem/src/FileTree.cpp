@@ -18,7 +18,7 @@
 namespace FastTransport::FileSystem {
 
 FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
-    : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))
+    : _root(std::make_shared<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))
     , _cacheFolder(std::move(cacheFolder))
     , _fileCache(std::make_unique<FileCache::FileCache>())
 {
@@ -55,7 +55,25 @@ FileTree& FileTree::operator=(FileTree&& that) noexcept
     return *this;
 }
 
-FileTree::~FileTree() = default;
+FileTree::~FileTree()
+{
+    // Safety net for shutdown: if FUSE forgets arrived after the scheduler
+    // was already torn down, their ReleaseLeafRefJobs never ran and the
+    // matching _selfPin'd Leaves would still hold themselves alive. Walk
+    // the tree and force the pins down so the cascading shared_ptr
+    // destruction frees everything.
+    if (_root != nullptr) {
+        _root->DropPinsRecursively();
+    }
+}
+
+void FileTree::SetRoot(std::shared_ptr<Leaf> root) noexcept
+{
+    _root = std::move(root);
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+}
 
 Leaf& FileTree::GetRoot()
 {
@@ -171,19 +189,21 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
     }
 }
 
-Leaf* FileTree::FindLeafByServerInode(std::uint64_t serverInode)
+std::shared_ptr<Leaf> FileTree::FindLeafByServerInode(std::uint64_t serverInode)
 {
     if (serverInode == _root->GetServerInode()) {
-        return _root.get();
+        return _root;
     }
     auto entry = _serverInodeIndex.find(serverInode);
     if (entry == _serverInodeIndex.end()) {
         return nullptr;
     }
-    return entry->second;
+    // weak_ptr.lock() returns nullptr if the Leaf has been destroyed without
+    // a matching UnregisterLeaf — defensive against stale index entries.
+    return entry->second.lock();
 }
 
-void FileTree::RegisterLeaf(std::uint64_t serverInode, Leaf* leaf)
+void FileTree::RegisterLeaf(std::uint64_t serverInode, const std::shared_ptr<Leaf>& leaf)
 {
     _serverInodeIndex[serverInode] = leaf;
 }
@@ -191,28 +211,6 @@ void FileTree::RegisterLeaf(std::uint64_t serverInode, Leaf* leaf)
 void FileTree::UnregisterLeaf(std::uint64_t serverInode)
 {
     _serverInodeIndex.erase(serverInode);
-}
-
-void FileTree::Tombstone(std::unique_ptr<Leaf> leaf)
-{
-    const std::lock_guard<std::mutex> lock(_tombstonesMutex);
-    _tombstones.push_back(std::move(leaf));
-}
-
-void FileTree::RemoveTombstone(Leaf* leaf)
-{
-    std::unique_ptr<Leaf> retired;
-    {
-        const std::lock_guard<std::mutex> lock(_tombstonesMutex);
-        auto found = std::ranges::find_if(_tombstones,
-            [leaf](const std::unique_ptr<Leaf>& candidate) { return candidate.get() == leaf; });
-        if (found == _tombstones.end()) {
-            return;
-        }
-        retired = std::move(*found);
-        _tombstones.erase(found);
-    }
-    // retired's destructor runs here, after the mutex is released.
 }
 
 void FileTree::CancelAllPendingJobs()

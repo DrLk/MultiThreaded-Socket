@@ -3,6 +3,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <memory>
 
+#include "FileTree.hpp"
 #include "ITaskScheduler.hpp"
 #include "Job.hpp"
 

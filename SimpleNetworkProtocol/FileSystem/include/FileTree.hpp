@@ -6,9 +6,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <functional>
-#include <list>
 #include <memory>
-#include <mutex>
 #include <unordered_map>
 
 #include <fuse3/fuse_lowlevel.h>
@@ -34,7 +32,7 @@ class Leaf;
 
 class FileTree {
     using FilePtr = std::unique_ptr<File>;
-    using LeafPtr = std::unique_ptr<Leaf>;
+    using LeafPtr = std::shared_ptr<Leaf>;
     using FileCachePtr = std::unique_ptr<FileCache::FileCache>;
 
 public:
@@ -48,6 +46,11 @@ public:
     ~FileTree();
 
     Leaf& GetRoot();
+    // Replace the root subtree (used by MergeIn after deserialising a remote
+    // tree). Caller is responsible for ensuring the index is consistent: any
+    // live Leaf* references and serverInodeIndex entries from the old root are
+    // about to dangle, so this should only be called during initialisation.
+    void SetRoot(std::shared_ptr<Leaf> root) noexcept;
     std::filesystem::path GetCacheFolder() const;
 
     static FileTree GetTestFileTree();
@@ -72,32 +75,34 @@ public:
     }
 
     FileCache::FileCache& GetFileCache();
-    // Cancel all pending jobs across the entire file tree. Must be called after
-    // stopping the scheduler (so no new jobs are being added) and before destroying
-    // the filesystem session (so fuse_reply_err can still be called).
-    Leaf* FindLeafByServerInode(std::uint64_t serverInode);
+
+    // Returns nullptr if the inode is unknown OR if the corresponding Leaf has
+    // already been destroyed (the index holds weak_ptrs, so a stale entry that
+    // somehow outlived the Leaf surfaces cleanly as expired weak_ptr instead
+    // of becoming a dangling raw pointer).
+    std::shared_ptr<Leaf> FindLeafByServerInode(std::uint64_t serverInode);
 
     // Index maintenance hooks invoked by Leaf when the tree is mutated.
     // RegisterLeaf inserts the (serverInode, leaf) pair; UnregisterLeaf removes
     // by the inode the leaf currently reports. Callers must invoke them with
     // matching pre/post values when SetServerInode rekeys an entry.
-    void RegisterLeaf(std::uint64_t serverInode, Leaf* leaf);
+    void RegisterLeaf(std::uint64_t serverInode, const std::shared_ptr<Leaf>& leaf);
     void UnregisterLeaf(std::uint64_t serverInode);
 
-    // Park a removed Leaf whose nlookup is still > 0 so its address stays valid
-    // for the in-flight FUSE forget that the kernel will eventually deliver.
-    // The Leaf removes itself once ReleaseRef brings nlookup to zero.
-    void Tombstone(std::unique_ptr<Leaf> leaf);
-    // Called by Leaf::ReleaseRef when a tombstoned Leaf reaches nlookup == 0.
-    void RemoveTombstone(Leaf* leaf);
-
+    // Cancel all pending jobs across the entire file tree. Must be called after
+    // stopping the scheduler (so no new jobs are being added) and before destroying
+    // the filesystem session (so fuse_reply_err can still be called).
     void CancelAllPendingJobs();
 
 private:
     // _serverInodeIndex must outlive _root: when ~FileTree destroys _root,
     // the cascading Leaf destructors (RemoveChild paths) still need a live
-    // index to update.
-    std::unordered_map<std::uint64_t, Leaf*> _serverInodeIndex;
+    // index to update. All mutations and lookups go through _mainQueue
+    // (single-threaded), so no locking is required — see CacheTreeJob
+    // subclasses, which only operate on shard-affine per-Leaf state.
+    // Holds weak_ptrs so a stale entry surfaces as expired-weak_ptr (clean
+    // nullptr from FindLeafByServerInode) rather than a dangling raw pointer.
+    std::unordered_map<std::uint64_t, std::weak_ptr<Leaf>> _serverInodeIndex;
     LeafPtr _root;
     std::filesystem::path _cacheFolder;
 
@@ -107,11 +112,6 @@ private:
     std::array<std::unordered_map<fuse_ino_t, int>, ShardCount> _cachePerShard;
     std::atomic<int> _grandTotalCachedPackets { 0 };
     FileCachePtr _fileCache;
-
-    // Holds Leafs that have been removed from the tree but still have
-    // outstanding FUSE nlookup references. Protected by _tombstonesMutex.
-    mutable std::mutex _tombstonesMutex;
-    std::list<std::unique_ptr<Leaf>> _tombstones;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
 };

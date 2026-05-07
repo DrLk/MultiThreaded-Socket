@@ -36,11 +36,11 @@ namespace {
             return node;
         }
         for (const auto& part : rel) {
-            FileSystem::Leaf* const child = node->FindChild(part.string());
+            auto child = node->FindChild(part.string());
             if (child == nullptr) {
                 return nullptr;
             }
-            node = child;
+            node = child.get();
         }
         return node;
     }

@@ -159,12 +159,13 @@ TEST(ConnectionWriter, WriteIPacketList)
                     return freePackets;
                 });
 
-        ConnectionWriter writer(stop, connection);
-
         std::array<std::byte, 1000> testData {};
         for (auto& byte : testData) {
             byte = std::byte { 64 };
         }
+
+        ConnectionWriter writer(stop, connection);
+
         IPacket::List sendPackets;
         sendPackets.push_back(std::make_unique<Packet>(1200));
         sendPackets.back()->SetPayload(testData);

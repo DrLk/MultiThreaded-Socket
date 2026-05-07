@@ -33,7 +33,7 @@ ResponseInFuseNetworkJob::Message NotifyInvalEntryJob::ExecuteResponse(ITaskSche
     const auto eventType = static_cast<FileSystem::WatchEventType>(eventTypeRaw);
     const bool isDir = isDirRaw != 0;
 
-    FileSystem::Leaf* const parentLeaf = fileTree.FindLeafByServerInode(parentServerInode);
+    const auto parentLeaf = fileTree.FindLeafByServerInode(parentServerInode);
     if (parentLeaf != nullptr) {
         if (eventType == FileSystem::WatchEventType::Created || eventType == FileSystem::WatchEventType::MovedTo) {
             const auto fileType = isDir ? std::filesystem::file_type::directory : std::filesystem::file_type::regular;
@@ -43,15 +43,13 @@ ResponseInFuseNetworkJob::Message NotifyInvalEntryJob::ExecuteResponse(ITaskSche
             // otherwise lookup will keep returning ENOENT until the TTL expires.
             fuse_session* const session = RemoteFileSystem::session;
             if (session != nullptr) {
-                const auto parentClientInode = reinterpret_cast<fuse_ino_t>(parentLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
-                fuse_lowlevel_notify_inval_entry(session, parentClientInode, name.c_str(), name.size());
+                fuse_lowlevel_notify_inval_entry(session, GetINode(*parentLeaf), name.c_str(), name.size());
             }
         } else if (eventType == FileSystem::WatchEventType::Deleted || eventType == FileSystem::WatchEventType::MovedFrom) {
             parentLeaf->RemoveChild(name);
             fuse_session* const session = RemoteFileSystem::session;
             if (session != nullptr) {
-                const auto parentClientInode = reinterpret_cast<fuse_ino_t>(parentLeaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
-                fuse_lowlevel_notify_inval_entry(session, parentClientInode, name.c_str(), name.size());
+                fuse_lowlevel_notify_inval_entry(session, GetINode(*parentLeaf), name.c_str(), name.size());
             }
         }
     }
