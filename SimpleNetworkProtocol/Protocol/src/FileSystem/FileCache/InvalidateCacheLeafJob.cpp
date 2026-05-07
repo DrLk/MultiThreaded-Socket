@@ -9,20 +9,20 @@
 
 namespace FastTransport::TaskQueue {
 
-InvalidateCacheLeafJob::InvalidateCacheLeafJob(fuse_ino_t clientInode, fuse_ino_t serverInode, fuse_session* session)
-    : _clientInode(clientInode)
-    , _serverInode(serverInode)
+InvalidateCacheLeafJob::InvalidateCacheLeafJob(std::shared_ptr<FileSystem::Leaf> leaf, fuse_ino_t clientInode, fuse_session* session)
+    : _leaf(std::move(leaf))
+    , _clientInode(clientInode)
     , _session(session)
 {
 }
 
-void InvalidateCacheLeafJob::ExecuteCachedTree(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& tree)
+void InvalidateCacheLeafJob::ExecuteCachedTree(ITaskScheduler& /*scheduler*/, std::stop_token /*stop*/, FileTree& /*tree*/)
 {
-    FileSystem::Leaf* leaf = tree.FindLeafByServerInode(_serverInode);
-    if (leaf == nullptr) {
-        return;
-    }
-    leaf->InvalidateDataCache();
+    // _leaf shared_ptr keeps the Leaf alive for the duration of this job,
+    // so RemoveChild on _mainQueue dropping the parent's shared_ptr in the
+    // meantime cannot free us. Touch only the data-cache state which is
+    // shard-affine on this cacheTreeQueue worker.
+    _leaf->InvalidateDataCache();
     if (_session != nullptr) {
         fuse_lowlevel_notify_inval_inode(_session, _clientInode, 0, 0);
     }

@@ -5,11 +5,14 @@
 #include <stop_token>
 
 #include "FileHandle.hpp"
-#include "FileTree.hpp"
 #include "IPacket.hpp"
 #include "Job.hpp"
 #include "Leaf.hpp"
 #include "MessageReader.hpp"
+
+namespace FastTransport::FileSystem {
+class FileTree;
+} // namespace FastTransport::FileSystem
 
 namespace FastTransport::TaskQueue {
 

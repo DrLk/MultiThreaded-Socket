@@ -975,4 +975,149 @@ TEST(RemoteFileSystemTest, NotifyInvalInodeOnFileModify) // NOLINT(readability-f
     EXPECT_TRUE(testResult) << "Modified file content was not visible via FUSE mount within timeout";
 }
 
+// Functional repro for the kernel-pinned-Leaf lifetime race: real server +
+// client + FUSE mount. The server churns files in a watched directory;
+// InotifyWatcherJob propagates each delete via NotifyInvalEntry →
+// Leaf::RemoveChild on the client. In parallel, a reader process opens/stats
+// entries on the mount, which drives fuse_lookup → Leaf::AddRef.
+//
+// Originally this exercised a UAF where RemoveChild dropped a Leaf still
+// referenced by the kernel; the current ownership model (shared_ptr children
+// map + _selfPin captured by the first AddRef) keeps the Leaf alive across
+// the gap. The test stays in the suite as a regression guard — TSan must see
+// no race on Leaf state across the lookup/RemoveChild interleaving, and ASan
+// must report no leaks (the dtor's DropPinsRecursively breaks any leftover
+// self-reference cycles).
+namespace {
+
+constexpr uint16_t ServerPort7 = 32300;
+constexpr uint16_t ClientPort7 = 32400;
+constexpr const char* MountPoint7 = "/tmp/mnt_leaf_lifetime";
+constexpr const char* CacheDir7 = "/tmp/leaf_lifetime_cache";
+constexpr const char* ServerRoot7 = "/tmp/leaf_lifetime_server";
+
+constexpr int LeafLifetimeFilesPerRound = 8;
+constexpr int LeafLifetimeRounds = 6;
+constexpr int LeafLifetimeReaderIterations = 80;
+
+bool LeafLifetimeReaderLoop(const std::string& watchedMount)
+{
+    for (int it = 0; it < LeafLifetimeReaderIterations; ++it) {
+        DIR* dir = opendir(watchedMount.c_str());
+        if (dir == nullptr) {
+            continue;
+        }
+        while (struct dirent* dent = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
+            const std::string_view name(dent->d_name);
+            if (name == "." || name == "..") {
+                continue;
+            }
+            struct stat statBuf {};
+            const std::string fullPath = watchedMount + "/" + std::string(name);
+            stat(fullPath.c_str(), &statBuf);
+        }
+        closedir(dir);
+        std::this_thread::sleep_for(5ms);
+    }
+    return true;
+}
+
+bool LeafLifetimeMutatorLoop(const std::string& watchedServer)
+{
+    for (int round = 0; round < LeafLifetimeRounds; ++round) {
+        for (int i = 0; i < LeafLifetimeFilesPerRound; ++i) {
+            std::ofstream(watchedServer + "/f" + std::to_string(i) + ".txt") << "x";
+        }
+        std::this_thread::sleep_for(20ms);
+        for (int i = 0; i < LeafLifetimeFilesPerRound; ++i) {
+            std::filesystem::remove(watchedServer + "/f" + std::to_string(i) + ".txt");
+        }
+        std::this_thread::sleep_for(20ms);
+    }
+    return true;
+}
+
+bool LeafLifetimeRaceBody(const char* mountPoint)
+{
+    const std::string watchedMount = std::string(mountPoint) + "/watched";
+    const std::string watchedServer = std::string(ServerRoot7) + "/watched";
+
+    // Warmup: ls watched/ so the server records its serverInode (otherwise
+    // NotifyInvalEntry from inotify cannot resolve to a client Leaf and
+    // RemoveChild is never called → no race window opens).
+    jprocess warmup([&watchedMount](jprocess::stop_token /*s*/) -> bool {
+        return CountDirEntries(watchedMount) >= 1;
+    });
+    if (!warmup.join()) {
+        std::cerr << "[test] warmup ls failed\n";
+        return false;
+    }
+
+    // Reader: bounded ls+stat — drives fuse_lookup → AddRef.
+    jprocess reader([&watchedMount](jprocess::stop_token /*s*/) -> bool {
+        return LeafLifetimeReaderLoop(watchedMount);
+    });
+
+    // Mutator: bounded server-side churn — fires inotify → NotifyInvalEntry →
+    // Leaf::RemoveChild on the client _mainQueue.
+    jprocess mutator([&watchedServer](jprocess::stop_token /*s*/) -> bool {
+        return LeafLifetimeMutatorLoop(watchedServer);
+    });
+
+    const bool mutatorOk = mutator.join();
+    const bool readerOk = reader.join();
+    return mutatorOk && readerOk;
+}
+
+} // namespace
+
+TEST(RemoteFileSystemTest, LeafLifetimeRaceUnderChurn)
+{
+    // Bounded reader + bounded mutator (each in its own jprocess) running in
+    // parallel: they self-terminate on iteration count, so by the time `body`
+    // returns no FUSE syscall is in flight on the mount and the standard
+    // RunClientWithNotify teardown (UnmountAt + scheduler.Wait + reset) drains
+    // cleanly — same shape as NotifyInvalEntryOnFileDelete and
+    // ParallelListAndReadFiles which already work in this codebase.
+    std::filesystem::remove_all(ServerRoot7);
+    std::filesystem::create_directories(std::string(ServerRoot7) + "/watched");
+    {
+        std::ofstream(std::string(ServerRoot7) + "/watched/anchor.txt") << "x";
+    }
+    PrepareTestDirectories(MountPoint7, CacheDir7);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServerWithInotify(stop, ServerPort7, ServerRoot7, CacheDir7);
+    });
+
+    std::this_thread::sleep_for(50ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort7, MountPoint7, CacheDir7, ServerRoot7, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                return LeafLifetimeRaceBody(mountPoint);
+            });
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + 60s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        std::cerr << "[shutdown] leaf-lifetime deadline exceeded\n";
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint7);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "LeafLifetime race churn test did not complete cleanly";
+}
+
 #endif // __linux__

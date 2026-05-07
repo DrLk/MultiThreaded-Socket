@@ -25,7 +25,7 @@ public:
     }
 
     template <InputStream Stream>
-    static Leaf Deserialize(InputByteStream<Stream>& stream, Leaf* parent) // NOLINT(misc-no-recursion)
+    static std::shared_ptr<Leaf> Deserialize(InputByteStream<Stream>& stream, Leaf* parent) // NOLINT(misc-no-recursion)
     {
         std::filesystem::path name;
         stream >> name;
@@ -33,13 +33,13 @@ public:
         stream >> type;
         uintmax_t fileSize {};
         stream >> fileSize;
-        Leaf leaf(std::move(name), type, fileSize, parent);
+        auto leaf = std::make_shared<Leaf>(std::move(name), type, fileSize, parent);
 
         std::uint64_t size = 0;
         stream >> size;
         for (std::uint64_t i = 0; i < size; i++) {
-            Leaf childLeaf = Deserialize(stream, &leaf);
-            leaf.AddChild(std::move(childLeaf));
+            auto childLeaf = Deserialize(stream, leaf.get());
+            leaf->AddChild(std::move(childLeaf));
         }
 
         return leaf;

@@ -6,6 +6,7 @@
 #include <fuse3/fuse_lowlevel.h>
 #include <stop_token>
 
+#include "FileCache/PinnedFuseBufVec.hpp"
 #include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
 
@@ -27,8 +28,7 @@ ResponseInFuseNetworkJob::Message ResponseReadDirInJob::ExecuteResponse(ITaskSch
 
     reader >> data;
 
-    const std::size_t length = sizeof(fuse_bufvec) + (sizeof(fuse_buf) * (data.size() - 1));
-    std::unique_ptr<fuse_bufvec> buffVector(reinterpret_cast<fuse_bufvec*>(new char[length])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto buffVector = FileSystem::FileCache::AllocateFuseBufVec(data.size());
     int index = 0;
 
     buffVector->off = 0;

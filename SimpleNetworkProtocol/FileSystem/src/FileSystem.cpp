@@ -154,6 +154,7 @@ void FileSystem::Start(std::stop_token stop)
 FileSystem::~FileSystem()
 {
     if (_session != nullptr) {
+        fuse_session_unmount(_session);
         fuse_session_destroy(_session);
     }
 }
