@@ -43,7 +43,7 @@ public:
 
 private:
     static constexpr size_t DiskThreadCount = 4;
-    static constexpr size_t CacheTreeThreadCount = 4;
+    static constexpr size_t CacheTreeThreadCount = FileSystem::FileTree::ShardCount;
 
     // Data members must be declared before queues so that queues (and their
     // worker threads) are destroyed first, before the data they access.

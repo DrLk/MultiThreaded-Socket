@@ -54,8 +54,7 @@ TaskQueue::DiskJob::Data ReadFileCacheJob::ExecuteDisk(TaskQueue::ITaskScheduler
     }
     const size_t diskSize = _size - appendTotalSize;
     const std::size_t totalCount = 1 + _appendData->count;
-    const std::size_t allocSize = sizeof(fuse_bufvec) + ((_appendData->count) * sizeof(fuse_buf));
-    std::unique_ptr<fuse_bufvec> combined(reinterpret_cast<fuse_bufvec*>(new char[allocSize])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto combined = FileSystem::FileCache::AllocateFuseBufVec(totalCount);
     combined->count = totalCount;
     combined->idx = 0;
     combined->off = 0;

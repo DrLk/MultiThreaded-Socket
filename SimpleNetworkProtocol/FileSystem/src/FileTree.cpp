@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <climits>
 #include <cstddef>
 #include <filesystem>
 #include <fuse3/fuse_lowlevel.h>
@@ -19,7 +18,7 @@
 namespace FastTransport::FileSystem {
 
 FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
-    : _root(std::make_unique<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))
+    : _root(std::make_shared<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))
     , _cacheFolder(std::move(cacheFolder))
     , _fileCache(std::make_unique<FileCache::FileCache>())
 {
@@ -30,8 +29,8 @@ FileTree::FileTree(FileTree&& that) noexcept
     : _serverInodeIndex(std::move(that._serverInodeIndex))
     , _root(std::move(that._root))
     , _cacheFolder(std::move(that._cacheFolder))
-    , _cache(std::move(that._cache))
-    , _totalCachedPackets(that._totalCachedPackets)
+    , _cachePerShard(std::move(that._cachePerShard))
+    , _grandTotalCachedPackets(that._grandTotalCachedPackets.load())
     , _fileCache(std::move(that._fileCache))
 {
     if (_root != nullptr) {
@@ -47,8 +46,8 @@ FileTree& FileTree::operator=(FileTree&& that) noexcept
     _serverInodeIndex = std::move(that._serverInodeIndex);
     _root = std::move(that._root);
     _cacheFolder = std::move(that._cacheFolder);
-    _cache = std::move(that._cache);
-    _totalCachedPackets = that._totalCachedPackets;
+    _cachePerShard = std::move(that._cachePerShard);
+    _grandTotalCachedPackets = that._grandTotalCachedPackets.load();
     _fileCache = std::move(that._fileCache);
     if (_root != nullptr) {
         _root->SetTree(this);
@@ -56,7 +55,25 @@ FileTree& FileTree::operator=(FileTree&& that) noexcept
     return *this;
 }
 
-FileTree::~FileTree() = default;
+FileTree::~FileTree()
+{
+    // Safety net for shutdown: if FUSE forgets arrived after the scheduler
+    // was already torn down, their ReleaseLeafRefJobs never ran and the
+    // matching _selfPin'd Leaves would still hold themselves alive. Walk
+    // the tree and force the pins down so the cascading shared_ptr
+    // destruction frees everything.
+    if (_root != nullptr) {
+        _root->DropPinsRecursively();
+    }
+}
+
+void FileTree::SetRoot(std::shared_ptr<Leaf> root) noexcept
+{
+    _root = std::move(root);
+    if (_root != nullptr) {
+        _root->SetTree(this);
+    }
+}
 
 Leaf& FileTree::GetRoot()
 {
@@ -101,24 +118,26 @@ FileTree::Data FileTree::AddData(fuse_ino_t inode, off_t offset, size_t size, Da
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     auto freePackets = leaf.AddData(offset, size, std::move(data));
     const int added = packetsNumber - static_cast<int>(freePackets.size());
-    auto entry = _cache.find(inode);
-    if (entry != _cache.end()) {
+    auto& shardCache = _cachePerShard.at(ShardForInode(inode));
+    auto entry = shardCache.find(inode);
+    if (entry != shardCache.end()) {
         entry->second += added;
     } else {
-        _cache.insert({ inode, added });
+        shardCache.insert({ inode, added });
     }
-    _totalCachedPackets += added;
+    _grandTotalCachedPackets.fetch_add(added, std::memory_order_relaxed);
 
     return freePackets;
 }
 
-FreeData FileTree::GetFreeData()
+FreeData FileTree::GetFreeData(size_t shardIdx)
 {
-    if (_cache.empty()) {
+    auto& shardCache = _cachePerShard.at(shardIdx);
+    if (shardCache.empty()) {
         return {};
     }
 
-    auto entry = _cache.begin();
+    auto entry = shardCache.begin();
     const fuse_ino_t inode = entry->first;
     auto& leaf = inode == FUSE_ROOT_ID ? GetRoot() : *(reinterpret_cast<Leaf*>(inode)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
     const size_t blockIndex = leaf.GetFirstBlockIndex();
@@ -130,9 +149,9 @@ FreeData FileTree::GetFreeData()
     entry->second -= extracted;
     assert(entry->second >= 0);
     if (entry->second == 0) {
-        _cache.erase(entry);
+        shardCache.erase(entry);
     }
-    _totalCachedPackets -= extracted;
+    _grandTotalCachedPackets.fetch_sub(extracted, std::memory_order_relaxed);
 
     const size_t blockStart = blockIndex * static_cast<size_t>(Leaf::BlockSize);
     const size_t size = static_cast<size_t>(std::min(Leaf::BlockSize, static_cast<ssize_t>(leaf.GetSize()) - static_cast<ssize_t>(blockStart)));
@@ -141,7 +160,7 @@ FreeData FileTree::GetFreeData()
 
 bool FileTree::NeedsEviction() const
 {
-    return _totalCachedPackets > MaxCachePackets;
+    return _grandTotalCachedPackets.load(std::memory_order_relaxed) > MaxCachePackets;
 }
 
 FileCache::FileCache& FileTree::GetFileCache()
@@ -170,19 +189,21 @@ void FileTree::Scan(const std::filesystem::path& directoryPath, Leaf& root) // N
     }
 }
 
-Leaf* FileTree::FindLeafByServerInode(std::uint64_t serverInode)
+std::shared_ptr<Leaf> FileTree::FindLeafByServerInode(std::uint64_t serverInode)
 {
     if (serverInode == _root->GetServerInode()) {
-        return _root.get();
+        return _root;
     }
     auto entry = _serverInodeIndex.find(serverInode);
     if (entry == _serverInodeIndex.end()) {
         return nullptr;
     }
-    return entry->second;
+    // weak_ptr.lock() returns nullptr if the Leaf has been destroyed without
+    // a matching UnregisterLeaf — defensive against stale index entries.
+    return entry->second.lock();
 }
 
-void FileTree::RegisterLeaf(std::uint64_t serverInode, Leaf* leaf)
+void FileTree::RegisterLeaf(std::uint64_t serverInode, const std::shared_ptr<Leaf>& leaf)
 {
     _serverInodeIndex[serverInode] = leaf;
 }

@@ -11,12 +11,33 @@
 
 namespace FastTransport::FileSystem::FileCache {
 
+// fuse_bufvec is allocated as a flexible array via `new char[]`, so it must be
+// deallocated as `char[]` to keep ASan's new[]/delete[] pairing happy.
+struct FuseBufVecDeleter {
+    void operator()(fuse_bufvec* ptr) const noexcept // NOLINT(fuchsia-overloaded-operator)
+    {
+        delete[] reinterpret_cast<char*>(ptr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-owning-memory)
+    }
+};
+
+using FuseBufVecPtr = std::unique_ptr<fuse_bufvec, FuseBufVecDeleter>;
+
+// fuse_bufvec is a flexible-array struct (the buf[1] member is really buf[count]),
+// so the entire object must be allocated as a raw byte buffer of the right size and
+// reinterpret-cast back. This helper centralises the cast so callers don't each
+// need their own NOLINT comment.
+[[nodiscard]] inline FuseBufVecPtr AllocateFuseBufVec(std::size_t count)
+{
+    const std::size_t allocSize = sizeof(fuse_bufvec) + ((count > 0 ? count - 1 : 0) * sizeof(fuse_buf));
+    return FuseBufVecPtr(reinterpret_cast<fuse_bufvec*>(new char[allocSize])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+}
+
 // A fuse_bufvec whose buf[i].mem entries point directly into pinned Leaf packet payloads.
 // Keeping both together ensures the pin is always held for exactly the lifetime of the buffer.
 class PinnedFuseBufVec {
 public:
     PinnedFuseBufVec() = default;
-    PinnedFuseBufVec(std::unique_ptr<fuse_bufvec> buf, RangePin rangePin) noexcept
+    PinnedFuseBufVec(FuseBufVecPtr buf, RangePin rangePin) noexcept
         : _bufvec(std::move(buf))
         , _pin(std::move(rangePin))
     {
@@ -28,7 +49,7 @@ public:
     [[nodiscard]] fuse_bufvec* get() const noexcept { return _bufvec.get(); }
 
 private:
-    std::unique_ptr<fuse_bufvec> _bufvec;
+    FuseBufVecPtr _bufvec;
     RangePin _pin;
 };
 
@@ -40,8 +61,7 @@ private:
     if (count == 0) {
         return {};
     }
-    const std::size_t allocSize = sizeof(fuse_bufvec) + ((count - 1) * sizeof(fuse_buf));
-    std::unique_ptr<fuse_bufvec> fvec(reinterpret_cast<fuse_bufvec*>(new char[allocSize])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto fvec = AllocateFuseBufVec(count);
     fvec->count = count;
     fvec->idx = 0;
     fvec->off = 0;

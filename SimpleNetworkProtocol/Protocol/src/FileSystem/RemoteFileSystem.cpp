@@ -9,6 +9,7 @@
 #include "FuseReadFileJob.hpp"
 #include "FuseRequestTracker.hpp"
 #include "Logger.hpp"
+#include "ReleaseLeafRefJob.hpp"
 #include "RequestForgetMultiJob.hpp"
 #include "RequestGetAttrJob.hpp"
 #include "RequestLookupJob.hpp"
@@ -99,6 +100,11 @@ void RemoteFileSystem::FuseForget(fuse_req_t request, fuse_ino_t inode, std::uin
 
     fuse_forget_data forget = { .ino = inode, .nlookup = nlookup };
     scheduler->Schedule(std::make_unique<RequestForgetMultiJob>(request, std::span(&forget, 1)));
+    // Decrement client-side nlookup on _mainQueue so _selfPin / _orphans get
+    // released alongside the kernel forwarding above. Without this the local
+    // nlookup grows monotonically and orphan Leaves only get freed at
+    // ~FileTree.
+    scheduler->Schedule(std::make_unique<ReleaseLeafRefJob>(inode, nlookup));
 }
 
 void RemoteFileSystem::FuseForgetmulti(fuse_req_t request, size_t count, fuse_forget_data* forgets)
@@ -109,6 +115,11 @@ void RemoteFileSystem::FuseForgetmulti(fuse_req_t request, size_t count, fuse_fo
              << " count: " << count
              << " forgets: " << forgets;
 
+    // Capture the per-inode counts before scheduling RequestForgetMultiJob:
+    // its ctor rewrites forgets[i].ino in place to the server-side inode.
+    for (size_t i = 0; i < count; ++i) {
+        scheduler->Schedule(std::make_unique<ReleaseLeafRefJob>(forgets[i].ino, forgets[i].nlookup)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
     scheduler->Schedule(std::make_unique<RequestForgetMultiJob>(request, std::span(forgets, count)));
 }
 

@@ -18,11 +18,15 @@ ResponseInFuseNetworkJob::Message NotifyInvalInodeJob::ExecuteResponse(ITaskSche
     std::uint64_t serverInode = 0;
     reader >> serverInode;
 
-    const FileSystem::Leaf* const leaf = fileTree.FindLeafByServerInode(serverInode);
+    auto leaf = fileTree.FindLeafByServerInode(serverInode);
     if (leaf != nullptr) {
-        const auto clientInode = reinterpret_cast<fuse_ino_t>(leaf); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+        // The job holds the leaf shared_ptr itself — that keeps the Leaf
+        // alive across the dispatch hop to the cacheTreeQueue shard without
+        // needing to touch nlookup/_selfPin (which would force them into
+        // multi-thread access).
+        const auto clientInode = GetINode(*leaf);
         scheduler.ScheduleCacheTreeJob(std::make_unique<InvalidateCacheLeafJob>(
-            clientInode, static_cast<fuse_ino_t>(serverInode), RemoteFileSystem::session));
+            std::move(leaf), clientInode, RemoteFileSystem::session));
     }
 
     return GetFreeReadPackets();

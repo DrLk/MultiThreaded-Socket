@@ -29,8 +29,7 @@ TaskQueue::DiskJob::Data PrefixDiskReadFileCacheJob::ExecuteDisk(TaskQueue::ITas
     ZoneScopedN("PrefixDiskReadFileCacheJob::ExecuteDisk");
     const std::size_t prefixCount = _prefixData->count;
     const std::size_t totalCount = prefixCount + 1;
-    const std::size_t allocSize = sizeof(fuse_bufvec) + (prefixCount * sizeof(fuse_buf));
-    std::unique_ptr<fuse_bufvec> combined(reinterpret_cast<fuse_bufvec*>(new char[allocSize])); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto combined = FileSystem::FileCache::AllocateFuseBufVec(totalCount);
     combined->count = totalCount;
     combined->idx = 0;
     combined->off = 0;

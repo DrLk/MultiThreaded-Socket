@@ -154,6 +154,7 @@ void FileSystem::Start(std::stop_token stop)
 FileSystem::~FileSystem()
 {
     if (_session != nullptr) {
+        fuse_session_unmount(_session);
         fuse_session_destroy(_session);
     }
 }
@@ -327,8 +328,8 @@ void FileSystem::FuseReaddir(fuse_req_t req, fuse_ino_t inode, size_t size, off_
         BufferAddFile(req, &buffer, ".", currentINode);
         BufferAddFile(req, &buffer, "..", 1);
         for (const auto& [name, file] : directory.GetChildren()) {
-            auto inode = GetINode(file);
-            BufferAddFile(req, &buffer, file.GetName().c_str(), inode);
+            auto inode = GetINode(*file);
+            BufferAddFile(req, &buffer, file->GetName().c_str(), inode);
         }
 
         ReplyBufferLimited(req, buffer.p, buffer.size, off, size);

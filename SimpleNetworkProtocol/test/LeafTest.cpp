@@ -13,18 +13,18 @@ namespace {
 
 using FastTransport::FileSystem::Leaf;
 
-Leaf GetTestLeaf()
+std::shared_ptr<Leaf> GetTestLeaf()
 {
-    Leaf root("test", std::filesystem::file_type::directory, 0, nullptr);
+    auto root = std::make_shared<Leaf>("test", std::filesystem::file_type::directory, 0, nullptr);
 
-    root.AddChild(
+    root->AddChild(
             "folder1",
             std::filesystem::file_type::directory, 0)
         .AddChild(
             "file1",
             std::filesystem::file_type::regular, 100);
 
-    Leaf& folder2 = root.AddChild(
+    Leaf& folder2 = root->AddChild(
         "folder2",
         std::filesystem::file_type::directory, 0);
 
@@ -51,7 +51,7 @@ void CompareLeaf(const Leaf& left, const Leaf& right) // NOLINT(misc-no-recursio
             break;
         }
 
-        CompareLeaf(child, rightChild->second);
+        CompareLeaf(*child, *rightChild->second);
     }
 }
 
@@ -80,17 +80,17 @@ namespace FastTransport::FileSystem {
 
 TEST(LeafTest, LeafSerializationTest)
 {
-    const Leaf root = GetTestLeaf();
+    const auto root = GetTestLeaf();
 
     std::basic_stringstream<std::byte> stream;
     OutputByteStream<std::basic_stringstream<std::byte>> out(stream);
 
-    LeafSerializer::Serialize(root, out);
+    LeafSerializer::Serialize(*root, out);
 
     InputByteStream<std::basic_stringstream<std::byte>> input(stream);
-    const Leaf deserializedRoot = LeafSerializer::Deserialize(input, nullptr);
+    const auto deserializedRoot = LeafSerializer::Deserialize(input, nullptr);
 
-    CompareLeaf(root, deserializedRoot);
+    CompareLeaf(*root, *deserializedRoot);
 }
 
 TEST(LeafTest, LeafGetDataTest)
@@ -333,7 +333,7 @@ TEST(LeafTest, LeafAddDifferentRangeDataTest3)
 TEST(LeafTest, LeafAddIntersectionDataTest)
 {
     return;
-    Leaf root = GetTestLeaf();
+    Leaf root("test", std::filesystem::file_type::regular, 1024L * 1024, nullptr);
 
     Protocol::IPacket::List data;
     constexpr size_t PacketSize = 1300;

@@ -7,6 +7,7 @@
 #include "FileHandle.hpp"
 #include "Logger.hpp"
 #include "MessageType.hpp"
+#include "RemoteFileHandle.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -20,17 +21,17 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
     auto& reader = GetReader();
     fuse_req_t request = nullptr;
     fuse_ino_t inode = 0;
-    int file = 0;
+    FileSystem::RemoteFileHandle* remoteFile = nullptr;
     const FileSystem::FileHandle* handle = nullptr;
     reader >> request;
     reader >> inode;
-    reader >> file;
+    reader >> remoteFile;
     reader >> handle;
 
     writer << MessageType::ResponseRelease;
     writer << request;
 
-    int error = 0;
+    const int error = 0;
 
     auto& leaf = GetLeaf(inode, fileTree);
     leaf.ReleaseRef();
@@ -42,9 +43,9 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
         return {};
     }
 
-    if (close(file) == -1) {
-        error = errno;
-    }
+    // Owning RemoteFileHandle was created by ResponseOpenJob; closing it here
+    // releases the underlying file descriptor through ~NativeFile.
+    delete remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
 
     writer << error;
     writer << handle;

@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.25)
 option(ENABLE_PRECOMPILE_HEADERS "Enable Precompile Headers" ON)
 option(ENABLE_TRACY "Enable Tracy" OFF)
 option(ENABLE_TSAN "Enable Thread Sanitizer for tests" ON)
+option(ENABLE_ASAN "Enable Address Sanitizer for tests" OFF)
+option(ENABLE_UBSAN "Enable Undefined Behavior Sanitizer for tests" ON)
 
 project(SimpleNetworkProtocol)
 
@@ -17,7 +19,23 @@ else()
   set(TSAN_ACTIVE FALSE)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo" AND NOT TSAN_ACTIVE)
+if(ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(ASAN_ACTIVE TRUE)
+else()
+  set(ASAN_ACTIVE FALSE)
+endif()
+
+if(ENABLE_UBSAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(UBSAN_ACTIVE TRUE)
+else()
+  set(UBSAN_ACTIVE FALSE)
+endif()
+
+if(TSAN_ACTIVE AND ASAN_ACTIVE)
+  message(FATAL_ERROR "ENABLE_TSAN and ENABLE_ASAN are mutually exclusive")
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo" AND NOT TSAN_ACTIVE AND NOT ASAN_ACTIVE AND NOT UBSAN_ACTIVE)
   add_compile_options(-flto=thin)
   add_link_options(-flto=thin)
   if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "fuse-ld")
@@ -33,6 +51,16 @@ endif()
 if(TSAN_ACTIVE)
   add_compile_options(-fsanitize=thread)
   add_link_options(-fsanitize=thread)
+endif()
+
+if(ASAN_ACTIVE)
+  add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address)
+endif()
+
+if(UBSAN_ACTIVE)
+  add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=undefined)
 endif()
 
 if(LINUX)
@@ -86,7 +114,7 @@ if(ENABLE_TESTS)
   if(LINUX)
   target_link_libraries(SimpleNetworkProtocolTest PRIVATE FileSystem)
 endif()
-  if(NOT ENABLE_TSAN)
+  if(NOT TSAN_ACTIVE AND NOT ASAN_ACTIVE AND NOT UBSAN_ACTIVE)
     target_link_options(SimpleNetworkProtocolTest
         PRIVATE
         -static-libgcc

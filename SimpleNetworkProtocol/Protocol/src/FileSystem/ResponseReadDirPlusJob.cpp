@@ -71,15 +71,15 @@ ResponseFuseNetworkJob::Message ResponseReadDirPlusJob::ExecuteResponse(std::sto
     }
 
     for (; child != children.end() && writedSize + direcotoryWriter.GetEntryPlusSize(child->first) < size; ++inodeIndex, ++child) {
-        if (child->second.IsDeleted()) {
+        if (child->second->IsDeleted()) {
             continue;
         }
 
         struct stat stbuf {};
-        stat(child->second.GetFullPath().c_str(), &stbuf);
-        stbuf.st_ino = GetINode(child->second);
+        stat(child->second->GetFullPath().c_str(), &stbuf);
+        stbuf.st_ino = GetINode(*child->second);
         writedSize += direcotoryWriter.AddDirectoryEntryPlus(child->first, &stbuf, inodeIndex);
-        child->second.AddRef();
+        child->second->AddRef();
     }
 
     writer << direcotoryWriter.GetWritedPackets();
