@@ -26,8 +26,10 @@
 #include "IPacket.hpp"
 #include "InotifyWatcherJob.hpp"
 #include "Logger.hpp"
-#include "MessageTypeReadJob.hpp"
-#include "TaskScheduler.hpp"
+#include "ClientMessageTypeReadJob.hpp"
+#include "ServerMessageTypeReadJob.hpp"
+#include "ClientTaskScheduler.hpp"
+#include "ServerTaskScheduler.hpp"
 #include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;
@@ -37,9 +39,11 @@ using FastTransport::Protocol::FastTransportContext;
 using FastTransport::Protocol::IConnection;
 using FastTransport::Protocol::IPacket;
 using FastTransport::Protocol::UDPQueue;
-using FastTransport::TaskQueue::MessageTypeReadJob;
+using FastTransport::TaskQueue::ClientMessageTypeReadJob;
+using FastTransport::TaskQueue::ServerMessageTypeReadJob;
 using FastTransport::TaskQueue::RemoteFileSystem;
-using FastTransport::TaskQueue::TaskScheduler;
+using FastTransport::TaskQueue::ClientTaskScheduler;
+using FastTransport::TaskQueue::ServerTaskScheduler;
 
 namespace {
 
@@ -311,8 +315,8 @@ void RunServer(std::stop_token stop, uint16_t port, const char* root, const char
     srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
     srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
     FileTree fileTree(root, cacheDir);
-    TaskScheduler scheduler(*srcConnection, fileTree);
-    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    ServerTaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(ServerMessageTypeReadJob::Create(fileTree, IPacket::List()));
     scheduler.Wait(stop);
 }
 
@@ -326,8 +330,8 @@ void RunServerWithInotify(std::stop_token stop, uint16_t port, const char* root,
     srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
     srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
     FileTree fileTree(root, cacheDir);
-    TaskScheduler scheduler(*srcConnection, fileTree);
-    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    ServerTaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(ServerMessageTypeReadJob::Create(fileTree, IPacket::List()));
     scheduler.Schedule(std::make_unique<FastTransport::TaskQueue::InotifyWatcherJob>(root, fileTree, scheduler));
     scheduler.Wait(stop);
 }
@@ -445,8 +449,8 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
         // filesystem must outlive scheduler (scheduler's workers call fuse_reply_*).
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -521,8 +525,8 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
 
         FileTree fileTree("/tmp/rfs_client_tree2", CacheDir2);
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint2);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -583,8 +587,8 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
         FileTree fileTree("/tmp/rfs_client_tree3", CacheDir3);
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint3);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -736,8 +740,8 @@ void RunClientWithNotify(std::stop_token stop, uint16_t port, const char* mountP
 
     FileTree fileTree(serverRoot, cacheDir);
     auto filesystem = std::make_unique<RemoteFileSystem>(mountPoint);
-    auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-    scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+    scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
     RemoteFileSystem::scheduler = scheduler.get();
     filesystem->Init();
     RemoteFileSystem::session = filesystem->GetSession();

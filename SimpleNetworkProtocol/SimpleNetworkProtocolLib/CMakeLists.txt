@@ -32,9 +32,6 @@ include_directories(${COMMON_INCLUDES})
 
 add_library(SimpleNetworkProtocolLib ${SRC_FILES})
 target_link_libraries(SimpleNetworkProtocolLib PUBLIC Packet LockedList Logger Memory Tracy)
-if(LINUX)
-  target_link_libraries(SimpleNetworkProtocolLib PUBLIC Protocol)
-endif()
 
 if(WIN32)
   target_link_libraries(SimpleNetworkProtocolLib PRIVATE wsock32 ws2_32 )

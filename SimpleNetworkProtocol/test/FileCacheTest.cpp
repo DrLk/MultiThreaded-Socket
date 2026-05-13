@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 
@@ -77,7 +78,7 @@ TEST(FileTreeCacheTest, NeedsEvictionFalseUnderLimit)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, 100LL * 1024 * 1024);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     // 100 packets << MaxCachePackets (10000)
     auto data = MakePackets(100, 0);
@@ -90,7 +91,7 @@ TEST(FileTreeCacheTest, NeedsEvictionTrueOverLimit)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, 20LL * Leaf::BlockSize);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     // 12 blocks × 900 packets = 10800 > MaxCachePackets (10000)
     constexpr size_t PacketsPerBlock = 900;
@@ -116,7 +117,7 @@ TEST(FileTreeCacheTest, GetFreeDataDecrementsUntilUnderLimit)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, 20LL * Leaf::BlockSize);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     constexpr size_t PacketsPerBlock = 900;
     constexpr size_t BlockDataSize = PacketsPerBlock * 1400;
@@ -140,7 +141,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsStatusNotFound)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, 100LL * 1024 * 1024);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     auto data = MakePackets(1, 0);
     tree.AddData(inode, 0, 1400, std::move(data));
@@ -157,7 +158,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsCorrectSizeForFullBlock)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, static_cast<uintmax_t>(3 * Leaf::BlockSize));
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     auto data = MakePackets(100, 0);
     tree.AddData(inode, 0, 100ULL * 1400, std::move(data));
@@ -173,7 +174,7 @@ TEST(FileTreeCacheTest, GetFreeDataSetsCorrectSizeForLastBlock)
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular,
         static_cast<uintmax_t>(Leaf::BlockSize) + LastBlockBytes);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     // Add one packet to block 1 (last/partial block)
     auto data = MakePackets(1, 0);
@@ -189,7 +190,7 @@ TEST(FileTreeCacheTest, GetFreeDataEvictsOldestBlock)
 {
     FileTree tree("/tmp/test_cache_tree", "/tmp/test_cache_tree/cache");
     Leaf& file = tree.GetRoot().AddChild("file", std::filesystem::file_type::regular, 20LL * Leaf::BlockSize);
-    auto inode = reinterpret_cast<fuse_ino_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    auto inode = reinterpret_cast<std::uint64_t>(&file); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
 
     // Add data to blocks 0 and 2
     auto data0 = MakePackets(1, 0);
