@@ -37,12 +37,10 @@ void InotifyWatcherJob::ExecuteMainRead(std::stop_token stop, ITaskScheduler& /*
 
 void InotifyWatcherJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
-    auto* pointer = dynamic_cast<InotifyWatcherJob*>(job.get());
-    if (pointer == nullptr) {
-        return;
-    }
-    [[maybe_unused]] auto* released = job.release();
-    dynamic_cast<IServerTaskScheduler&>(scheduler).ScheduleInotifyWatcherJob(std::unique_ptr<InotifyWatcherJob>(pointer));
+    // See FuseNetworkJob::Accept for rationale on static_cast over dynamic_cast.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    std::unique_ptr<InotifyWatcherJob> typedJob(static_cast<InotifyWatcherJob*>(job.release()));
+    dynamic_cast<IServerTaskScheduler&>(scheduler).ScheduleInotifyWatcherJob(std::move(typedJob));
 }
 
 } // namespace FastTransport::TaskQueue

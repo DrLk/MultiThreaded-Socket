@@ -4,7 +4,6 @@
 #include <memory>
 #include <stop_token>
 
-#include "CacheTreeJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "FuseNetworkJob.hpp"
 #include "Logger.hpp"
@@ -27,16 +26,9 @@ ClientTaskScheduler::ClientTaskScheduler(IConnection& connection, FileTree& file
 
 ClientTaskScheduler::~ClientTaskScheduler() // NOLINT(bugprone-exception-escape)
 {
-    // Stop and join the cacheTree queues first — their workers may schedule
-    // onto common queues. Then drain the common queues BEFORE returning, so
-    // the vptr transition into ~TaskSchedulerBase happens with no live workers
-    // that could observe a half-changed vtable via virtual dispatch on `*this`.
-    for (auto& cacheQueue : _cacheTreeQueues) {
-        cacheQueue.RequestStop();
-    }
-    for (auto& cacheQueue : _cacheTreeQueues) {
-        cacheQueue.Join();
-    }
+    // Drain the common queues BEFORE returning so the vptr transition into
+    // ~TaskSchedulerBase happens with no live workers that could observe a
+    // half-changed vtable via virtual dispatch on `*this`.
     ShutdownCommonQueues();
 }
 
@@ -80,15 +72,6 @@ void ClientTaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<Respo
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
-    });
-}
-
-void ClientTaskScheduler::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
-{
-    const size_t idx = FileSystem::FileTree::ShardForInode(job->GetInode());
-    _cacheTreeQueues.at(idx).Async([job = std::move(job), this](std::stop_token stop) mutable {
-        ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
-        job->ExecuteCachedTree(*this, stop, _fileTree);
     });
 }
 

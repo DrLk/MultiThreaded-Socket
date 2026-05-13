@@ -38,6 +38,7 @@ public:
     void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) override;
     void ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job) override;
     void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) override;
+    void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) override;
     void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) override;
 
 protected:
@@ -47,6 +48,7 @@ protected:
     void ShutdownCommonQueues() noexcept;
 
     static constexpr size_t DiskThreadCount = 4;
+    static constexpr size_t CacheTreeThreadCount = FileSystem::FileTree::ShardCount;
 
     // Data members must be declared before queues so that queues (and their
     // worker threads) are destroyed first, before the data they access.
@@ -56,13 +58,16 @@ protected:
     Message _freeSendPackets;
     std::atomic<size_t> _nextDiskQueue { 0 };
 
-    // The destructor requests stop on all queues and joins all workers before
-    // any of these members are destroyed, so no worker can race with the
-    // LockedList destructors inside each TaskQueue.
+    // Common worker queues. Derived destructors call ShutdownCommonQueues()
+    // before returning so all workers are joined before these LockedList
+    // members are destroyed AND before the vptr transitions to the base.
     TaskQueue _writeNetworkQueue;
     TaskQueue _readNetworkQueue;
     TaskQueue _mainQueue;
     std::array<TaskQueue, DiskThreadCount> _diskQueues;
+    // CacheTreeJob is shard-affine by inode and used by both sides
+    // (server SetPieceOnDiskJob, client FuseReadFileJob/ApplyBlockCacheJob/etc.).
+    std::array<TaskQueue, CacheTreeThreadCount> _cacheTreeQueues;
 };
 
 } // namespace FastTransport::TaskQueue

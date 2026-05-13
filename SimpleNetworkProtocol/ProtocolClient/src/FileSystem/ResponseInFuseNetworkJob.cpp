@@ -14,8 +14,9 @@ namespace FastTransport::TaskQueue {
 
 void ResponseInFuseNetworkJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
-    auto* pointer = dynamic_cast<ResponseInFuseNetworkJob*>(job.release());
-    std::unique_ptr<ResponseInFuseNetworkJob> fuseNetworkJob(pointer);
+    // See FuseNetworkJob::Accept for rationale on static_cast over dynamic_cast.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    std::unique_ptr<ResponseInFuseNetworkJob> fuseNetworkJob(static_cast<ResponseInFuseNetworkJob*>(job.release()));
     dynamic_cast<IClientTaskScheduler&>(scheduler).ScheduleResponseInFuseNetworkJob(std::move(fuseNetworkJob));
 }
 

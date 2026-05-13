@@ -37,6 +37,7 @@ public:
     void ScheduleWriteNetworkJob(std::unique_ptr<FastTransport::TaskQueue::WriteNetworkJob>&& /*job*/) override { }
     void ScheduleReadNetworkJob(std::unique_ptr<FastTransport::TaskQueue::ReadNetworkJob>&& /*job*/) override { }
     void ScheduleDiskJob(std::unique_ptr<FastTransport::TaskQueue::DiskJob>&& /*job*/) override { }
+    void ScheduleCacheTreeJob(std::unique_ptr<FastTransport::TaskQueue::CacheTreeJob>&& /*job*/) override { }
     void ReturnFreeDiskPackets(IPacket::List&& /*packets*/) override { }
 };
 // NOLINTEND(cppcoreguidelines-rvalue-reference-param-not-moved)

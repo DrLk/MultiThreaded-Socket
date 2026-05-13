@@ -12,6 +12,7 @@ class ReadNetworkJob;
 class DiskJob;
 class MainJob;
 class MainReadJob;
+class CacheTreeJob;
 
 class ITaskScheduler {
 public:
@@ -30,6 +31,10 @@ public:
     virtual void ScheduleWriteNetworkJob(std::unique_ptr<WriteNetworkJob>&& job) = 0;
     virtual void ScheduleReadNetworkJob(std::unique_ptr<ReadNetworkJob>&& job) = 0;
     virtual void ScheduleDiskJob(std::unique_ptr<DiskJob>&& job) = 0;
+    // CacheTreeJob is used on both sides: client cache jobs (FuseReadFileJob,
+    // ApplyBlockCacheJob, ...) and server post-disk callbacks (SetPieceOnDiskJob)
+    // both need shard-affine dispatch by inode.
+    virtual void ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job) = 0;
     virtual void ReturnFreeDiskPackets(FastTransport::Protocol::IPacket::List&& packets) = 0;
 };
 

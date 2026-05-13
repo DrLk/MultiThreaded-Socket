@@ -20,8 +20,10 @@ namespace FastTransport::TaskQueue {
 
 void ResponseReadFileJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>&& job) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
-    auto* pointer = dynamic_cast<ResponseReadFileJob*>(job.release());
-    dynamic_cast<IServerTaskScheduler&>(scheduler).ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>(pointer));
+    // See FuseNetworkJob::Accept for rationale on static_cast over dynamic_cast.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    std::unique_ptr<ResponseReadFileJob> typedJob(static_cast<ResponseReadFileJob*>(job.release()));
+    dynamic_cast<IServerTaskScheduler&>(scheduler).ScheduleResponseReadDiskJob(std::move(typedJob));
 }
 
 ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& /*fileTree*/)

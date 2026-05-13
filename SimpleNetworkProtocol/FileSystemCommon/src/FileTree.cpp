@@ -9,19 +9,13 @@
 #include <utility>
 
 #include "FileCache/FileCache.hpp"
+#include "Inode.hpp"
 #include "Leaf.hpp"
 #include "Logger.hpp"
 
 #define TRACER() LOGGER() << "[FileTree] " // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace FastTransport::FileSystem {
-
-namespace {
-// Same value as FUSE_ROOT_ID from <fuse3/fuse_lowlevel.h>. Hardcoded so this
-// file does not require the FUSE headers; client and server-side FUSE code
-// uses FUSE_ROOT_ID directly.
-constexpr std::uint64_t RootInode = 1;
-} // namespace
 
 FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFolder)
     : _root(std::make_shared<Leaf>(std::move(name), std::filesystem::file_type::directory, 0, nullptr))

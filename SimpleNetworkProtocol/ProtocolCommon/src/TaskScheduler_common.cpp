@@ -7,6 +7,7 @@
 #include <mutex>
 #include <stop_token>
 
+#include "CacheTreeJob.hpp"
 #include "DiskJob.hpp"
 #include "FreeRecvPacketsJob.hpp"
 #include "ITaskScheduler.hpp"
@@ -46,6 +47,9 @@ void TaskSchedulerBase::ShutdownCommonQueues() noexcept
 {
     TRACER() << "Stopping TaskScheduler";
     // Phase 1: signal all common workers to stop.
+    for (auto& cacheQueue : _cacheTreeQueues) {
+        cacheQueue.RequestStop();
+    }
     for (auto& diskQueue : _diskQueues) {
         diskQueue.RequestStop();
     }
@@ -59,6 +63,9 @@ void TaskSchedulerBase::ShutdownCommonQueues() noexcept
     _mainQueue.Join();
     for (auto& diskQueue : _diskQueues) {
         diskQueue.Join();
+    }
+    for (auto& cacheQueue : _cacheTreeQueues) {
+        cacheQueue.Join();
     }
 }
 
@@ -127,6 +134,15 @@ void TaskSchedulerBase::ReturnFreeDiskPackets(Protocol::IPacket::List&& packets)
     const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
     _diskQueues.at(idx).Async([packets = std::move(packets), this, idx](std::stop_token /*stop*/) mutable {
         _freeDiskPackets.at(idx).splice(std::move(packets));
+    });
+}
+
+void TaskSchedulerBase::ScheduleCacheTreeJob(std::unique_ptr<CacheTreeJob>&& job)
+{
+    const size_t idx = FileSystem::FileTree::ShardForInode(job->GetInode());
+    _cacheTreeQueues.at(idx).Async([job = std::move(job), this](std::stop_token stop) mutable {
+        ZoneScopedN("TaskScheduler::ScheduleCacheTreeJob");
+        job->ExecuteCachedTree(*this, stop, _fileTree);
     });
 }
 

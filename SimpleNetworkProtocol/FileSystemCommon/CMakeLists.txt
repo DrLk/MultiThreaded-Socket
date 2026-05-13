@@ -30,6 +30,9 @@ target_include_directories(FileSystemCommon
         ${PROJECT_SOURCE_DIR}/include/FileCache
 )
 
+# Common itself does not link libfuse3 (no FUSE symbols are referenced from
+# its sources). The define is needed by ProtocolServer / FileSystemClient
+# headers that include <fuse3/...> for wire-format struct definitions.
 target_compile_definitions(FileSystemCommon PUBLIC
     FUSE_USE_VERSION=312
 )
