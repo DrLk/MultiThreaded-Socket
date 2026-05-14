@@ -38,20 +38,20 @@ ServerTaskScheduler::~ServerTaskScheduler() // NOLINT(bugprone-exception-escape)
 
 void ServerTaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<ResponseFuseNetworkJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    PostToMainQueue([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleResponseFuseNetworkJob");
-        if (_freeSendPackets.size() < 2500) {
+        if (FreeSendPackets().size() < 2500) {
             ZoneScopedN("ScheduleResponseFuseNetworkJob::Send2Wait");
-            auto freePackets = _connection.get().Send2(stop, IPacket::List());
-            _freeSendPackets.splice(std::move(freePackets));
+            auto freePackets = Connection().Send2(stop, IPacket::List());
+            FreeSendPackets().splice(std::move(freePackets));
         }
-        assert(!_freeSendPackets.empty());
+        assert(!FreeSendPackets().empty());
         static constexpr size_t MaxWriterPackets = 1100;
-        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+        auto writerPackets = FreeSendPackets().TryGenerate(MaxWriterPackets);
         Protocol::MessageWriter writer(std::move(writerPackets));
         Message freePackets = [&] {
             ZoneScopedN("ScheduleResponseFuseNetworkJob::ExecuteResponse");
-            return job->ExecuteResponse(stop, writer, _fileTree);
+            return job->ExecuteResponse(stop, writer, Tree());
         }();
         freePackets.splice(job->GetFreeReadPackets());
 
@@ -64,38 +64,37 @@ void ServerTaskScheduler::ScheduleResponseFuseNetworkJob(std::unique_ptr<Respons
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
-        _freeSendPackets.splice(writer.GetPackets());
-        TRACER() << "1freePackets.size(): " << _freeSendPackets.size();
+        FreeSendPackets().splice(writer.GetPackets());
+        TRACER() << "1freePackets.size(): " << FreeSendPackets().size();
     });
 }
 
 void ServerTaskScheduler::ScheduleResponseReadDiskJob(std::unique_ptr<ResponseReadFileJob>&& job)
 {
     // Phase 1 (mainQueue): allocate send packets — _freeSendPackets is mainQueue-only.
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    PostToMainQueue([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleResponseReadDiskJob::alloc");
         {
-            auto freePackets = _connection.get().TryGetFreeSendPackets();
-            _freeSendPackets.splice(std::move(freePackets));
+            auto freePackets = Connection().TryGetFreeSendPackets();
+            FreeSendPackets().splice(std::move(freePackets));
         }
         static constexpr size_t MaxWriterPackets = 1100;
         // Ensure we have at least MaxWriterPackets so GetDataPackets(1000) always
         // receives 1000 packets (headers consume 1 packet, leaving 1099 for data).
-        while (_freeSendPackets.size() < MaxWriterPackets) {
+        while (FreeSendPackets().size() < MaxWriterPackets) {
             ZoneScopedN("ScheduleResponseReadDiskJob::Send2Wait");
-            auto freePackets = _connection.get().Send2(stop, IPacket::List());
-            _freeSendPackets.splice(std::move(freePackets));
+            auto freePackets = Connection().Send2(stop, IPacket::List());
+            FreeSendPackets().splice(std::move(freePackets));
         }
-        assert(!_freeSendPackets.empty());
-        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+        assert(!FreeSendPackets().empty());
+        auto writerPackets = FreeSendPackets().TryGenerate(MaxWriterPackets);
 
         // Phase 2 (disk thread): perform the blocking file read.
-        const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
-        _diskQueues.at(idx).Async(
+        PostToDiskQueue(
             [job = std::move(job), writerPackets = std::move(writerPackets), this](std::stop_token diskStop) mutable {
                 ZoneScopedN("TaskScheduler::ScheduleResponseReadDiskJob::read");
                 Protocol::MessageWriter writer(std::move(writerPackets));
-                Message unusedDataPackets = job->ExecuteResponse(diskStop, writer, _fileTree);
+                Message unusedDataPackets = job->ExecuteResponse(diskStop, writer, Tree());
                 Message freeRecvPackets = job->GetFreeReadPackets();
 
                 auto writedPackets = writer.GetWritedPackets();
@@ -110,11 +109,11 @@ void ServerTaskScheduler::ScheduleResponseReadDiskJob(std::unique_ptr<ResponseRe
                 auto unusedPackets = writer.GetPackets();
                 unusedPackets.splice(std::move(unusedDataPackets));
                 if (!unusedPackets.empty()) {
-                    _mainQueue.Async([unusedPackets = std::move(unusedPackets), this](std::stop_token /*s*/) mutable {
+                    PostToMainQueue([unusedPackets = std::move(unusedPackets), this](std::stop_token /*s*/) mutable {
                         for (auto& packet : unusedPackets) {
                             packet->SetPayloadSize(Protocol::MaxPayloadSize);
                         }
-                        _freeSendPackets.splice(std::move(unusedPackets));
+                        FreeSendPackets().splice(std::move(unusedPackets));
                     });
                 }
             });

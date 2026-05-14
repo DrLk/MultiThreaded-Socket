@@ -35,7 +35,7 @@ public:
     std::future<void> Async(std::move_only_function<void(std::stop_token)>&& function) override;
 
     void RequestStop() noexcept { _workerThread.request_stop(); }
-    void Join()
+    void Join() noexcept
     {
         if (_workerThread.joinable()) {
             _workerThread.join();

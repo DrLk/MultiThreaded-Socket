@@ -20,7 +20,8 @@ Checks:               '*,
                       -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
                       -cert-dcl58-cpp,
                       -llvm-prefer-static-over-anonymous-namespace,
-                      -boost-use-ranges'
+                      -boost-use-ranges,
+                      -fuchsia-virtual-inheritance'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes

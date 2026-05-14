@@ -12,10 +12,10 @@
 #include "IPacket.hpp"
 #include "UDPQueue.hpp"
 
-#include "FileSystem/RemoteFileSystem.hpp"
-#include "FileTree.hpp"
 #include "ClientMessageTypeReadJob.hpp"
 #include "ClientTaskScheduler.hpp"
+#include "FileSystem/RemoteFileSystem.hpp"
+#include "FileTree.hpp"
 
 namespace {
 
@@ -26,8 +26,8 @@ using FastTransport::Protocol::IConnection;
 using FastTransport::Protocol::IPacket;
 using FastTransport::Protocol::UDPQueue;
 using FastTransport::TaskQueue::ClientMessageTypeReadJob;
-using FastTransport::TaskQueue::RemoteFileSystem;
 using FastTransport::TaskQueue::ClientTaskScheduler;
+using FastTransport::TaskQueue::RemoteFileSystem;
 
 void RunFuseClient(std::stop_token stop, std::string_view bindAddress, uint16_t bindPort, std::string_view mountPoint, std::string_view cacheDir)
 {
@@ -75,13 +75,14 @@ uint16_t ParsePort(std::string_view arg)
 
 int main(int argc, char** argv)
 try {
+    const auto args = std::span(argv, static_cast<std::size_t>(argc));
     // args: <bind_addr> <bind_port> <mount_point> <cache_dir>
-    if (argc < 5) {
-        std::cerr << "Usage: " << (argc > 0 ? argv[0] : "SimpleNetworkProtocolClient")
+    if (args.size() < 5) {
+        const std::string_view progName = args.empty() ? "SimpleNetworkProtocolClient" : args.front();
+        std::cerr << "Usage: " << progName
                   << " <bind_addr> <bind_port> <mount_point> <cache_dir>\n";
         return 1;
     }
-    auto args = std::span(argv, argc);
     const std::string_view bindAddress = args[1];
     const uint16_t bindPort = ParsePort(args[2]);
     const std::string_view mountPoint = args[3];

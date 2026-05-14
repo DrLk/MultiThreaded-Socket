@@ -8,9 +8,9 @@
 
 #include "FileTree.hpp"
 #include "ITaskScheduler.hpp"
-#include "WatchEventType.hpp"
 #include "Leaf.hpp"
 #include "RemoteFileSystem.hpp"
+#include "WatchEventType.hpp"
 
 namespace FastTransport::TaskQueue {
 

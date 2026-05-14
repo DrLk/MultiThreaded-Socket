@@ -20,15 +20,15 @@
 
 #include "jprocess.hpp"
 
+#include "ClientMessageTypeReadJob.hpp"
+#include "ClientTaskScheduler.hpp"
 #include "ConnectionAddr.hpp"
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "InotifyWatcherJob.hpp"
 #include "Logger.hpp"
-#include "ClientMessageTypeReadJob.hpp"
 #include "ServerMessageTypeReadJob.hpp"
-#include "ClientTaskScheduler.hpp"
 #include "ServerTaskScheduler.hpp"
 #include "UDPQueue.hpp"
 
@@ -40,9 +40,9 @@ using FastTransport::Protocol::IConnection;
 using FastTransport::Protocol::IPacket;
 using FastTransport::Protocol::UDPQueue;
 using FastTransport::TaskQueue::ClientMessageTypeReadJob;
-using FastTransport::TaskQueue::ServerMessageTypeReadJob;
-using FastTransport::TaskQueue::RemoteFileSystem;
 using FastTransport::TaskQueue::ClientTaskScheduler;
+using FastTransport::TaskQueue::RemoteFileSystem;
+using FastTransport::TaskQueue::ServerMessageTypeReadJob;
 using FastTransport::TaskQueue::ServerTaskScheduler;
 
 namespace {

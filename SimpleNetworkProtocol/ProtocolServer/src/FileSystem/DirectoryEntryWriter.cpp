@@ -20,9 +20,9 @@ namespace {
     // FUSE wire format requires every dir entry record to be padded to an 8-byte
     // boundary. Reimplemented locally so we don't have to link libfuse just for
     // fuse_add_direntry / fuse_add_direntry_plus.
-    constexpr std::size_t Align8(std::size_t v) noexcept
+    constexpr std::size_t Align8(std::size_t value) noexcept
     {
-        return (v + 7U) & ~static_cast<std::size_t>(7);
+        return (value + 7U) & ~static_cast<std::size_t>(7);
     }
 
     constexpr std::size_t DirentHeaderSize = offsetof(struct fuse_dirent, name);
@@ -69,37 +69,37 @@ namespace {
         const std::size_t entlen = DirentPlusHeaderSize + namelen;
         const std::size_t entlen_padded = Align8(entlen);
 
-        struct fuse_direntplus dp {};
+        struct fuse_direntplus entry {};
         if (stbuf != nullptr) {
-            dp.entry_out.nodeid = static_cast<std::uint64_t>(stbuf->st_ino);
-            dp.entry_out.generation = 0;
-            dp.entry_out.entry_valid = 1;
-            dp.entry_out.attr_valid = 1;
-            dp.entry_out.entry_valid_nsec = 0;
-            dp.entry_out.attr_valid_nsec = 0;
-            dp.entry_out.attr.ino = static_cast<std::uint64_t>(stbuf->st_ino);
-            dp.entry_out.attr.size = static_cast<std::uint64_t>(stbuf->st_size);
-            dp.entry_out.attr.blocks = static_cast<std::uint64_t>(stbuf->st_blocks);
-            dp.entry_out.attr.atime = static_cast<std::uint64_t>(stbuf->st_atim.tv_sec);
-            dp.entry_out.attr.mtime = static_cast<std::uint64_t>(stbuf->st_mtim.tv_sec);
-            dp.entry_out.attr.ctime = static_cast<std::uint64_t>(stbuf->st_ctim.tv_sec);
-            dp.entry_out.attr.atimensec = static_cast<std::uint32_t>(stbuf->st_atim.tv_nsec);
-            dp.entry_out.attr.mtimensec = static_cast<std::uint32_t>(stbuf->st_mtim.tv_nsec);
-            dp.entry_out.attr.ctimensec = static_cast<std::uint32_t>(stbuf->st_ctim.tv_nsec);
-            dp.entry_out.attr.mode = stbuf->st_mode;
-            dp.entry_out.attr.nlink = stbuf->st_nlink;
-            dp.entry_out.attr.uid = stbuf->st_uid;
-            dp.entry_out.attr.gid = stbuf->st_gid;
-            dp.entry_out.attr.rdev = static_cast<std::uint32_t>(stbuf->st_rdev);
-            dp.entry_out.attr.blksize = static_cast<std::uint32_t>(stbuf->st_blksize);
-            dp.entry_out.attr.flags = 0;
+            entry.entry_out.nodeid = static_cast<std::uint64_t>(stbuf->st_ino);
+            entry.entry_out.generation = 0;
+            entry.entry_out.entry_valid = 1;
+            entry.entry_out.attr_valid = 1;
+            entry.entry_out.entry_valid_nsec = 0;
+            entry.entry_out.attr_valid_nsec = 0;
+            entry.entry_out.attr.ino = static_cast<std::uint64_t>(stbuf->st_ino);
+            entry.entry_out.attr.size = static_cast<std::uint64_t>(stbuf->st_size);
+            entry.entry_out.attr.blocks = static_cast<std::uint64_t>(stbuf->st_blocks);
+            entry.entry_out.attr.atime = static_cast<std::uint64_t>(stbuf->st_atim.tv_sec);
+            entry.entry_out.attr.mtime = static_cast<std::uint64_t>(stbuf->st_mtim.tv_sec);
+            entry.entry_out.attr.ctime = static_cast<std::uint64_t>(stbuf->st_ctim.tv_sec);
+            entry.entry_out.attr.atimensec = static_cast<std::uint32_t>(stbuf->st_atim.tv_nsec);
+            entry.entry_out.attr.mtimensec = static_cast<std::uint32_t>(stbuf->st_mtim.tv_nsec);
+            entry.entry_out.attr.ctimensec = static_cast<std::uint32_t>(stbuf->st_ctim.tv_nsec);
+            entry.entry_out.attr.mode = stbuf->st_mode;
+            entry.entry_out.attr.nlink = stbuf->st_nlink;
+            entry.entry_out.attr.uid = stbuf->st_uid;
+            entry.entry_out.attr.gid = stbuf->st_gid;
+            entry.entry_out.attr.rdev = static_cast<std::uint32_t>(stbuf->st_rdev);
+            entry.entry_out.attr.blksize = static_cast<std::uint32_t>(stbuf->st_blksize);
+            entry.entry_out.attr.flags = 0;
         }
-        dp.dirent.ino = stbuf != nullptr ? static_cast<std::uint64_t>(stbuf->st_ino) : 0;
-        dp.dirent.off = off;
-        dp.dirent.namelen = static_cast<std::uint32_t>(namelen);
-        dp.dirent.type = stbuf != nullptr ? TypeFromMode(stbuf->st_mode) : 0;
+        entry.dirent.ino = stbuf != nullptr ? static_cast<std::uint64_t>(stbuf->st_ino) : 0;
+        entry.dirent.off = off;
+        entry.dirent.namelen = static_cast<std::uint32_t>(namelen);
+        entry.dirent.type = stbuf != nullptr ? TypeFromMode(stbuf->st_mode) : 0;
 
-        std::memcpy(buf, &dp, DirentPlusHeaderSize);
+        std::memcpy(buf, &entry, DirentPlusHeaderSize);
         std::memcpy(buf + DirentPlusHeaderSize, name.data(), namelen); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         if (entlen_padded > entlen) {
             std::memset(buf + entlen, 0, entlen_padded - entlen); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)

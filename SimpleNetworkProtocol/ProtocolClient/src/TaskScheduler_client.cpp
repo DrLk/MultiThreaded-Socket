@@ -34,15 +34,15 @@ ClientTaskScheduler::~ClientTaskScheduler() // NOLINT(bugprone-exception-escape)
 
 void ClientTaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    PostToMainQueue([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleFuseNetworkJob");
-        if (_freeSendPackets.empty()) {
-            auto freePackets = _connection.get().Send2(stop, IPacket::List());
-            _freeSendPackets.splice(std::move(freePackets));
+        if (FreeSendPackets().empty()) {
+            auto freePackets = Connection().Send2(stop, IPacket::List());
+            FreeSendPackets().splice(std::move(freePackets));
         }
-        assert(!_freeSendPackets.empty());
+        assert(!FreeSendPackets().empty());
         static constexpr size_t MaxWriterPackets = 1100;
-        auto writerPackets = _freeSendPackets.TryGenerate(MaxWriterPackets);
+        auto writerPackets = FreeSendPackets().TryGenerate(MaxWriterPackets);
         Protocol::MessageWriter writer(std::move(writerPackets));
         Message freePackets = job->ExecuteMain(stop, writer);
         freePackets.splice(job->GetFreeReadPackets());
@@ -56,17 +56,17 @@ void ClientTaskScheduler::ScheduleFuseNetworkJob(std::unique_ptr<FuseNetworkJob>
         if (!freePackets.empty()) {
             ScheduleReadNetworkJob(std::make_unique<FreeRecvPacketsJob>(std::move(freePackets)));
         }
-        _freeSendPackets.splice(writer.GetPackets());
-        TRACER() << "2freePackets.size(): " << _freeSendPackets.size();
+        FreeSendPackets().splice(writer.GetPackets());
+        TRACER() << "2freePackets.size(): " << FreeSendPackets().size();
     });
 }
 
 void ClientTaskScheduler::ScheduleResponseInFuseNetworkJob(std::unique_ptr<ResponseInFuseNetworkJob>&& job)
 {
-    _mainQueue.Async([job = std::move(job), this](std::stop_token stop) mutable {
+    PostToMainQueue([job = std::move(job), this](std::stop_token stop) mutable {
         ZoneScopedN("TaskScheduler::ScheduleResponseInFuseNetworkJob");
-        assert(!_freeSendPackets.empty());
-        Message freePackets = job->ExecuteResponse(*this, stop, _fileTree);
+        assert(!FreeSendPackets().empty());
+        Message freePackets = job->ExecuteResponse(*this, stop, Tree());
         freePackets.splice(job->GetFreeReadPackets());
 
         if (!freePackets.empty()) {

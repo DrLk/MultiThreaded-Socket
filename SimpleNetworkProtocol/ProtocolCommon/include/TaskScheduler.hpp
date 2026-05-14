@@ -47,6 +47,29 @@ protected:
     // the vptr transitions from the derived to the base class. Idempotent.
     void ShutdownCommonQueues() noexcept;
 
+    // Protected accessors so derived ScheduleXxx implementations can post to
+    // common queues and reach common state without exposing data members.
+    [[nodiscard]] IConnection& Connection() noexcept { return _connection.get(); }
+    [[nodiscard]] FileTree& Tree() noexcept { return _fileTree.get(); }
+    [[nodiscard]] Message& FreeSendPackets() noexcept { return _freeSendPackets; }
+
+    template <class Fn>
+    void PostToMainQueue(Fn&& task)
+    {
+        _mainQueue.Async(std::forward<Fn>(task));
+    }
+
+    // Dispatches `task` onto one of the disk queues using round-robin shard
+    // selection. Used by derived schedulers that need disk-side work outside
+    // the standard DiskJob path.
+    template <class Fn>
+    void PostToDiskQueue(Fn&& task)
+    {
+        const size_t idx = _nextDiskQueue.fetch_add(1, std::memory_order_relaxed) % DiskThreadCount;
+        _diskQueues.at(idx).Async(std::forward<Fn>(task));
+    }
+
+private:
     static constexpr size_t DiskThreadCount = 4;
     static constexpr size_t CacheTreeThreadCount = FileSystem::FileTree::ShardCount;
 

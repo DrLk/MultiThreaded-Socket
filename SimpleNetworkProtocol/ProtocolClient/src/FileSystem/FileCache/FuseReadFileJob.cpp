@@ -48,9 +48,7 @@ public:
         auto arrivedPin = std::move(_leaf->GetData(arrivedBlockOffset, static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize)).pin);
         auto requestPin = std::move(_leaf->GetData(requestBlockOffset, static_cast<size_t>(FastTransport::FileSystem::Leaf::BlockSize)).pin);
         // Null _request before passing it so Cancel() won't double-reply.
-        dynamic_cast<FastTransport::TaskQueue::IClientTaskScheduler&>(*_scheduler).ScheduleCacheTreeJob(std::make_unique<FastTransport::FileCache::FuseReadFileJob>(
-            std::exchange(_request, nullptr), _inode, _size, _offset, _remoteFile,
-            std::move(arrivedPin), std::move(requestPin)));
+        dynamic_cast<FastTransport::TaskQueue::IClientTaskScheduler&>(*_scheduler).ScheduleCacheTreeJob(std::make_unique<FastTransport::FileCache::FuseReadFileJob>(std::exchange(_request, nullptr), _inode, _size, _offset, _remoteFile, std::move(arrivedPin), std::move(requestPin)));
     }
 
     void Cancel() override

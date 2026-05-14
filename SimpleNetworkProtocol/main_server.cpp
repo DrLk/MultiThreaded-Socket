@@ -67,13 +67,14 @@ uint16_t ParsePort(std::string_view arg)
 
 int main(int argc, char** argv)
 try {
+    const auto args = std::span(argv, static_cast<std::size_t>(argc));
     // args: <bind_addr> <bind_port> <dst_addr> <dst_port> <share_dir> <cache_dir>
-    if (argc < 7) {
-        std::cerr << "Usage: " << (argc > 0 ? argv[0] : "SimpleNetworkProtocolServer")
+    if (args.size() < 7) {
+        const std::string_view progName = args.empty() ? "SimpleNetworkProtocolServer" : args.front();
+        std::cerr << "Usage: " << progName
                   << " <bind_addr> <bind_port> <dst_addr> <dst_port> <share_dir> <cache_dir>\n";
         return 1;
     }
-    auto args = std::span(argv, argc);
     const std::string_view srcAddress = args[1];
     const uint16_t srcPort = ParsePort(args[2]);
     const std::string_view dstAddress = args[3];

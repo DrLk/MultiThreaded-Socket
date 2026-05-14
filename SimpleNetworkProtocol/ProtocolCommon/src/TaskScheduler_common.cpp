@@ -45,7 +45,8 @@ TaskSchedulerBase::~TaskSchedulerBase() // NOLINT(bugprone-exception-escape)
 
 void TaskSchedulerBase::ShutdownCommonQueues() noexcept
 {
-    TRACER() << "Stopping TaskScheduler";
+    // No logging here — this runs from destructors and must be noexcept; the
+    // Logger may throw on allocation. Per-queue stop/join calls are noexcept.
     // Phase 1: signal all common workers to stop.
     for (auto& cacheQueue : _cacheTreeQueues) {
         cacheQueue.RequestStop();
