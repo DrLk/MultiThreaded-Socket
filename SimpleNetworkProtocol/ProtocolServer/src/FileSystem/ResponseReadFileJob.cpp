@@ -2,6 +2,7 @@
 #include <Tracy.hpp>
 
 #include <cassert>
+#include <cerrno>
 #include <cstddef>
 #include <memory>
 #include <stop_token>
@@ -12,6 +13,7 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 #include "RemoteFileHandle.hpp"
+#include "RemoteFileHandleRegistry.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -65,7 +67,18 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     }
     assert(size <= dataPackets.size() * dataPackets.front()->GetPayload().size());
 
-    Message readed = remoteFile->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset + skipped);
+    // Pin the handle through the disk read: a concurrent ResponseReleaseJob
+    // on the main queue may have already Take-n it from the registry, but its
+    // shared_ptr keeps the underlying file alive until we drop `handleOwner`.
+    auto handleOwner = RemoteFileHandleRegistry::Instance().Acquire(remoteFile);
+    if (handleOwner == nullptr) {
+        TRACER() << "handle already released, replying EBADF";
+        const int error = EBADF;
+        writer << error;
+        return dataPackets;
+    }
+
+    Message readed = handleOwner->file2->Read(dataPackets, dataPackets.size() * dataPackets.front()->GetPayload().size(), offset + skipped);
     int error = 0;
     if (readed.empty()) {
         TRACER() << "preadv failed";

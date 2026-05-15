@@ -8,6 +8,7 @@
 #include "MessageType.hpp"
 #include "NativeFile.hpp"
 #include "RemoteFileHandle.hpp"
+#include "RemoteFileHandleRegistry.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -43,7 +44,10 @@ ResponseFuseNetworkJob::Message ResponseOpenJob::ExecuteResponse(std::stop_token
 
     writer << 0; // No error
     writer << fileInfo;
-    auto* remoteFile = new FileSystem::RemoteFileHandle { std::move(file) }; // NOLINT(cppcoreguidelines-owning-memory)
+    // The registry owns the handle; the raw pointer goes on the wire as an
+    // opaque ID. See RemoteFileHandleRegistry.hpp for the UAF this avoids.
+    auto* remoteFile = RemoteFileHandleRegistry::Instance().Register(
+        std::make_shared<FileSystem::RemoteFileHandle>(FileSystem::RemoteFileHandle { std::move(file) }));
     writer << remoteFile;
 
     return {};

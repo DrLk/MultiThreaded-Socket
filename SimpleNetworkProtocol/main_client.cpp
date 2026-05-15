@@ -78,8 +78,7 @@ try {
     const auto args = std::span(argv, static_cast<std::size_t>(argc));
     // args: <bind_addr> <bind_port> <mount_point> <cache_dir>
     if (args.size() < 5) {
-        const std::string_view progName = args.empty() ? "SimpleNetworkProtocolClient" : args.front();
-        std::cerr << "Usage: " << progName
+        std::cerr << "Usage: " << args.front()
                   << " <bind_addr> <bind_port> <mount_point> <cache_dir>\n";
         return 1;
     }

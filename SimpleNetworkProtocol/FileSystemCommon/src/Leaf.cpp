@@ -142,6 +142,19 @@ void Leaf::DropPinsRecursively() noexcept
     while (!queue.empty()) {
         Leaf* current = queue.back();
         queue.pop_back();
+        const std::uint64_t nlookup = current->_nlookup.load(std::memory_order_relaxed);
+        if (nlookup != 0 && current->_selfPin != nullptr) {
+            // Pin-balance violation: kernel still believes it holds references
+            // but we're tearing the tree down. Indicates lost forget delivery.
+            try {
+                TRACER() << "DropPinsRecursively: " << current->GetFullPath()
+                         << " still has nlookup=" << nlookup << " at shutdown";
+            } catch (...) { // NOLINT(bugprone-empty-catch)
+                // Logging is best-effort here: DropPinsRecursively is noexcept
+                // and runs during shutdown, so a throwing logger must not
+                // propagate or terminate the process.
+            }
+        }
         current->_selfPin.reset();
         for (auto& [name, child] : current->children) {
             queue.push_back(child.get());
@@ -159,7 +172,6 @@ void Leaf::ReleaseRef(uint64_t nlookup) const
     assert(prev >= nlookup);
     if (prev == nlookup) {
         const std::shared_ptr<const Leaf> released = std::move(_selfPin);
-        // released is destroyed here at end of function scope.
     }
 }
 

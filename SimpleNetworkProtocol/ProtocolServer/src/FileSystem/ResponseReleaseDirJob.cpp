@@ -8,6 +8,7 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 #include "RemoteFileHandle.hpp"
+#include "RemoteFileHandleRegistry.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -37,8 +38,13 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
     auto& leaf = GetLeaf(inode, fileTree);
     leaf.ReleaseRef();
 
+    // Take the registry's owning shared_ptr. Even though dir handles are
+    // never used off the main queue today, going through the registry keeps
+    // ownership symmetric with file handles and avoids a double-free if a
+    // disk path is ever added for directories.
+    auto owner = RemoteFileHandleRegistry::Instance().Take(remoteFile);
+
     if (inode == FUSE_ROOT_ID) {
-        delete remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
         writer << error;
         writer << fileHandle;
         return {};
@@ -50,7 +56,6 @@ ResponseFuseNetworkJob::Message ResponseReleaseDirJob::ExecuteResponse(std::stop
         return {};
     }
 
-    delete remoteFile; // NOLINT(cppcoreguidelines-owning-memory)
     writer << error;
     writer << fileHandle;
 

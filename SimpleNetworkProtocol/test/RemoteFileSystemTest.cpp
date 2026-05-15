@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <spawn.h>
 #include <stop_token>
 #include <sys/wait.h>
 #include <thread>
@@ -144,21 +145,25 @@ void CreateTestTree()
 // ── mount / directory helpers ─────────────────────────────────────────────────
 
 // Runs fusermount3 -u in a child process so unmounting works from a thread/process
-// that did not mount the filesystem.
+// that did not mount the filesystem. Uses posix_spawn (not fork) — under TSAN
+// a fork() from a non-main thread deadlocks against ScopedErrorReportLock if a
+// data-race report is in flight on another thread. posix_spawn goes through
+// clone3+CLONE_VFORK and skips the at-fork handlers entirely.
 void RunFusermount(const char* mountPoint, const char* flag)
 {
-    const pid_t pid = fork();
-    if (pid == 0) {
-        std::string prog = "fusermount3";
-        std::string arg1 = flag;
-        std::string arg2 = mountPoint;
-        std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
-        execvp(args[0], args.data());
-        _exit(1);
+    std::string prog = "fusermount3";
+    std::string arg1 = flag;
+    std::string arg2 = mountPoint;
+    std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
+
+    pid_t pid = 0;
+    // ::environ is declared in <unistd.h>; we leave envp as the parent's
+    // environment so PATH is inherited and fusermount3 is found.
+    const int spawnResult = posix_spawnp(&pid, args[0], nullptr, nullptr, args.data(), ::environ);
+    if (spawnResult != 0) {
+        return;
     }
-    if (pid > 0) {
-        waitpid(pid, nullptr, 0);
-    }
+    waitpid(pid, nullptr, 0);
 }
 
 void UnmountAt(const char* mountPoint)
