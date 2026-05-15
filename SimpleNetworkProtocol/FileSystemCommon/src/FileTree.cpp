@@ -26,24 +26,24 @@ FileTree::FileTree(std::filesystem::path&& name, std::filesystem::path&& cacheFo
 }
 
 namespace {
-// Walk the subtree rooted at `root` and point every Leaf's _tree at `tree`.
-// Used by FileTree's move ctor/assignment: children copy _tree from their
-// parent at AddChild time, so after a move the descendants still reference
-// the moved-from FileTree. Without this rebind, any RegisterLeaf/
-// UnregisterLeaf from a non-root Leaf would land on the empty moved-from
-// index.
-void RebindSubtreeTree(Leaf& root, FileTree* tree) noexcept
-{
-    std::vector<Leaf*> queue { &root };
-    while (!queue.empty()) {
-        Leaf* current = queue.back();
-        queue.pop_back();
-        current->SetTree(tree);
-        for (const auto& [name, child] : current->GetChildren()) {
-            queue.push_back(child.get());
+    // Walk the subtree rooted at `root` and point every Leaf's _tree at `tree`.
+    // Used by FileTree's move ctor/assignment: children copy _tree from their
+    // parent at AddChild time, so after a move the descendants still reference
+    // the moved-from FileTree. Without this rebind, any RegisterLeaf/
+    // UnregisterLeaf from a non-root Leaf would land on the empty moved-from
+    // index.
+    void RebindSubtreeTree(Leaf& root, FileTree* tree) noexcept
+    {
+        std::vector<Leaf*> queue { &root };
+        while (!queue.empty()) {
+            Leaf* current = queue.back();
+            queue.pop_back();
+            current->SetTree(tree);
+            for (const auto& [name, child] : current->GetChildren()) {
+                queue.push_back(child.get());
+            }
         }
     }
-}
 } // namespace
 
 FileTree::FileTree(FileTree&& that) noexcept
