@@ -13,7 +13,6 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 #include "RemoteFileHandle.hpp"
-#include "RemoteFileHandleRegistry.hpp"
 #include "ResponseFuseNetworkJob.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReadFileJob] " // NOLINT(cppcoreguidelines-macro-usage)
@@ -28,7 +27,7 @@ void ResponseReadFileJob::Accept(ITaskScheduler& scheduler, std::unique_ptr<Job>
     dynamic_cast<IServerTaskScheduler&>(scheduler).ScheduleResponseReadDiskJob(std::move(typedJob));
 }
 
-ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& /*fileTree*/)
+ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_token /*stop*/, Writer& writer, FileTree& fileTree)
 {
     ZoneScopedN("ResponseReadFileJob::ExecuteResponse");
     fuse_req_t request = nullptr;
@@ -70,7 +69,7 @@ ResponseFuseNetworkJob::Message ResponseReadFileJob::ExecuteResponse(std::stop_t
     // Pin the handle through the disk read: a concurrent ResponseReleaseJob
     // on the main queue may have already Take-n it from the registry, but its
     // shared_ptr keeps the underlying file alive until we drop `handleOwner`.
-    auto handleOwner = RemoteFileHandleRegistry::Instance().Acquire(remoteFile);
+    auto handleOwner = fileTree.GetRemoteFileHandleRegistry().Acquire(remoteFile);
     if (handleOwner == nullptr) {
         TRACER() << "handle already released, replying EBADF";
         const int error = EBADF;

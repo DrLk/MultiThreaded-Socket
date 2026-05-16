@@ -4,15 +4,9 @@
 #include <mutex>
 #include <utility>
 
-namespace FastTransport::TaskQueue {
+namespace FastTransport::FileSystem {
 
-RemoteFileHandleRegistry& RemoteFileHandleRegistry::Instance()
-{
-    static RemoteFileHandleRegistry instance;
-    return instance;
-}
-
-FileSystem::RemoteFileHandle* RemoteFileHandleRegistry::Register(std::shared_ptr<FileSystem::RemoteFileHandle> handle)
+RemoteFileHandle* RemoteFileHandleRegistry::Register(std::shared_ptr<RemoteFileHandle> handle)
 {
     auto* raw = handle.get();
     const std::scoped_lock lock(_mutex);
@@ -20,7 +14,7 @@ FileSystem::RemoteFileHandle* RemoteFileHandleRegistry::Register(std::shared_ptr
     return raw;
 }
 
-std::shared_ptr<FileSystem::RemoteFileHandle> RemoteFileHandleRegistry::Acquire(FileSystem::RemoteFileHandle* raw)
+std::shared_ptr<RemoteFileHandle> RemoteFileHandleRegistry::Acquire(RemoteFileHandle* raw)
 {
     const std::scoped_lock lock(_mutex);
     auto entry = _handles.find(raw);
@@ -30,7 +24,7 @@ std::shared_ptr<FileSystem::RemoteFileHandle> RemoteFileHandleRegistry::Acquire(
     return entry->second;
 }
 
-std::shared_ptr<FileSystem::RemoteFileHandle> RemoteFileHandleRegistry::Take(FileSystem::RemoteFileHandle* raw)
+std::shared_ptr<RemoteFileHandle> RemoteFileHandleRegistry::Take(RemoteFileHandle* raw)
 {
     const std::scoped_lock lock(_mutex);
     auto entry = _handles.find(raw);
@@ -42,4 +36,4 @@ std::shared_ptr<FileSystem::RemoteFileHandle> RemoteFileHandleRegistry::Take(Fil
     return owner;
 }
 
-} // namespace FastTransport::TaskQueue
+} // namespace FastTransport::FileSystem

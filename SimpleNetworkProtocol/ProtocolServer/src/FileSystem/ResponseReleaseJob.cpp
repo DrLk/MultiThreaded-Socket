@@ -8,7 +8,6 @@
 #include "Logger.hpp"
 #include "MessageType.hpp"
 #include "RemoteFileHandle.hpp"
-#include "RemoteFileHandleRegistry.hpp"
 
 #define TRACER() LOGGER() << "[ResponseReleaseJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -48,7 +47,7 @@ ResponseFuseNetworkJob::Message ResponseReleaseJob::ExecuteResponse(std::stop_to
     // disk thread still holds an Acquire'd copy, ~RemoteFileHandle is
     // deferred until that copy drops. Dropping `owner` here is the normal
     // path that closes the underlying file descriptor via ~NativeFile.
-    auto owner = RemoteFileHandleRegistry::Instance().Take(remoteFile);
+    auto owner = fileTree.GetRemoteFileHandleRegistry().Take(remoteFile);
 
     writer << error;
     writer << handle;

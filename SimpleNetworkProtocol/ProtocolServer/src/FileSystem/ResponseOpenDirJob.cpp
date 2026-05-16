@@ -10,7 +10,6 @@
 #include "MessageType.hpp"
 #include "NativeFile.hpp"
 #include "RemoteFileHandle.hpp"
-#include "RemoteFileHandleRegistry.hpp"
 
 #define TRACER() LOGGER() << "[ResponseOpenDirJob] " // NOLINT(cppcoreguidelines-macro-usage)
 
@@ -45,8 +44,8 @@ ResponseFuseNetworkJob::Message ResponseOpenDirJob::ExecuteResponse(std::stop_to
 
     writer << 0; // No error
     writer << fileInfo;
-    auto* remoteFile = RemoteFileHandleRegistry::Instance().Register(
-        std::make_shared<FileSystem::RemoteFileHandle>(FileSystem::RemoteFileHandle { std::move(file) }));
+    auto* remoteFile = fileTree.GetRemoteFileHandleRegistry().Register(
+        std::make_shared<FileSystem::RemoteFileHandle>(std::move(file)));
     writer << remoteFile;
 
     return {};

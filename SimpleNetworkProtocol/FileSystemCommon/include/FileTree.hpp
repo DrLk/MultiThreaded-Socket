@@ -13,6 +13,7 @@
 
 #include "FileCache/BufferView.hpp"
 #include "IPacket.hpp"
+#include "RemoteFileHandleRegistry.hpp"
 
 namespace FastTransport::FileSystem {
 
@@ -76,6 +77,12 @@ public:
 
     FileCache::FileCache& GetFileCache();
 
+    // Per-FileTree registry that owns server-side RemoteFileHandles via
+    // shared_ptr. Unused on the client side (client never opens server-side
+    // file handles). Kept here rather than on the scheduler because file
+    // handles are filesystem-level state — peers of the inode index.
+    RemoteFileHandleRegistry& GetRemoteFileHandleRegistry() noexcept { return _remoteFileHandleRegistry; }
+
     // Returns nullptr if the inode is unknown OR if the corresponding Leaf has
     // already been destroyed (the index holds weak_ptrs, so a stale entry that
     // somehow outlived the Leaf surfaces cleanly as expired weak_ptr instead
@@ -112,6 +119,7 @@ private:
     std::array<std::unordered_map<std::uint64_t, int>, ShardCount> _cachePerShard;
     std::atomic<int> _grandTotalCachedPackets { 0 };
     FileCachePtr _fileCache;
+    RemoteFileHandleRegistry _remoteFileHandleRegistry;
 
     void Scan(const std::filesystem::path& directoryPath, Leaf& root);
 };

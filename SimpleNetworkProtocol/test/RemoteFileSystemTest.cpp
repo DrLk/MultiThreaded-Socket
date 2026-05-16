@@ -1129,4 +1129,137 @@ TEST(RemoteFileSystemTest, LeafLifetimeRaceUnderChurn)
     EXPECT_TRUE(testResult) << "LeafLifetime race churn test did not complete cleanly";
 }
 
+// Regression test for the RemoteFileHandle UAF (see RemoteFileHandleRegistry.hpp):
+// the server schedules Reads on a disk queue while Releases run on the main
+// queue, so a Release that lands between a Read's main-queue allocation phase
+// and its disk-queue execution phase used to free the handle the disk thread
+// was about to dereference. Many concurrent open/pread/close cycles on the
+// same file maximise overlap between in-flight Reads and Releases for the
+// SAME RemoteFileHandle. Under TSan/ASan this exercises the registry's
+// Acquire/Take handoff; any regression that drops a handle while a Read is
+// mid-flight surfaces as a UAF or a data race.
+namespace {
+
+constexpr uint16_t ServerPort8 = 32500;
+constexpr uint16_t ClientPort8 = 32600;
+constexpr const char* MountPoint8 = "/tmp/mnt_read_release";
+constexpr const char* CacheDir8 = "/tmp/read_release_cache";
+constexpr const char* ServerRoot8 = "/tmp/read_release_server";
+constexpr const char* ReadReleaseFileName = "data.bin";
+constexpr size_t ReadReleaseFileSize = 8ULL * 1024 * 1024; // 8 MB — large enough that a pread spans several disk-queue dispatches.
+
+constexpr int ReadReleaseWorkerCount = 4;
+constexpr int ReadReleaseIterations = 20;
+
+bool ReadReleaseWorkerLoop(const std::string& mountFile)
+{
+    // Each iteration: open → pread (forces a server-side Read on the disk
+    // queue) → close (server-side Release on the main queue). The fd lives
+    // only for the duration of the pread, so the Release frequently races
+    // the Read's disk-thread execution.
+    std::vector<char> buf(64UL * 1024);
+    for (int it = 0; it < ReadReleaseIterations; ++it) {
+        const int fileDescriptor = open(mountFile.c_str(), O_RDONLY | O_CLOEXEC); // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        if (fileDescriptor < 0) {
+            std::cerr << "[test] open failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            return false;
+        }
+        // Read from a pseudo-random offset so kernel page-cache hits don't
+        // short-circuit the FUSE round-trip on every iteration.
+        const auto offset = static_cast<off_t>((static_cast<size_t>(it) * 131072) % (ReadReleaseFileSize - buf.size()));
+        const ssize_t got = pread(fileDescriptor, buf.data(), buf.size(), offset);
+        if (got < 0) {
+            std::cerr << "[test] pread failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            close(fileDescriptor);
+            return false;
+        }
+        // Close immediately — Release lands on the server while the Read
+        // reply is still being assembled / drained.
+        if (close(fileDescriptor) != 0) {
+            std::cerr << "[test] close failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ReadReleaseRaceBody(const char* mountPoint)
+{
+    const std::string mountFile = std::string(mountPoint) + "/" + ReadReleaseFileName;
+
+    // Warmup: a single open/stat seeds the server-side Leaf so all worker
+    // opens hit a steady-state path.
+    {
+        jprocess warmup([&mountFile](jprocess::stop_token /*s*/) -> bool {
+            struct stat statBuf {};
+            return stat(mountFile.c_str(), &statBuf) == 0 && std::cmp_equal(statBuf.st_size, ReadReleaseFileSize);
+        });
+        if (!warmup.join()) {
+            std::cerr << "[test] read_release warmup stat failed\n";
+            return false;
+        }
+    }
+
+    std::vector<std::jthread> workers;
+    workers.reserve(ReadReleaseWorkerCount);
+    std::atomic<int> failures { 0 };
+    for (int idx = 0; idx < ReadReleaseWorkerCount; ++idx) {
+        workers.emplace_back([&mountFile, &failures] {
+            if (!ReadReleaseWorkerLoop(mountFile)) {
+                failures.fetch_add(1, std::memory_order_relaxed);
+            }
+        });
+    }
+    for (auto& thread : workers) {
+        thread.join();
+    }
+    // Drain any in-flight Release responses still being routed back through
+    // the client → unmount before they land would trip FUSE_ASSERT_REPLY on
+    // an already-torn-down session.
+    std::this_thread::sleep_for(500ms);
+    return failures.load(std::memory_order_relaxed) == 0;
+}
+
+} // namespace
+
+TEST(RemoteFileSystemTest, ReadReleaseRaceUnderChurn)
+{
+    std::filesystem::remove_all(ServerRoot8);
+    std::filesystem::create_directories(ServerRoot8);
+    CreateTestFileAt(std::filesystem::path(ServerRoot8) / ReadReleaseFileName, ReadReleaseFileSize, 7);
+    PrepareTestDirectories(MountPoint8, CacheDir8);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServer(stop, ServerPort8, ServerRoot8, CacheDir8);
+    });
+
+    std::this_thread::sleep_for(50ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort8, MountPoint8, CacheDir8, ServerRoot8, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                return ReadReleaseRaceBody(mountPoint);
+            });
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + 120s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        std::cerr << "[shutdown] read_release deadline exceeded\n";
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint8);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "Read/Release race churn test did not complete cleanly";
+}
+
 #endif // __linux__
