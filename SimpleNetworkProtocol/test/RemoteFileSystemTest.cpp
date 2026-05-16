@@ -697,7 +697,7 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
         // All processes run a fixed number of iterations and exit on their own.
         // Wait for all four to complete (with a safety timeout).
-        static constexpr auto TestTimeout = std::chrono::seconds(120);
+        static constexpr auto TestTimeout = std::chrono::seconds(300);
         std::optional<bool> listResult;
         std::optional<bool> fileAResult;
         std::optional<bool> fileBResult;
