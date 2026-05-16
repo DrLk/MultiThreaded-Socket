@@ -20,6 +20,21 @@ MessageWriter::MessageWriter(IPacket::List&& packets)
     : _packets(std::move(packets))
     , _packet(_packets.begin())
 {
+    // The writer treats every packet under its iterator (`_packet`) as if it
+    // has the full MaxPayloadSize byte buffer to write into. Callers can hand
+    // us packets that arrived with a shorter `payload_size` stored in the
+    // header (e.g. the trailing short-read packet from a previous response was
+    // returned to the free pool without a reset). Normalise here so the
+    // invariant `_offset <= GetPayload().size()` holds for every packet we
+    // iterate over.
+    NormalizeCurrentPacket();
+}
+
+void MessageWriter::NormalizeCurrentPacket()
+{
+    if (_packet != _packets.end()) {
+        (*_packet)->SetPayloadSize(MaxPayloadSize);
+    }
 }
 
 MessageWriter::MessageWriter(MessageWriter&&) noexcept = default;
@@ -55,6 +70,7 @@ MessageWriter& MessageWriter::operator<<(IPacket::List&& packets) // NOLINT(fuch
         _packets.splice(std::move(freePackets));
     }
     _packet++;
+    NormalizeCurrentPacket();
 
     _offset = 0;
 
@@ -137,6 +153,16 @@ IPacket::List MessageWriter::GetDataPackets(std::size_t size)
         _packets.splice(std::move(freePackets));
     }
 
+    // Callers (ResponseReadFileJob) compute available capacity as
+    // `result.size() * result.front()->GetPayload().size()` and assert against
+    // it. The header-stored payload size on a "free" packet should always be
+    // MaxPayloadSize, but stale values can leak in from any path that returns
+    // a packet to the send pool without resetting. Normalise here so the
+    // contract — "data packets have MaxPayloadSize buffers" — holds.
+    for (auto& packet : result) {
+        packet->SetPayloadSize(MaxPayloadSize);
+    }
+
     return result;
 }
 void MessageWriter::AddFreePackets(IPacket::List&& freePackets)
@@ -156,6 +182,7 @@ IPacket& MessageWriter::GetNextPacket()
     assert(_packet != _packets.end());
 
     _offset = 0;
+    NormalizeCurrentPacket();
 
     return **_packet;
 }

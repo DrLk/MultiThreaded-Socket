@@ -42,6 +42,12 @@ public:
 private:
     IPacket& GetPacket();
     IPacket& GetNextPacket();
+    // Force the packet currently under `_packet` to advertise its full
+    // MaxPayloadSize buffer. The writer's `_offset` advances against
+    // `GetPayload().size()`; if a packet enters the writer with a stale
+    // shorter size in its header, that arithmetic underflows and the next
+    // `subspan(_offset)` call asserts in libstdc++ debug mode.
+    void NormalizeCurrentPacket();
 
     IPacket::List _packets;
     IPacket::List::Iterator _packet;
