@@ -176,6 +176,38 @@ void LazyUnmountAt(const char* mountPoint)
     RunFusermount(mountPoint, "-uz");
 }
 
+// `fusermount3 -uz` only detaches the mount point (`umount2(MNT_DETACH)`); it
+// returns ENODEV to *new* syscalls but leaves any thread already blocked inside
+// an in-flight FUSE request waiting forever for a reply that no longer comes
+// (the daemon side has been torn down). Writing 1 to a connection's `abort`
+// file fails all queued and in-flight requests with ECONNABORTED, unblocking
+// any process stuck in pread/write/etc. Used in test stuck-recovery paths.
+void AbortAllFuseConnections()
+{
+    DIR* dir = opendir("/sys/fs/fuse/connections");
+    if (dir == nullptr) {
+        return;
+    }
+    while (struct dirent* entry = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
+        const std::string_view name(entry->d_name);
+        if (name == "." || name == "..") {
+            continue;
+        }
+        const std::string abortPath = "/sys/fs/fuse/connections/" + std::string(name) + "/abort";
+        const int abortFd = open(abortPath.c_str(), O_WRONLY | O_CLOEXEC); // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        if (abortFd < 0) {
+            continue;
+        }
+        const char one = '1';
+        // Ignore write errors: the connection may have already been torn down by
+        // another path in the same teardown.
+        [[maybe_unused]] const ssize_t written = write(abortFd, &one, 1);
+        close(abortFd);
+    }
+    closedir(dir);
+}
+
 void PrepareTestDirectories(const char* mountPoint, const char* cacheDir)
 {
     UnmountAt(mountPoint); // clean up any leftover mount from a previous run
@@ -665,6 +697,12 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
             procFileA.request_stop();
             procFileB.request_stop();
             procRoot.request_stop();
+            // Stuck syscalls inside the children are blocked in the kernel
+            // waiting for a FUSE reply. Stopping the session / scheduler can't
+            // wake them — we need to abort the FUSE connection so the kernel
+            // fails them with ECONNABORTED. Do this BEFORE tearing down the
+            // session so the children unblock while waitpid is still pending.
+            AbortAllFuseConnections();
             filesystem->RequestStopAndWait();
             scheduler.reset();
             fileTree.CancelAllPendingJobs();
@@ -712,6 +750,9 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
         std::cerr << "[shutdown] deadline exceeded\n";
         stopSource.request_stop();
         LazyUnmountAt(MountPoint3);
+        // Lazy unmount only detaches; in-flight FUSE syscalls in stuck child
+        // processes need an explicit abort to fail and let waitpid return.
+        AbortAllFuseConnections();
         std::cerr << "[shutdown] lazy unmount done\n";
     }
 
