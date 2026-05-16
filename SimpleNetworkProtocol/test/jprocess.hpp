@@ -88,6 +88,8 @@ public:
 
     [[nodiscard]] stop_token get_stop_token() noexcept;
 
+    [[nodiscard]] pid_t pid() const noexcept { return pid_; }
+
 private:
     void stopAndJoin() noexcept;
     void freeSharedMemory() noexcept;
