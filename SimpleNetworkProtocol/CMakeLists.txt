@@ -64,27 +64,50 @@ if(UBSAN_ACTIVE)
 endif()
 
 if(LINUX)
-if (NOT TARGET FileSystem)
-  add_subdirectory(FileSystem)
+if (NOT TARGET FileSystemCommon)
+  add_subdirectory(FileSystemCommon)
 endif()
-if (NOT TARGET Protocol)
-  add_subdirectory(Protocol)
+if (NOT TARGET FileSystemServer)
+  add_subdirectory(FileSystemServer)
+endif()
+if (NOT TARGET FileSystemClient)
+  add_subdirectory(FileSystemClient)
+endif()
+if (NOT TARGET ProtocolCommon)
+  add_subdirectory(ProtocolCommon)
+endif()
+if (NOT TARGET ProtocolServer)
+  add_subdirectory(ProtocolServer)
+endif()
+if (NOT TARGET ProtocolClient)
+  add_subdirectory(ProtocolClient)
 endif()
 if (NOT TARGET SimpleNetworkProtocolLib)
   add_subdirectory(SimpleNetworkProtocolLib)
 endif()
 endif()
 
-add_executable(SimpleNetworkProtocol main.cpp)
-
-target_link_libraries(SimpleNetworkProtocol PRIVATE SimpleNetworkProtocolLib)
 if(LINUX)
-  target_link_libraries(SimpleNetworkProtocol PRIVATE FileSystem)
-endif()
-target_link_options(SimpleNetworkProtocol PRIVATE -static-libgcc -static-libstdc++)
+  # The server binary links only common+server archives — there is no
+  # libfuse3 dependency on this side. The client binary links common+client
+  # archives, which pull in libfuse3 via FileSystemClient.
+  add_executable(SimpleNetworkProtocolServer main_server.cpp)
+  target_link_libraries(SimpleNetworkProtocolServer PRIVATE
+    SimpleNetworkProtocolLib
+    "$<LINK_GROUP:RESCAN,ProtocolCommon,ProtocolServer,FileSystemCommon,FileSystemServer>")
+  target_link_options(SimpleNetworkProtocolServer PRIVATE -static-libgcc -static-libstdc++)
+  if(ENABLE_PRECOMPILE_HEADERS)
+    target_precompile_headers(SimpleNetworkProtocolServer PRIVATE pch.hpp)
+  endif()
 
-if(ENABLE_PRECOMPILE_HEADERS)
-    target_precompile_headers(SimpleNetworkProtocol PRIVATE pch.hpp)
+  add_executable(SimpleNetworkProtocolClient main_client.cpp)
+  target_link_libraries(SimpleNetworkProtocolClient PRIVATE
+    SimpleNetworkProtocolLib
+    "$<LINK_GROUP:RESCAN,ProtocolCommon,ProtocolClient,FileSystemCommon,FileSystemClient>")
+  target_link_options(SimpleNetworkProtocolClient PRIVATE -static-libgcc -static-libstdc++)
+  if(ENABLE_PRECOMPILE_HEADERS)
+    target_precompile_headers(SimpleNetworkProtocolClient PRIVATE pch.hpp)
+  endif()
 endif()
 
 
@@ -112,7 +135,8 @@ if(ENABLE_TESTS)
     GTest::gmock_main
   )
   if(LINUX)
-  target_link_libraries(SimpleNetworkProtocolTest PRIVATE FileSystem)
+  target_link_libraries(SimpleNetworkProtocolTest PRIVATE
+    "$<LINK_GROUP:RESCAN,ProtocolCommon,ProtocolServer,ProtocolClient,FileSystemCommon,FileSystemServer,FileSystemClient>")
 endif()
   if(NOT TSAN_ACTIVE AND NOT ASAN_ACTIVE AND NOT UBSAN_ACTIVE)
     target_link_options(SimpleNetworkProtocolTest

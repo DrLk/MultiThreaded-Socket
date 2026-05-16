@@ -9,6 +9,9 @@ RUN dnf install -y \
     gcc \
     gcc-c++ \
     libstdc++-static \
+    libtsan \
+    libasan \
+    libubsan \
     clang \
     clang-tools-extra \
     lld \

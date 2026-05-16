@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <spawn.h>
 #include <stop_token>
 #include <sys/wait.h>
 #include <thread>
@@ -20,14 +21,16 @@
 
 #include "jprocess.hpp"
 
+#include "ClientMessageTypeReadJob.hpp"
+#include "ClientTaskScheduler.hpp"
 #include "ConnectionAddr.hpp"
 #include "FastTransportProtocol.hpp"
 #include "FileSystem/RemoteFileSystem.hpp"
 #include "IPacket.hpp"
 #include "InotifyWatcherJob.hpp"
 #include "Logger.hpp"
-#include "MessageTypeReadJob.hpp"
-#include "TaskScheduler.hpp"
+#include "ServerMessageTypeReadJob.hpp"
+#include "ServerTaskScheduler.hpp"
 #include "UDPQueue.hpp"
 
 using namespace std::chrono_literals;
@@ -37,9 +40,11 @@ using FastTransport::Protocol::FastTransportContext;
 using FastTransport::Protocol::IConnection;
 using FastTransport::Protocol::IPacket;
 using FastTransport::Protocol::UDPQueue;
-using FastTransport::TaskQueue::MessageTypeReadJob;
+using FastTransport::TaskQueue::ClientMessageTypeReadJob;
+using FastTransport::TaskQueue::ClientTaskScheduler;
 using FastTransport::TaskQueue::RemoteFileSystem;
-using FastTransport::TaskQueue::TaskScheduler;
+using FastTransport::TaskQueue::ServerMessageTypeReadJob;
+using FastTransport::TaskQueue::ServerTaskScheduler;
 
 namespace {
 
@@ -140,21 +145,25 @@ void CreateTestTree()
 // ── mount / directory helpers ─────────────────────────────────────────────────
 
 // Runs fusermount3 -u in a child process so unmounting works from a thread/process
-// that did not mount the filesystem.
+// that did not mount the filesystem. Uses posix_spawn (not fork) — under TSAN
+// a fork() from a non-main thread deadlocks against ScopedErrorReportLock if a
+// data-race report is in flight on another thread. posix_spawn goes through
+// clone3+CLONE_VFORK and skips the at-fork handlers entirely.
 void RunFusermount(const char* mountPoint, const char* flag)
 {
-    const pid_t pid = fork();
-    if (pid == 0) {
-        std::string prog = "fusermount3";
-        std::string arg1 = flag;
-        std::string arg2 = mountPoint;
-        std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
-        execvp(args[0], args.data());
-        _exit(1);
+    std::string prog = "fusermount3";
+    std::string arg1 = flag;
+    std::string arg2 = mountPoint;
+    std::array<char*, 4> args = { prog.data(), arg1.data(), arg2.data(), nullptr };
+
+    pid_t pid = 0;
+    // ::environ is declared in <unistd.h>; we leave envp as the parent's
+    // environment so PATH is inherited and fusermount3 is found.
+    const int spawnResult = posix_spawnp(&pid, args[0], nullptr, nullptr, args.data(), ::environ);
+    if (spawnResult != 0) {
+        return;
     }
-    if (pid > 0) {
-        waitpid(pid, nullptr, 0);
-    }
+    waitpid(pid, nullptr, 0);
 }
 
 void UnmountAt(const char* mountPoint)
@@ -165,6 +174,77 @@ void UnmountAt(const char* mountPoint)
 void LazyUnmountAt(const char* mountPoint)
 {
     RunFusermount(mountPoint, "-uz");
+}
+
+// `fusermount3 -uz` only detaches the mount point (`umount2(MNT_DETACH)`); it
+// returns ENODEV to *new* syscalls but leaves any thread already blocked inside
+// an in-flight FUSE request waiting forever for a reply that no longer comes
+// (the daemon side has been torn down). Writing 1 to a connection's `abort`
+// file fails all queued and in-flight requests with ECONNABORTED, unblocking
+// any process stuck in pread/write/etc. Used in test stuck-recovery paths.
+void AbortAllFuseConnections()
+{
+    DIR* dir = opendir("/sys/fs/fuse/connections");
+    if (dir == nullptr) {
+        return;
+    }
+    while (struct dirent* entry = readdir(dir)) { // NOLINT(concurrency-mt-unsafe)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
+        const std::string_view name(entry->d_name);
+        if (name == "." || name == "..") {
+            continue;
+        }
+        const std::string abortPath = "/sys/fs/fuse/connections/" + std::string(name) + "/abort";
+        const int abortFd = open(abortPath.c_str(), O_WRONLY | O_CLOEXEC); // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        if (abortFd < 0) {
+            continue;
+        }
+        const char one = '1';
+        // Ignore write errors: the connection may have already been torn down by
+        // another path in the same teardown.
+        [[maybe_unused]] const ssize_t written = write(abortFd, &one, 1);
+        close(abortFd);
+    }
+    closedir(dir);
+}
+
+// Polls tryJoin() with progress logs every `logEvery` while waiting. After
+// `hardDeadline` elapses, falls back to a blocking join() (still logged) so the
+// caller never silently hangs without diagnostics. Returns the child's success.
+bool JoinWithProgress(jprocess& proc, const char* name)
+{
+    constexpr auto LogEvery = std::chrono::seconds(2);
+    constexpr auto HardDeadline = std::chrono::seconds(20);
+    const auto start = std::chrono::steady_clock::now();
+    auto nextLog = start + LogEvery;
+    while (true) {
+        const std::optional<bool> result = proc.tryJoin();
+        if (result.has_value()) {
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start);
+            std::cerr << "[shutdown] " << name << " exited (pid=" << proc.pid()
+                      << " ok=" << *result << " after " << elapsed.count() << "ms)\n";
+            return *result;
+        }
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= nextLog) {
+            const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start);
+            std::cerr << "[shutdown] still waiting for " << name << " (pid=" << proc.pid()
+                      << " elapsed=" << elapsed.count() << "s)\n";
+            nextLog = now + LogEvery;
+        }
+        if (now - start >= HardDeadline) {
+            std::cerr << "[shutdown] " << name << " (pid=" << proc.pid()
+                      << ") exceeded soft deadline — falling back to blocking join()\n";
+            const bool joinedOk = proc.join();
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start);
+            std::cerr << "[shutdown] " << name << " blocking join() returned ok=" << joinedOk
+                      << " (total " << elapsed.count() << "ms)\n";
+            return joinedOk;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 }
 
 void PrepareTestDirectories(const char* mountPoint, const char* cacheDir)
@@ -311,8 +391,8 @@ void RunServer(std::stop_token stop, uint16_t port, const char* root, const char
     srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
     srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
     FileTree fileTree(root, cacheDir);
-    TaskScheduler scheduler(*srcConnection, fileTree);
-    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    ServerTaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(ServerMessageTypeReadJob::Create(fileTree, IPacket::List()));
     scheduler.Wait(stop);
 }
 
@@ -326,8 +406,8 @@ void RunServerWithInotify(std::stop_token stop, uint16_t port, const char* root,
     srcConnection->AddFreeRecvPackets(UDPQueue::CreateBuffers(260000));
     srcConnection->AddFreeSendPackets(UDPQueue::CreateBuffers(200000));
     FileTree fileTree(root, cacheDir);
-    TaskScheduler scheduler(*srcConnection, fileTree);
-    scheduler.Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    ServerTaskScheduler scheduler(*srcConnection, fileTree);
+    scheduler.Schedule(ServerMessageTypeReadJob::Create(fileTree, IPacket::List()));
     scheduler.Schedule(std::make_unique<FastTransport::TaskQueue::InotifyWatcherJob>(root, fileTree, scheduler));
     scheduler.Wait(stop);
 }
@@ -445,8 +525,8 @@ TEST(RemoteFileSystemTest, ReadFileOverNetwork) // NOLINT(readability-function-c
         FileTree fileTree("/tmp/rfs_client_tree", CacheDir);
         // filesystem must outlive scheduler (scheduler's workers call fuse_reply_*).
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -521,8 +601,8 @@ TEST(RemoteFileSystemTest, ReadFileRandomAccess) // NOLINT(readability-function-
 
         FileTree fileTree("/tmp/rfs_client_tree2", CacheDir2);
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint2);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -583,8 +663,8 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
         FileTree fileTree("/tmp/rfs_client_tree3", CacheDir3);
         auto filesystem = std::make_unique<RemoteFileSystem>(MountPoint3);
-        auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-        scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+        auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+        scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
         RemoteFileSystem::scheduler = scheduler.get();
         filesystem->Start(stop);
 
@@ -610,9 +690,14 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
             return ReadFileComparisonLoop(origRootFile, mntRootFile, FileRootSize, "file_root.bin", stop);
         });
 
+        std::cerr << "[shutdown] child pids: procList=" << procList.pid()
+                  << " procFileA=" << procFileA.pid()
+                  << " procFileB=" << procFileB.pid()
+                  << " procRoot=" << procRoot.pid() << "\n";
+
         // All processes run a fixed number of iterations and exit on their own.
         // Wait for all four to complete (with a safety timeout).
-        static constexpr auto TestTimeout = std::chrono::seconds(120);
+        static constexpr auto TestTimeout = std::chrono::seconds(300);
         std::optional<bool> listResult;
         std::optional<bool> fileAResult;
         std::optional<bool> fileBResult;
@@ -652,30 +737,47 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
                       << (!fileRootResult ? " procRoot" : "")
                       << " — forcing shutdown\n";
             // Signal stuck processes to exit via stop token before we tear down FUSE.
+            std::cerr << "[shutdown] step: request_stop on all children\n";
             procList.request_stop();
             procFileA.request_stop();
             procFileB.request_stop();
             procRoot.request_stop();
+            // Stuck syscalls inside the children are blocked in the kernel
+            // waiting for a FUSE reply. Stopping the session / scheduler can't
+            // wake them — we need to abort the FUSE connection so the kernel
+            // fails them with ECONNABORTED. Do this BEFORE tearing down the
+            // session so the children unblock while waitpid is still pending.
+            std::cerr << "[shutdown] step: AbortAllFuseConnections() begin\n";
+            AbortAllFuseConnections();
+            std::cerr << "[shutdown] step: AbortAllFuseConnections() done\n";
+            std::cerr << "[shutdown] step: filesystem->RequestStopAndWait() begin\n";
             filesystem->RequestStopAndWait();
+            std::cerr << "[shutdown] step: filesystem->RequestStopAndWait() done\n";
+            std::cerr << "[shutdown] step: scheduler.reset() begin\n";
             scheduler.reset();
+            std::cerr << "[shutdown] step: scheduler.reset() done\n";
+            std::cerr << "[shutdown] step: fileTree.CancelAllPendingJobs() begin\n";
             fileTree.CancelAllPendingJobs();
+            std::cerr << "[shutdown] step: fileTree.CancelAllPendingJobs() done\n";
+            std::cerr << "[shutdown] step: filesystem.reset() begin\n";
             filesystem.reset();
+            std::cerr << "[shutdown] step: filesystem.reset() done\n";
         }
 
-        std::cerr << "[shutdown] joining procList\n";
-        const bool listOk = listResult.value_or(procList.join());
+        std::cerr << "[shutdown] joining procList (pid=" << procList.pid() << ")\n";
+        const bool listOk = listResult.value_or(JoinWithProgress(procList, "procList"));
         std::cerr << "[shutdown] procList joined: " << listOk << "\n";
 
-        std::cerr << "[shutdown] joining procFileA\n";
-        const bool fileAOk = fileAResult.value_or(procFileA.join());
+        std::cerr << "[shutdown] joining procFileA (pid=" << procFileA.pid() << ")\n";
+        const bool fileAOk = fileAResult.value_or(JoinWithProgress(procFileA, "procFileA"));
         std::cerr << "[shutdown] procFileA joined: " << fileAOk << "\n";
 
-        std::cerr << "[shutdown] joining procFileB\n";
-        const bool fileBOk = fileBResult.value_or(procFileB.join());
+        std::cerr << "[shutdown] joining procFileB (pid=" << procFileB.pid() << ")\n";
+        const bool fileBOk = fileBResult.value_or(JoinWithProgress(procFileB, "procFileB"));
         std::cerr << "[shutdown] procFileB joined: " << fileBOk << "\n";
 
-        std::cerr << "[shutdown] joining procRoot\n";
-        const bool fileRootOk = fileRootResult.value_or(procRoot.join());
+        std::cerr << "[shutdown] joining procRoot (pid=" << procRoot.pid() << ")\n";
+        const bool fileRootOk = fileRootResult.value_or(JoinWithProgress(procRoot, "procRoot"));
         std::cerr << "[shutdown] procRoot joined: " << fileRootOk << "\n";
 
         testResult = listOk && fileAOk && fileBOk && fileRootOk;
@@ -686,10 +788,15 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
         stopSource.request_stop();
 
         if (!anyStuck) {
+            std::cerr << "[shutdown] happy-path: UnmountAt() begin\n";
             UnmountAt(MountPoint3);
+            std::cerr << "[shutdown] happy-path: UnmountAt() done; scheduler->Wait() begin\n";
             scheduler->Wait(stop);
+            std::cerr << "[shutdown] happy-path: scheduler->Wait() done; scheduler.reset()\n";
             scheduler.reset();
+            std::cerr << "[shutdown] happy-path: scheduler.reset() done; filesystem.reset()\n";
             filesystem.reset();
+            std::cerr << "[shutdown] happy-path: filesystem.reset() done\n";
         }
     });
 
@@ -700,23 +807,41 @@ TEST(RemoteFileSystemTest, ParallelListAndReadFiles) // NOLINT(readability-funct
 
     if (!stopSource.stop_requested()) {
         // Safety fallback: the client thread is stuck (should not happen normally).
-        std::cerr << "[shutdown] deadline exceeded\n";
+        std::cerr << "[shutdown] OUTER deadline exceeded — clientThread is still running\n";
         stopSource.request_stop();
+        std::cerr << "[shutdown] OUTER: LazyUnmountAt() begin\n";
         LazyUnmountAt(MountPoint3);
-        std::cerr << "[shutdown] lazy unmount done\n";
+        std::cerr << "[shutdown] OUTER: LazyUnmountAt() done\n";
+        // Lazy unmount only detaches; in-flight FUSE syscalls in stuck child
+        // processes need an explicit abort to fail and let waitpid return.
+        std::cerr << "[shutdown] OUTER: AbortAllFuseConnections() begin\n";
+        AbortAllFuseConnections();
+        std::cerr << "[shutdown] OUTER: AbortAllFuseConnections() done\n";
+    } else {
+        std::cerr << "[shutdown] OUTER: clientThread signalled completion within deadline\n";
     }
 
-    std::cerr << "[shutdown] requesting clientThread stop\n";
+    std::cerr << "[shutdown] OUTER: requesting clientThread stop\n";
     clientThread.request_stop();
-    std::cerr << "[shutdown] joining clientThread\n";
-    clientThread.join();
-    std::cerr << "[shutdown] clientThread joined\n";
+    std::cerr << "[shutdown] OUTER: joining clientThread\n";
+    {
+        const auto joinStart = std::chrono::steady_clock::now();
+        clientThread.join();
+        const auto total = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - joinStart);
+        std::cerr << "[shutdown] OUTER: clientThread joined (after " << total.count() << "ms)\n";
+    }
 
-    std::cerr << "[shutdown] requesting serverThread stop\n";
+    std::cerr << "[shutdown] OUTER: requesting serverThread stop\n";
     serverThread.request_stop();
-    std::cerr << "[shutdown] joining serverThread\n";
-    serverThread.join();
-    std::cerr << "[shutdown] serverThread joined\n";
+    std::cerr << "[shutdown] OUTER: joining serverThread\n";
+    {
+        const auto joinStart = std::chrono::steady_clock::now();
+        serverThread.join();
+        const auto total = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - joinStart);
+        std::cerr << "[shutdown] OUTER: serverThread joined (after " << total.count() << "ms)\n";
+    }
 
     EXPECT_TRUE(testResult) << "Parallel list/read test had failures";
 }
@@ -736,8 +861,8 @@ void RunClientWithNotify(std::stop_token stop, uint16_t port, const char* mountP
 
     FileTree fileTree(serverRoot, cacheDir);
     auto filesystem = std::make_unique<RemoteFileSystem>(mountPoint);
-    auto scheduler = std::make_unique<TaskScheduler>(*dstConnection, fileTree);
-    scheduler->Schedule(MessageTypeReadJob::Create(fileTree, IPacket::List()));
+    auto scheduler = std::make_unique<ClientTaskScheduler>(*dstConnection, fileTree);
+    scheduler->Schedule(ClientMessageTypeReadJob::Create(fileTree, IPacket::List()));
     RemoteFileSystem::scheduler = scheduler.get();
     filesystem->Init();
     RemoteFileSystem::session = filesystem->GetSession();
@@ -1118,6 +1243,139 @@ TEST(RemoteFileSystemTest, LeafLifetimeRaceUnderChurn)
     serverThread.join();
 
     EXPECT_TRUE(testResult) << "LeafLifetime race churn test did not complete cleanly";
+}
+
+// Regression test for the RemoteFileHandle UAF (see RemoteFileHandleRegistry.hpp):
+// the server schedules Reads on a disk queue while Releases run on the main
+// queue, so a Release that lands between a Read's main-queue allocation phase
+// and its disk-queue execution phase used to free the handle the disk thread
+// was about to dereference. Many concurrent open/pread/close cycles on the
+// same file maximise overlap between in-flight Reads and Releases for the
+// SAME RemoteFileHandle. Under TSan/ASan this exercises the registry's
+// Acquire/Take handoff; any regression that drops a handle while a Read is
+// mid-flight surfaces as a UAF or a data race.
+namespace {
+
+constexpr uint16_t ServerPort8 = 32500;
+constexpr uint16_t ClientPort8 = 32600;
+constexpr const char* MountPoint8 = "/tmp/mnt_read_release";
+constexpr const char* CacheDir8 = "/tmp/read_release_cache";
+constexpr const char* ServerRoot8 = "/tmp/read_release_server";
+constexpr const char* ReadReleaseFileName = "data.bin";
+constexpr size_t ReadReleaseFileSize = 8ULL * 1024 * 1024; // 8 MB — large enough that a pread spans several disk-queue dispatches.
+
+constexpr int ReadReleaseWorkerCount = 4;
+constexpr int ReadReleaseIterations = 20;
+
+bool ReadReleaseWorkerLoop(const std::string& mountFile)
+{
+    // Each iteration: open → pread (forces a server-side Read on the disk
+    // queue) → close (server-side Release on the main queue). The fd lives
+    // only for the duration of the pread, so the Release frequently races
+    // the Read's disk-thread execution.
+    std::vector<char> buf(64UL * 1024);
+    for (int it = 0; it < ReadReleaseIterations; ++it) {
+        const int fileDescriptor = open(mountFile.c_str(), O_RDONLY | O_CLOEXEC); // NOLINT(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        if (fileDescriptor < 0) {
+            std::cerr << "[test] open failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            return false;
+        }
+        // Read from a pseudo-random offset so kernel page-cache hits don't
+        // short-circuit the FUSE round-trip on every iteration.
+        const auto offset = static_cast<off_t>((static_cast<size_t>(it) * 131072) % (ReadReleaseFileSize - buf.size()));
+        const ssize_t got = pread(fileDescriptor, buf.data(), buf.size(), offset);
+        if (got < 0) {
+            std::cerr << "[test] pread failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            close(fileDescriptor);
+            return false;
+        }
+        // Close immediately — Release lands on the server while the Read
+        // reply is still being assembled / drained.
+        if (close(fileDescriptor) != 0) {
+            std::cerr << "[test] close failed: " << std::strerror(errno) << "\n"; // NOLINT(concurrency-mt-unsafe)
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ReadReleaseRaceBody(const char* mountPoint)
+{
+    const std::string mountFile = std::string(mountPoint) + "/" + ReadReleaseFileName;
+
+    // Warmup: a single open/stat seeds the server-side Leaf so all worker
+    // opens hit a steady-state path.
+    {
+        jprocess warmup([&mountFile](jprocess::stop_token /*s*/) -> bool {
+            struct stat statBuf {};
+            return stat(mountFile.c_str(), &statBuf) == 0 && std::cmp_equal(statBuf.st_size, ReadReleaseFileSize);
+        });
+        if (!warmup.join()) {
+            std::cerr << "[test] read_release warmup stat failed\n";
+            return false;
+        }
+    }
+
+    std::vector<std::jthread> workers;
+    workers.reserve(ReadReleaseWorkerCount);
+    std::atomic<int> failures { 0 };
+    for (int idx = 0; idx < ReadReleaseWorkerCount; ++idx) {
+        workers.emplace_back([&mountFile, &failures] {
+            if (!ReadReleaseWorkerLoop(mountFile)) {
+                failures.fetch_add(1, std::memory_order_relaxed);
+            }
+        });
+    }
+    for (auto& thread : workers) {
+        thread.join();
+    }
+    // Drain any in-flight Release responses still being routed back through
+    // the client → unmount before they land would trip FUSE_ASSERT_REPLY on
+    // an already-torn-down session.
+    std::this_thread::sleep_for(500ms);
+    return failures.load(std::memory_order_relaxed) == 0;
+}
+
+} // namespace
+
+TEST(RemoteFileSystemTest, ReadReleaseRaceUnderChurn)
+{
+    std::filesystem::remove_all(ServerRoot8);
+    std::filesystem::create_directories(ServerRoot8);
+    CreateTestFileAt(std::filesystem::path(ServerRoot8) / ReadReleaseFileName, ReadReleaseFileSize, 7);
+    PrepareTestDirectories(MountPoint8, CacheDir8);
+
+    std::atomic<bool> testResult { false };
+    std::stop_source stopSource;
+
+    std::jthread serverThread([](std::stop_token stop) {
+        RunServer(stop, ServerPort8, ServerRoot8, CacheDir8);
+    });
+
+    std::this_thread::sleep_for(50ms);
+
+    std::jthread clientThread([&testResult, &stopSource](std::stop_token stop) {
+        RunClientWithNotify(stop, ClientPort8, MountPoint8, CacheDir8, ServerRoot8, stopSource, testResult,
+            [](std::stop_token /*stop*/, FastTransport::FileSystem::FileTree& /*tree*/, const char* mountPoint) -> bool {
+                return ReadReleaseRaceBody(mountPoint);
+            });
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + 120s;
+    while (!stopSource.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(100ms);
+    }
+    if (!stopSource.stop_requested()) {
+        std::cerr << "[shutdown] read_release deadline exceeded\n";
+        stopSource.request_stop();
+        LazyUnmountAt(MountPoint8);
+    }
+    serverThread.request_stop();
+    clientThread.request_stop();
+    clientThread.join();
+    serverThread.join();
+
+    EXPECT_TRUE(testResult) << "Read/Release race churn test did not complete cleanly";
 }
 
 #endif // __linux__

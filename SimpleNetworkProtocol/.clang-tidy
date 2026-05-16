@@ -20,7 +20,8 @@ Checks:               '*,
                       -cert-dcl58-cpp,
                       -boost-use-ranges,
                       -llvm-prefer-static-over-anonymous-namespace,
-                      -readability-function-cognitive-complexity'
+                      -readability-function-cognitive-complexity,
+                      -fuchsia-virtual-inheritance'
 WarningsAsErrors:     '*'
 CheckOptions:
     - key:   performance-unnecessary-value-param.AllowedTypes

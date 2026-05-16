@@ -37,12 +37,7 @@ public:
     void ScheduleWriteNetworkJob(std::unique_ptr<FastTransport::TaskQueue::WriteNetworkJob>&& /*job*/) override { }
     void ScheduleReadNetworkJob(std::unique_ptr<FastTransport::TaskQueue::ReadNetworkJob>&& /*job*/) override { }
     void ScheduleDiskJob(std::unique_ptr<FastTransport::TaskQueue::DiskJob>&& /*job*/) override { }
-    void ScheduleFuseNetworkJob(std::unique_ptr<FastTransport::TaskQueue::FuseNetworkJob>&& /*job*/) override { }
-    void ScheduleResponseFuseNetworkJob(std::unique_ptr<FastTransport::TaskQueue::ResponseFuseNetworkJob>&& /*job*/) override { }
-    void ScheduleResponseReadDiskJob(std::unique_ptr<FastTransport::TaskQueue::ResponseReadFileJob>&& /*job*/) override { }
-    void ScheduleResponseInFuseNetworkJob(std::unique_ptr<FastTransport::TaskQueue::ResponseInFuseNetworkJob>&& /*job*/) override { }
     void ScheduleCacheTreeJob(std::unique_ptr<FastTransport::TaskQueue::CacheTreeJob>&& /*job*/) override { }
-    void ScheduleInotifyWatcherJob(std::unique_ptr<FastTransport::TaskQueue::InotifyWatcherJob>&& /*job*/) override { }
     void ReturnFreeDiskPackets(IPacket::List&& /*packets*/) override { }
 };
 // NOLINTEND(cppcoreguidelines-rvalue-reference-param-not-moved)

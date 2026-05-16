@@ -1,0 +1,45 @@
+#include "WriteFileCacheJob.hpp"
+#include <Tracy.hpp>
+
+#include <cstdint>
+#include <memory>
+
+#include "FileCache/FileCache.hpp"
+#include "FreeRecvPacketsJob.hpp"
+#include "ITaskScheduler.hpp"
+#include "Leaf.hpp"
+#include "Logger.hpp"
+#include "NativeFile.hpp"
+#include "PieceStatus.hpp"
+#include "PiecesStatus.hpp"
+
+#define TRACER() LOGGER() << "[WriteFileCacheJob] " // NOLINT(cppcoreguidelines-macro-usage)
+
+namespace FastTransport::FileCache {
+WriteFileCacheJob::WriteFileCacheJob(std::uint64_t inode, size_t size, off_t offset, Message&& data)
+    : _inode(inode)
+    , _size(size)
+    , _offset(offset)
+    , _data(std::move(data))
+{
+    assert(!_data.empty());
+}
+
+void WriteFileCacheJob::ExecuteCachedTree(TaskQueue::ITaskScheduler& scheduler, std::stop_token /*stop*/, FileTree& fileTree)
+{
+    ZoneScopedN("WriteFileCacheJob::ExecuteCachedTree");
+    TRACER() << "Execute"
+             << " inode=" << _inode
+             << " size=" << _size
+             << " offset=" << _offset
+             << " data.size=" << _data.size();
+
+    Leaf& leaf = GetLeaf(_inode, fileTree);
+    const FileSystem::NativeFile::Ptr file = fileTree.GetFileCache().GetFile(fileTree.GetCacheFolder() / leaf.GetCachePath());
+    file->Write(_data, _size, _offset);
+    assert(_size <= Leaf::BlockSize);
+    leaf.GetPiecesStatus()->SetStatus(_offset / Leaf::BlockSize, FileSystem::PieceStatus::OnDisk);
+    scheduler.ScheduleReadNetworkJob(std::make_unique<TaskQueue::FreeRecvPacketsJob>(std::move(_data)));
+}
+
+} // namespace FastTransport::FileCache
