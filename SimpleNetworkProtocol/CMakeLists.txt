@@ -95,7 +95,9 @@ if(LINUX)
   target_link_libraries(SimpleNetworkProtocolServer PRIVATE
     SimpleNetworkProtocolLib
     "$<LINK_GROUP:RESCAN,ProtocolCommon,ProtocolServer,FileSystemCommon,FileSystemServer>")
-  target_link_options(SimpleNetworkProtocolServer PRIVATE -static-libgcc -static-libstdc++)
+  if(NOT TSAN_ACTIVE AND NOT ASAN_ACTIVE AND NOT UBSAN_ACTIVE)
+    target_link_options(SimpleNetworkProtocolServer PRIVATE -static-libgcc -static-libstdc++)
+  endif()
   if(ENABLE_PRECOMPILE_HEADERS)
     target_precompile_headers(SimpleNetworkProtocolServer PRIVATE pch.hpp)
   endif()
@@ -104,7 +106,9 @@ if(LINUX)
   target_link_libraries(SimpleNetworkProtocolClient PRIVATE
     SimpleNetworkProtocolLib
     "$<LINK_GROUP:RESCAN,ProtocolCommon,ProtocolClient,FileSystemCommon,FileSystemClient>")
-  target_link_options(SimpleNetworkProtocolClient PRIVATE -static-libgcc -static-libstdc++)
+  if(NOT TSAN_ACTIVE AND NOT ASAN_ACTIVE AND NOT UBSAN_ACTIVE)
+    target_link_options(SimpleNetworkProtocolClient PRIVATE -static-libgcc -static-libstdc++)
+  endif()
   if(ENABLE_PRECOMPILE_HEADERS)
     target_precompile_headers(SimpleNetworkProtocolClient PRIVATE pch.hpp)
   endif()
